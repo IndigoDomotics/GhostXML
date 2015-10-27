@@ -1,0 +1,70 @@
+<?xml version="1.0"?>
+<Devices>
+
+  <Device
+    type="custom"
+    id="GhostXMLdevice">
+    <Name>GhostXML Device</Name>
+
+    <ConfigUI>
+      <Field
+        id="sourceXML"
+        type="textfield">
+        <Label>URL/Path to XML:</Label>
+      </Field>
+
+      <Field
+        id="label0"
+        type="label"
+        fontSize="small"
+        fontColor="black">
+        <Label></Label>
+      </Field>
+
+      <Field
+        id="label1"
+        type="label"
+        fontSize="small"
+        fontColor="black">
+        <Label>Examples:</Label>
+      </Field>
+
+      <Field
+        id="example1"
+        type="label"
+        fontSize="small"
+        fontColor="black">
+        <Label>           URL:  http://www.ip_address.com/filename.xml</Label>
+      </Field>
+
+      <Field
+        id="example2"
+        type="label"
+        fontSize="small"
+        fontColor="black">
+        <Label>   Local file:  file:///Users/user_name/folder_path/filename.xml</Label>
+      </Field>
+
+    </ConfigUI>
+
+    <States>
+      <State
+        id="deviceIsOnline">
+        <ValueType>Boolean</ValueType>
+        <TriggerLabel>Device online?</TriggerLabel>
+        <ControlPageLabel>Device online?</ControlPageLabel>
+      </State>
+
+      <State
+        id="deviceLastUpdated">
+        <ValueType>String</ValueType>
+        <TriggerLabel>Device Last Updated</TriggerLabel>
+        <ControlPageLabel>Device Last Updated</ControlPageLabel>
+      </State>
+    </States>
+
+    <UiDisplayStateId>deviceIsOnline</UiDisplayStateId>
+
+  </Device>
+
+</Devices>
