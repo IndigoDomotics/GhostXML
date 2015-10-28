@@ -1,12 +1,6 @@
 ghostXML Plugin ToDo
 
 ToDo:
-- If moved to a repo, delink anything from Dropbox.
-
-- If moved to a repo, move ToDo to the repo.
-
-- If moved to a repo, delink anything from Fogbert CFBundleIdentifier.
-
 - Change debug to new scalar.
 
 - Keep an eye on unicode snafus.
