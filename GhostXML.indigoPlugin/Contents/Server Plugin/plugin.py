@@ -39,7 +39,7 @@ class Plugin(indigo.PluginBase):
         self.deviceNeedsUpdated = ('')
         self.prefPollInterval = (int(self.pluginPrefs.get('configMenuPollInterval', 300)))
         self.prefServerTimeout = (int(self.pluginPrefs.get('configMenuServerTimeout', 15)))
-        self.updater = (indigoPluginUpdateChecker.updateChecker(self, "INSERT_URL_TO_UPDATER_HTML_FILE_HERE"))
+        self.updater = (indigoPluginUpdateChecker.updateChecker(self, "http://indigodomotics.github.io/GhostXML/ghostXML_version.html"))
         self.updaterEmailsEnabled = (self.pluginPrefs.get('updaterEmailsEnabled', False))
 
     def __del__(self):
