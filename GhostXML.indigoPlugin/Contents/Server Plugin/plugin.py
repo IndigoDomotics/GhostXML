@@ -228,7 +228,7 @@ class Plugin(indigo.PluginBase):
                 self.debugLog(u"%s - file retrieved." % dev.name)
                 dev.updateStateOnServer('deviceIsOnline', value=True, uiValue=" ")
                 self.debugLog(u"Returning self.xmlRawData:")
-                self.debugLog(unicode(self.xmlRawData))
+                self.debugLog(self.xmlRawData)
                 return self.xmlRawData
 
             except urllib2.HTTPError, e:
