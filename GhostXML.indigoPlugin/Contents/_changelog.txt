@@ -1,5 +1,9 @@
 ghostXML Change Log
 
+v0.2.01
+
+- Adds official URL for update checker.
+
 v0.1
 
-- 
+- Initial release.
