@@ -9,11 +9,13 @@ This plugin provides an XML engine which parses tag/value pairs into
 Indigo plugin device states.
 """
 
-import time
+import flatdict
 import indigoPluginUpdateChecker
 import iterateXML
 import re
+import simplejson
 import socket
+import time as t
 import urllib2
 
 # Establish default plugin prefs; create them if they don't already
@@ -21,10 +23,10 @@ import urllib2
 kDefaultPluginPrefs = {
     u'configMenuPollInterval': "300",  # Frequency of refreshes.
     u'configMenuServerTimeout': "15",  # Server timeout limit.
-    u'showDebugInfo': False,  # Verbose debug logging?
-    u'showDebugLevel': "Low",  # Low, Medium or High debug output.
-    u'updaterEmail': "",  # Email to notify of plugin updates.
-    u'updaterEmailsEnabled': False  # Notification of plugin updates wanted.
+    u'showDebugInfo': False,           # Verbose debug logging?
+    u'showDebugLevel': "1",            # Low, Medium or High debug output.
+    u'updaterEmail': "",               # Email to notify of plugin updates.
+    u'updaterEmailsEnabled': False     # Notification of plugin updates wanted.
     }
 
 
@@ -35,10 +37,10 @@ class Plugin(indigo.PluginBase):
         self.debugLog(u"Initializing OWServer plugin.")
 
         self.debug = (self.pluginPrefs.get('showDebugInfo', False))
-        self.debugLevel = (self.pluginPrefs.get('showDebugLevel', "Low"))
+        self.debugLevel = (self.pluginPrefs.get('showDebugLevel', "1"))
         self.deviceNeedsUpdated = ('')
-        self.prefPollInterval = (int(self.pluginPrefs.get('configMenuPollInterval', 300)))
-        self.prefServerTimeout = (int(self.pluginPrefs.get('configMenuServerTimeout', 15)))
+        self.prefPollInterval = (int(self.pluginPrefs.get('configMenuPollInterval', "300")))
+        self.prefServerTimeout = (int(self.pluginPrefs.get('configMenuServerTimeout', "15")))
         self.updater = (indigoPluginUpdateChecker.updateChecker(self, "http://indigodomotics.github.io/GhostXML/ghostXML_version.html"))
         self.updaterEmailsEnabled = (self.pluginPrefs.get('updaterEmailsEnabled', False))
 
@@ -47,13 +49,11 @@ class Plugin(indigo.PluginBase):
         indigo.PluginBase.__del__(self)
 
     def startup(self):
-        self.debugLog(u"Starting GhostXML.  startup() method called.")
+        self.debugLog(u"Starting GhostXML. startup() method called.")
 
-        # See if there is a plugin update and whether the user wants to
-        # be notified.
+        # See if there is a plugin update and whether the user wants to be notified.
         try:
             self.updater.checkVersionPoll()
-
         except Exception, e:
             self.errorLog(u"Update checker error: %s" % e)
 
@@ -88,7 +88,7 @@ class Plugin(indigo.PluginBase):
             else:
                 indigo.server.log(u"Debugging off.")
 
-            if self.pluginPrefs['showDebugLevel'] == "High":
+            if self.pluginPrefs['showDebugLevel'] >= "3":
                 self.debugLog(u"valuesDict: %s " % unicode(valuesDict))
 
         return True
@@ -135,35 +135,34 @@ class Plugin(indigo.PluginBase):
         return (True, valuesDict)
 
     def checkVersionNow(self):
-        # Called if user selects "Check For Plugin Updates..."
-        # Indigo menu item.
+        """
+        The checkVersionNow() method is called if user selects "Check
+        For Plugin Updates..." Indigo menu item.
+        """
         self.debugLog(u"checkVersionNow() method called.")
         self.updater.checkVersionNow()
 
     def getDeviceStateList(self, dev):
         """
-        This method pulls out all the keys in self.xmlDict and assigns
-        them to device states. It returns the modified stateList which
-        is then written back to the device in the main thread. This
-        method is automatically called by
+        The getDeviceStateList() method pulls out all the keys in
+        self.xmlDict and assigns them to device states. It returns the
+        modified stateList which is then written back to the device in
+        the main thread. This method is automatically called by
 
-                stateListOrDisplayStateIdChanged()
+            stateListOrDisplayStateIdChanged()
 
         and by Indigo when Triggers and Control Pages are built.
         """
         self.debugLog(u"getDeviceStateList() method called.")
 
         if self.deviceNeedsUpdated:
-
-            # This statement goes out and gets the existing state list
-            # for dev.
+            # This statement goes out and gets the existing state list for dev.
             self.debugLog(u"Pulling down existing state list.")
             stateList = indigo.PluginBase.getDeviceStateList(self, dev)
 
             if stateList is not None:
 
-                # Iterate the XML tags in xmlDict into device state
-                # keys.
+                # Iterate the XML tags in xmlDict into device state keys.
                 self.debugLog(u"  Writing dynamic states to device.")
                 for key in self.xmlDict.iterkeys():
 
@@ -186,94 +185,116 @@ class Plugin(indigo.PluginBase):
             # Iterate the device states into trigger and control page
             # labels when the device is called.
             for state in dev.states:
-
                 dynamicState = (self.getDeviceStateDictForStringType(state, state, state))
                 stateList.append(dynamicState)
 
             return stateList
 
-    def getXML(self, dev, xmlAddress):
+    def getTheData(self, dev):
         """
-        This method reaches out to the specified location, pulls down
-        the XML data, strips any XML namespace values, and loads it
-        into self.xmlRawData
+        The getTheData() method is used to retrieve target data files.
+        """
+        try:
+            socket.setdefaulttimeout(self.prefServerTimeout)
+            f = urllib2.urlopen(dev.pluginProps['sourceXML'])
+            root = str(f.read())
+            f.close()
+
+            return root
+                        
+        except urllib2.HTTPError, e:
+            dev.updateStateOnServer('deviceIsOnline', value=False, uiValue=" ")
+
+            self.errorLog(
+                u"%s - HTTP error getting source data. %s. Skipping until "
+                "next scheduled poll." % (dev.name, unicode(e)))
+            self.debugLog(
+                u"Device is offline. No XML to return. Returning dummy "
+                "dict:")
+            root = (
+                '<?xml version="1.0" encoding="UTF-8"?>''<Emptydict>'
+                '<Response>No XML to return.</Response></Emptydict>')
+            return root
+
+        except Exception, e:
+            dev.updateStateOnServer('deviceIsOnline', value=False, uiValue=" ")
+
+            self.errorLog(
+                u"%s - Error getting source data: %s. Skipping until next "
+                "scheduled poll." % (dev.name, unicode(e)))
+            self.debugLog(
+                u"Device is offline. No XML to return. Returning dummy "
+                "dict.")
+            if 'Connection refused' in unicode(e):
+                root = (
+                    '<?xml version="1.0" encoding="UTF-8"?><Emptydict>'
+                    '<Response>Connection refused.</Response></Emptydict>')
+            elif 'Network is unreachable' in unicode(e):
+                root = (
+                    '<?xml version="1.0" encoding="UTF-8"?><Emptydict>'
+                    '<Response>Network is unreachable.</Response>'
+                    '</Emptydict>')
+            else:
+                root = (
+                    '<?xml version="1.0" encoding="UTF-8"?><Emptydict>'
+                    '<Response>No XML to return.</Response></Emptydict>')
+            return root
+
+    def parseTheJSON(self, dev, root):
+        """
+        The parseTheJSON() method contains the steps to convert the
+        JSON file into a flat dict.
+        
+        http://github.com/gmr/flatdict
+        class flatdict.FlatDict(value=None, delimiter=None, former_type=<type 'dict'>)
+        """
+        try:
+            parsed_simplejson = simplejson.loads(root)
+            self.jsonRawData = flatdict.FlatDict(parsed_simplejson, delimiter='_')
+            return self.jsonRawData
+        except:
+            pass
+        
+    def parseTheXML(self, dev, root):
+        """
+        The parseTheXML() method strips any XML namespace values, and 
+        loads into self.xmlRawData.
         """
         self.debugLog(u"getXML() method called.")
 
-        if not xmlAddress:
-            self.errorLog(u"GhostXML requires a valid XML source file to do its job.")
-            self.errorLog(u"Please create a device and enter an XML source to continue.")
+        try:
+            # Remove namespace stuff if it's in there. There's
+            # probably a more comprehensive re.sub() that could be
+            # run, but it also could do *too* much. Think about
+            # moving this to the iterateXML module.
+            self.xmlRawData = ''
+            self.xmlRawData = re.sub(' xmlns="[^"]+"', '', root)
+            self.xmlRawData = re.sub(' xmlns:xsi="[^"]+"', '', self.xmlRawData)
+            self.xmlRawData = re.sub(' xmlns:xsd="[^"]+"', '', self.xmlRawData)
+            self.xmlRawData = re.sub(' xsi:noNamespaceSchemaLocation="[^"]+"', '', self.xmlRawData)
 
-        else:
-            self.debugLog(u"Grabbing XML data...")
-            self.debugLog(u"=========================================")
-            self.debugLog(u"XML source: %s" % xmlAddress)
+            self.debugLog(u"%s - file retrieved." % dev.name)
+            dev.updateStateOnServer('deviceIsOnline', value=True, uiValue=" ")
+            self.debugLog(u"Returning self.xmlRawData:")
+            self.debugLog(self.xmlRawData)  # This is the line I changed for Haavard.
+            return self.xmlRawData
 
-            try:
-                socket.setdefaulttimeout(self.prefServerTimeout)
-                f = urllib2.urlopen(xmlAddress)
-                root = str(f.read())
-                f.close()
+        except Exception, e:
+            dev.updateStateOnServer('deviceIsOnline', value=False, uiValue=" ")
 
-                # Remove namespace stuff if it's in there. There's
-                # probably a more comprehensive re.sub() that could be
-                # run, but it also could do *too* much. Think about
-                # moving this to the iterateXML module.
-                self.xmlRawData = ''
-                self.xmlRawData = re.sub(' xmlns="[^"]+"', '', root)
-                self.xmlRawData = re.sub(' xmlns:xsi="[^"]+"', '', self.xmlRawData)
-                self.xmlRawData = re.sub(' xmlns:xsd="[^"]+"', '', self.xmlRawData)
-                self.xmlRawData = re.sub(' xsi:noNamespaceSchemaLocation="[^"]+"', '', self.xmlRawData)
+            self.errorLog(
+                u"%s - Error getting source data: %s. Skipping until next "
+                "scheduled poll." % (dev.name, unicode(e)))
+            self.xmlRawData = (
+                '<?xml version="1.0" encoding="UTF-8"?><Emptydict>'
+                '<Response>No XML to return.</Response></Emptydict>')
 
-                self.debugLog(u"%s - file retrieved." % dev.name)
-                dev.updateStateOnServer('deviceIsOnline', value=True, uiValue=" ")
-                self.debugLog(u"Returning self.xmlRawData:")
-                self.debugLog(self.xmlRawData)
-                return self.xmlRawData
-
-            except urllib2.HTTPError, e:
-                dev.updateStateOnServer('deviceIsOnline', value=False, uiValue=" ")
-
-                self.errorLog(
-                    u"%s - HTTP error getting source data. %s. Skipping until "
-                    "next scheduled poll." % (dev.name, unicode(e)))
-                self.debugLog(
-                    u"Device is offline. No XML to return. Returning dummy "
-                    "dict:")
-                self.xmlRawData = (
-                    '<?xml version="1.0" encoding="UTF-8"?>''<Emptydict>'
-                    '<Response>No XML to return.</Response></Emptydict>')
-                return self.xmlRawData
-
-            except Exception, e:
-                dev.updateStateOnServer('deviceIsOnline', value=False, uiValue=" ")
-
-                self.errorLog(
-                    u"%s - Error getting source data: %s. Skipping until next "
-                    "scheduled poll." % (dev.name, unicode(e)))
-                self.debugLog(
-                    u"Device is offline. No XML to return. Returning dummy "
-                    "dict.")
-                if 'Connection refused' in unicode(e):
-                    self.xmlRawData = (
-                        '<?xml version="1.0" encoding="UTF-8"?><Emptydict>'
-                        '<Response>Connection refused.</Response></Emptydict>')
-                elif 'Network is unreachable' in unicode(e):
-                    self.xmlRawData = (
-                        '<?xml version="1.0" encoding="UTF-8"?><Emptydict>'
-                        '<Response>Network is unreachable.</Response>'
-                        '</Emptydict>')
-                else:
-                    self.xmlRawData = (
-                        '<?xml version="1.0" encoding="UTF-8"?><Emptydict>'
-                        '<Response>No XML to return.</Response></Emptydict>')
-
-                return self.xmlRawData
+            return self.xmlRawData
 
     def parseXMLStateValues(self, dev):
         """
-        This method walks through the XML dict and assigns the
-        corresponding value to each device state.
+        The parseXMLStateValues() method walks through the dict and
+        assigns the corresponding value to each device state.
         """
         self.debugLog(u"parseXMLStateValues() method called.")
 
@@ -290,7 +311,7 @@ class Plugin(indigo.PluginBase):
 
     def refreshDataAction(self, valuesDict):
         """
-        The  refreshDataAction() method refreshes data for all devices
+        The refreshDataAction() method refreshes data for all devices
         based on a plugin menu call. Note that the code in this method
         is generally the same as runConcurrentThread(). Changes
         reflected there may need to be added here as well.
@@ -302,6 +323,10 @@ class Plugin(indigo.PluginBase):
         return True
 
     def refreshDataMenu(self):
+        """
+        The refreshDataMenu() method is called by the GhostXML plugin
+        menu and calls for an instantaneous refresh of all devices.
+        """
         self.debugLog(u"refreshDataMenu() method called.")
 
         try:
@@ -318,12 +343,13 @@ class Plugin(indigo.PluginBase):
                         if dev.enabled:
                             self.debugLog(u"   %s is enabled." % dev.name)
 
-                            # Get the xml from the location from the
-                            # device props.
-                            self.getXML(dev, dev.pluginProps['sourceXML'])
+                            # Get the xml from the location from
+                            # the device props.
+                            self.xmlRawData = self.getTheData(dev)
+                            self.parseTheXML(dev, self.xmlRawData)
 
-                            # Throw the xml to the iterateXML module to do
-                            # some stuff.
+                            # Throw the xml to the iterateXML
+                            # module to do some stuff.
                             self.debugLog(u"iterateXML() module called.")
                             self.xmlDict = (iterateXML.iterateMain(self.xmlRawData))
 
@@ -331,16 +357,16 @@ class Plugin(indigo.PluginBase):
                             self.debugLog(u"Device needs updating set to: %s" % self.deviceNeedsUpdated)
                             dev.stateListOrDisplayStateIdChanged()
 
-                            # Put the final key/value pairs into device
-                            # states.
+                            # Put the final key/value pairs into
+                            # device states.
                             self.parseXMLStateValues(dev)
 
-                            update_time = time.strftime("%m/%d/%Y at %H:%M")
+                            update_time = t.strftime("%m/%d/%Y at %H:%M")
                             dev.updateStateOnServer('deviceLastUpdated', value=update_time)
-                            indigo.server.log(u"%s updated." % dev.name)
+                            self.debugLog(u"%s updated." % dev.name)
 
                         else:
-                            self.debugLog(unicode("    Disabled: %s" % dev.name))
+                            self.debugLog(unicode('    Disabled: %s' % dev.name))
                             dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="Disabled")
 
             else:
@@ -372,25 +398,22 @@ class Plugin(indigo.PluginBase):
                             if dev.enabled:
                                 self.debugLog(u"   %s is enabled." % dev.name)
 
-                                # Get the xml from the location from
-                                # the device props.
-                                self.getXML(dev, dev.pluginProps['sourceXML'])
+                                # Get the xml from the location from the device props.
+                                self.xmlRawData = self.getTheData(dev)
+                                self.parseTheXML(dev, self.xmlRawData)
 
-                                # Throw the xml to the iterateXML
-                                # module to do some stuff.
+                                # Throw the xml to the iterateXML module to do some stuff.
                                 self.debugLog(u"iterateXML() module called.")
-
                                 self.xmlDict = (iterateXML.iterateMain(self.xmlRawData))
 
                                 self.deviceNeedsUpdated = True
                                 self.debugLog(u"Device needs updating set to: %s" % self.deviceNeedsUpdated)
                                 dev.stateListOrDisplayStateIdChanged()
 
-                                # Put the final key/value pairs into
-                                # device states.
+                                # Put the final key/value pairs into device states.
                                 self.parseXMLStateValues(dev)
 
-                                update_time = time.strftime("%m/%d/%Y at %H:%M")
+                                update_time = t.strftime("%m/%d/%Y at %H:%M")
                                 dev.updateStateOnServer('deviceLastUpdated', value=update_time)
                                 self.debugLog(u"%s updated." % dev.name)
 
@@ -401,7 +424,7 @@ class Plugin(indigo.PluginBase):
                 else:
 
                     indigo.server.log(u"No GhostXML devices have been created.")
-
+                
                 self.sleep(self.prefPollInterval-5)
 
         except self.StopThread:

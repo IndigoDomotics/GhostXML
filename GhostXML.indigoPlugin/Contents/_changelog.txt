@@ -1,10 +1,5 @@
 ghostXML Change Log
 
-v0.2.01
-
-- Adds official URL for update checker.
-- Fixes Unicode error in getXML() method.
-
 v0.1
 
-- Initial release.
+- 

@@ -161,9 +161,9 @@ we subtract the 5 seconds from the default value.
     <Label>Debug level:</Label>
     <Description>Enable/Disable</Description>
     <List>
-      <Option value="Low">Low</Option>
-      <Option value="Medium">Medium</Option>
-      <Option value="High">High</Option>
+      <Option value="1">Low</Option>
+      <Option value="2">Medium</Option>
+      <Option value="3">High</Option>
     </List>
   </Field>
 
