@@ -27,7 +27,7 @@ kDefaultPluginPrefs = {
     u'showDebugLevel': "1",            # Low, Medium or High debug output.
     u'updaterEmail': "",               # Email to notify of plugin updates.
     u'updaterEmailsEnabled': False     # Notification of plugin updates wanted.
-    }
+}
 
 
 class Plugin(indigo.PluginBase):
@@ -71,7 +71,6 @@ class Plugin(indigo.PluginBase):
 
     def shutdown(self):
         self.debugLog(u"shutdown() method called.")
-        self.debugLog(u"Shutting down GhostXML plugin.")
 
     def closedPrefsConfigUi(self, valuesDict, userCancelled):
         self.debugLog(u"closedPrefsConfigUi() method called.")
@@ -140,7 +139,10 @@ class Plugin(indigo.PluginBase):
         For Plugin Updates..." Indigo menu item.
         """
         self.debugLog(u"checkVersionNow() method called.")
-        self.updater.checkVersionNow()
+        try:
+            self.updater.checkVersionPoll()
+        except Exception, e:
+            self.errorLog(u"Update checker error: %s" % e)
 
     def getDeviceStateList(self, dev):
         """
@@ -208,9 +210,7 @@ class Plugin(indigo.PluginBase):
             self.errorLog(
                 u"%s - HTTP error getting source data. %s. Skipping until "
                 "next scheduled poll." % (dev.name, unicode(e)))
-            self.debugLog(
-                u"Device is offline. No XML to return. Returning dummy "
-                "dict:")
+            self.debugLog(u"Device is offline. No XML to return. Returning dummy dict:")
             root = (
                 '<?xml version="1.0" encoding="UTF-8"?>''<Emptydict>'
                 '<Response>No XML to return.</Response></Emptydict>')
@@ -222,9 +222,7 @@ class Plugin(indigo.PluginBase):
             self.errorLog(
                 u"%s - Error getting source data: %s. Skipping until next "
                 "scheduled poll." % (dev.name, unicode(e)))
-            self.debugLog(
-                u"Device is offline. No XML to return. Returning dummy "
-                "dict.")
+            self.debugLog(u"Device is offline. No XML to return. Returning dummy dict.")
             if 'Connection refused' in unicode(e):
                 root = (
                     '<?xml version="1.0" encoding="UTF-8"?><Emptydict>'
@@ -276,7 +274,7 @@ class Plugin(indigo.PluginBase):
             self.debugLog(u"%s - file retrieved." % dev.name)
             dev.updateStateOnServer('deviceIsOnline', value=True, uiValue=" ")
             self.debugLog(u"Returning self.xmlRawData:")
-            self.debugLog(self.xmlRawData)  # This is the line I changed for Haavard.
+            self.debugLog(unicode(self.xmlRawData))
             return self.xmlRawData
 
         except Exception, e:
@@ -319,7 +317,6 @@ class Plugin(indigo.PluginBase):
         self.debugLog(u"refreshDataAction() method called.")
 
         self.refreshDataMenu()
-
         return True
 
     def refreshDataMenu(self):

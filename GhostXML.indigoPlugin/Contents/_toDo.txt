@@ -1,10 +1,6 @@
 ghostXML Plugin ToDo:
 
 ToDo:
-- If moved to a repo, move ToDo to the repo.
-
-- If moved to a repo, delink anything from Fogbert CFBundleIdentifier.
-
 - Keep an eye on unicode snafus.
 
 - Look at using Beautiful Soup. Would it be better at iterating the entire XML file??

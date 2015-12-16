@@ -1,15 +1,15 @@
 <?xml version="1.0"?>
 <MenuItems>
-    <MenuItem id="checkForUpdates">
-    	<Name>Check for Plugin Updates...</Name>
-    	<CallbackMethod>checkVersionNow</CallbackMethod>
-    </MenuItem>
-    <MenuItem id="refreshDataMenu">
-    	<Name>Refresh Data Now...</Name>
-    	<CallbackMethod>refreshDataMenu</CallbackMethod>
-    </MenuItem>
-    <MenuItem id="toggleDebug">
-    	<Name>Toggle Debugging</Name>
-    	<CallbackMethod>toggleDebugEnabled</CallbackMethod>
-    </MenuItem>
+  <MenuItem id="checkForUpdates">
+    <Name>Check for Plugin Updates...</Name>
+    <CallbackMethod>checkVersionNow</CallbackMethod>
+  </MenuItem>
+  <MenuItem id="refreshDataMenu">
+    <Name>Refresh Data Now...</Name>
+    <CallbackMethod>refreshDataMenu</CallbackMethod>
+  </MenuItem>
+  <MenuItem id="toggleDebug">
+    <Name>Toggle Debugging</Name>
+    <CallbackMethod>toggleDebugEnabled</CallbackMethod>
+  </MenuItem>
 </MenuItems>
