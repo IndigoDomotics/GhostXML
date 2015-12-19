@@ -10,7 +10,7 @@
       <Field
         id="sourceXML"
         type="textfield">
-        <Label>URL/Path to XML:</Label>
+        <Label>URL/Path:</Label>
       </Field>
 
       <Field

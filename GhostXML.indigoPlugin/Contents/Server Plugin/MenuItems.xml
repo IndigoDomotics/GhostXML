@@ -4,9 +4,9 @@
     <Name>Check for Plugin Updates...</Name>
     <CallbackMethod>checkVersionNow</CallbackMethod>
   </MenuItem>
-  <MenuItem id="refreshDataMenu">
+  <MenuItem id="refreshData">
     <Name>Refresh Data Now...</Name>
-    <CallbackMethod>refreshDataMenu</CallbackMethod>
+    <CallbackMethod>refreshData</CallbackMethod>
   </MenuItem>
   <MenuItem id="toggleDebug">
     <Name>Toggle Debugging</Name>

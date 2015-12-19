@@ -26,7 +26,7 @@
     type="label"
     fontSize="small"
     fontColor="black">
-    <Label>The amount of time that the plugin will wait between XML updates. This setting affects all plugin devices.</Label>
+    <Label>The amount of time that the plugin will wait between updates. This setting affects all plugin devices.</Label>
   </Field>
 
 <!--
@@ -38,18 +38,18 @@ we subtract the 5 seconds from the default value.
     id="configMenuPollInterval"
     type="menu"
     defaultValue="300"
-    tooltip="Select preference for how often the XML data will be refreshed.">
+    tooltip="Select preference for how often the data will be refreshed.">
     <Label>Polling Interval:</Label>
     <List>
-      <Option value="10">15 Seconds</Option>
-      <Option value="25">30 Seconds</Option>
-      <Option value="55">1 Minute</Option>
-      <Option value="115">2 Minutes</Option>
-      <Option value="295">5 Minutes</Option>
-      <Option value="895">15 Minutes</Option>
-      <Option value="3595">1 Hour</Option>
-      <Option value="14395">1 Hour</Option>
-      <Option value="86395">1 Day</Option>
+      <Option value="15">15 Seconds</Option>
+      <Option value="30">30 Seconds</Option>
+      <Option value="60">1 Minute</Option>
+      <Option value="120">2 Minutes</Option>
+      <Option value="300">5 Minutes</Option>
+      <Option value="900">15 Minutes</Option>
+      <Option value="3600">1 Hour</Option>
+      <Option value="14400">1 Hour</Option>
+      <Option value="86400">1 Day</Option>
     </List>
   </Field>
 
@@ -72,7 +72,7 @@ we subtract the 5 seconds from the default value.
     type="label"
     fontSize="small"
     fontColor="black">
-    <Label>The amount of time that the plugin will wait for each XML source to respond.</Label>
+    <Label>The amount of time that the plugin will wait for each source to respond.</Label>
   </Field>
 
   <Field
