@@ -9,6 +9,7 @@ This plugin provides an engine which parses tag/value pairs into
 transitive Indigo plugin device states.
 """
 
+import datetime
 import flatdict
 import indigoPluginUpdateChecker
 import iterateXML
@@ -213,14 +214,14 @@ class Plugin(indigo.PluginBase):
         """
         if self.debugLevel >= 2:
             self.debugLog(u"getTheData() method called.")
-        
+
         dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Download")
         try:
             # Initiate curl call to data source.
             url = dev.pluginProps['sourceXML']
             proc = subprocess.Popen(["curl", '-vs', url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             (result, err) = proc.communicate()
-                        
+
             if err:
                 if proc.returncode == 6:
 
@@ -233,11 +234,11 @@ class Plugin(indigo.PluginBase):
                     self.errorLog(u"  Your Indigo server can not reach the Internet.")
                     self.errorLog(u"  Your plugin is misconfigured.")
                     self.debugLog(err)
-                    root = ""
+                    result = ""
 
                 elif err != "":
                     self.debugLog(u"\n" + err)
-                    root = ""
+                    result = ""
 
             return result
 
@@ -253,7 +254,7 @@ class Plugin(indigo.PluginBase):
         """
         The parseTheJSON() method contains the steps to convert the
         JSON file into a flat dict.
-        
+
         http://github.com/gmr/flatdict
         class flatdict.FlatDict(value=None, delimiter=None, former_type=<type 'dict'>)
         """
@@ -264,11 +265,11 @@ class Plugin(indigo.PluginBase):
             self.jsonRawData = flatdict.FlatDict(parsed_simplejson, delimiter='_')
             return self.jsonRawData
         except Exception, e:
-            self.errorLog(str(e))
-        
+            self.errorLog(unicode(e))
+
     def stripNamespace(self, dev, root):
         """
-        The stripNamespace() method strips any XML namespace values, and 
+        The stripNamespace() method strips any XML namespace values, and
         loads into self.rawData.
         """
         if self.debugLevel >= 2:
@@ -353,17 +354,17 @@ class Plugin(indigo.PluginBase):
 
                             # Get the data.
                             self.rawData = self.getTheData(dev)
-                            
+
                             # Throw the data to the appropriate module to flatten it.
                             dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Processing")
                             if dev.pluginProps['sourceXML'].endswith('XML'.lower()):
                                 self.debugLog(u"Source file type: XML")
                                 self.rawData = self.stripNamespace(dev, self.rawData)
                                 self.finalDict = iterateXML.iterateMain(self.rawData)
-                                
+
                             elif dev.pluginProps['sourceXML'].endswith('JSON'.lower()):
                                 self.debugLog(u"Source file type: JSON")
-                                self.finalDict = self.parseTheJSON(dev, self.rawData)   
+                                self.finalDict = self.parseTheJSON(dev, self.rawData)
 
                             else:
                                 indigo.server.log(u"%s: The plugin only supports XML and JSON data sources." % dev.name)
