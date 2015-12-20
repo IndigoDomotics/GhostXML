@@ -234,11 +234,9 @@ class Plugin(indigo.PluginBase):
                     self.errorLog(u"  Your Indigo server can not reach the Internet.")
                     self.errorLog(u"  Your plugin is misconfigured.")
                     self.debugLog(err)
-                    result = ""
 
                 elif err != "":
                     self.debugLog(u"\n" + err)
-                    result = ""
 
             return result
 
@@ -413,11 +411,11 @@ class Plugin(indigo.PluginBase):
         if self.debugLevel >= 2:
             self.debugLog(u"indigoPluginUpdater() method called.")
 
-        self.updater.checkVersionPoll()
 
         try:
             while True:
                 self.sleep(5)
+                self.updater.checkVersionPoll()
                 self.refreshData()
 
                 startSleep = t.time()
