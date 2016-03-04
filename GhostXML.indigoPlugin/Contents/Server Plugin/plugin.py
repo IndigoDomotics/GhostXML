@@ -125,7 +125,7 @@ class Plugin(indigo.PluginBase):
             self.pluginPrefs['showDebugInfo'] = False
             indigo.server.log(u"Debugging off.")
 
-    def validatePrefsConfigUi(self, valuesDict, dev):
+    def validatePrefsConfigUi(self, valuesDict):
         if self.debugLevel >= 2:
             self.debugLog(u"validatePrefsConfigUi() method called.")
 
