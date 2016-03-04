@@ -1,5 +1,4 @@
 ghostXML Change Log
 
-v0.1
-
-- 
+v0.2.02
+- Fixes plugin config menu error.
