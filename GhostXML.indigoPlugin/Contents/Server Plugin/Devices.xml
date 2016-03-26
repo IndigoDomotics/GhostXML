@@ -42,10 +42,22 @@
         type="label"
         fontSize="small"
         fontColor="black">
-        <Label>   Local file:  file:///Users/user_name/folder_path/filename.xml</Label>
+        <Label>   Local file:  file:///Users/user_name/folder_path/filename.json</Label>
       </Field>
 
-    </ConfigUI>
+<!-- Refresh Interval -->
+    	<Field id="feedType"
+         type="menu"
+         defaultValue="XML"
+         tooltip="The type of feed you will be using.">
+	    	<Label>Feed Type:</Label>
+    		<List>
+    			<Option value="JSON">JSON</Option>
+    			<Option value="XML">XML</Option>
+    		</List>
+    	</Field>
+
+</ConfigUI>
 
     <States>
       <State
