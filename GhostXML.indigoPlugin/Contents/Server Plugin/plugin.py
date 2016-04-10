@@ -355,12 +355,12 @@ class Plugin(indigo.PluginBase):
 
                             # Throw the data to the appropriate module to flatten it.
                             dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Processing")
-                            if dev.pluginProps['feedType'] == XML:
+                            if dev.pluginProps['feedType'] == "XML":
                                 self.debugLog(u"Source file type: XML")
                                 self.rawData = self.stripNamespace(dev, self.rawData)
                                 self.finalDict = iterateXML.iterateMain(self.rawData)
 
-                            elif dev.pluginProps['feedType'] == JSON:
+                            elif dev.pluginProps['feedType'] == "JSON":
                                 self.debugLog(u"Source file type: JSON")
                                 self.finalDict = self.parseTheJSON(dev, self.rawData)
 
@@ -387,8 +387,9 @@ class Plugin(indigo.PluginBase):
 
             return True
 
-        except:
+        except Exception, e:
             self.errorLog(u"Error refreshing devices. Please check settings.")
+            self.errorLog(str(e))
             return False
 
     def stopSleep(self, startSleep):
