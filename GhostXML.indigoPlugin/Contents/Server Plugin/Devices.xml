@@ -46,16 +46,17 @@
       </Field>
 
 <!-- Refresh Interval -->
-    	<Field id="feedType"
-         type="menu"
-         defaultValue="XML"
-         tooltip="The type of feed you will be using.">
-	    	<Label>Feed Type:</Label>
-    		<List>
-    			<Option value="JSON">JSON</Option>
-    			<Option value="XML">XML</Option>
-    		</List>
-    	</Field>
+      <Field
+        id="feedType"
+        type="menu"
+        defaultValue="XML"
+        tooltip="The type of feed you will be using.">
+        <Label>Feed Type:</Label>
+        <List>
+            <Option value="JSON">JSON</Option>
+            <Option value="XML">XML</Option>
+        </List>
+      </Field>
 
 </ConfigUI>
 
