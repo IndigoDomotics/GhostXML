@@ -45,7 +45,7 @@
         <Label>   Local file:  file:///Users/user_name/folder_path/filename.json</Label>
       </Field>
 
-<!-- Refresh Interval -->
+<!-- FeedType -->
       <Field
         id="feedType"
         type="menu"
