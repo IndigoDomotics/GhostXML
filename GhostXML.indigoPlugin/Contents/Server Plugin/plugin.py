@@ -227,7 +227,7 @@ class Plugin(indigo.PluginBase):
 
                     f = open(self.logFile, 'a')
                     f.write(u"%s - Curl Return Code: %s\n%s \n" % (datetime.datetime.time(datetime.datetime.now()), proc.returncode, err))
-                    f.close
+                    f.close()
 
                     self.errorLog(u"Error: Could not resolve host. Possible causes:")
                     self.errorLog(u"  The data service is offline.")
@@ -235,8 +235,11 @@ class Plugin(indigo.PluginBase):
                     self.errorLog(u"  Your plugin is misconfigured.")
                     self.debugLog(err)
 
-                elif err != "":
-                    self.debugLog(u"\n" + err)
+                elif err is not 0:
+                    self.debugLog(err)
+                
+                else:
+                    pass
 
             return result
 
@@ -287,7 +290,7 @@ class Plugin(indigo.PluginBase):
             self.rawData = re.sub(' xsi:noNamespaceSchemaLocation="[^"]+"', '', self.rawData)
 
             if self.debugLevel >= 3:
-                self.debugLog(unicode(self.rawData))
+                self.debugLog(self.rawData)
             return self.rawData
 
         except Exception, e:
