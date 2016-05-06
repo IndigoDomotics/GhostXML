@@ -8,6 +8,16 @@ Author: See (repo)
 This plugin provides an engine which parses tag/value pairs into
 transitive Indigo plugin device states.
 """
+# TODO: Keep an eye on unicode snafus.
+# TODO: Look at using Beautiful Soup. Would it be better at iterating the entire XML file??
+# TODO: Get self.debugLog into iterateXML module.
+# TODO: Right now, there is only low(1) and high(3) debugging.
+# TODO: Why not add a refresh when a new device is added so that it doesn't have to wait until the next comprehensive refresh?
+# TODO: Move device refresh timing to the device config menu so that each device refreshes at its own rate?
+# TODO: Right now, everything is a string. Could we implement evaluation logic (i.e.): float(), int(), bool() before creating states and adding data?
+
+# Known Issues:
+# TODO: There are two instances of states that are defined in Devices.xml when called from Triggers and Control Pages.
 
 import datetime
 import flatdict
