@@ -28,6 +28,11 @@ import simplejson
 import subprocess
 import time as t
 
+try:
+    import indigo
+except:
+    pass
+
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
     u'configMenuPollInterval': "300",  # Frequency of refreshes.
@@ -76,7 +81,7 @@ class Plugin(indigo.PluginBase):
             self.debugLog(u"User prefs dialog cancelled.")
 
         if not userCancelled:
-            self.debug = valuesDict.get('showDebugInfo', False)
+            self.debug      = valuesDict.get('showDebugInfo', False)
             self.debugLevel = self.pluginPrefs.get('showDebugLevel', "1")
             self.debugLog(u"User prefs saved.")
 
@@ -139,30 +144,30 @@ class Plugin(indigo.PluginBase):
         if self.debugLevel >= 2:
             self.debugLog(u"validatePrefsConfigUi() method called.")
 
-        errorMsgDict = indigo.Dict()
-        updateEmail = valuesDict['updaterEmail']
-        updateWanted = valuesDict['updaterEmailsEnabled']
+        error_msg_dict = indigo.Dict()
+        update_email  = valuesDict['updaterEmail']
+        update_wanted = valuesDict['updaterEmailsEnabled']
 
         # Test plugin update notification settings.
         try:
-            if updateWanted and not updateEmail:
-                errorMsgDict['updaterEmail'] = u"If you want to be notified of updates, you must supply an email address."
-                return (False, valuesDict, errorMsgDict)
+            if update_wanted and not update_email:
+                error_msg_dict['updaterEmail'] = u"If you want to be notified of updates, you must supply an email address."
+                return False, valuesDict, error_msg_dict
 
-            elif updateWanted and "@" not in updateEmail:
-                errorMsgDict['updaterEmail'] = u"Valid email addresses have at leat one @ symbol in them (foo@bar.com)."
+            elif update_wanted and "@" not in update_email:
+                error_msg_dict['updaterEmail'] = u"Valid email addresses have at least one @ symbol in them (foo@bar.com)."
 
-                return (False, valuesDict, errorMsgDict)
+                return False, valuesDict, error_msg_dict
 
         except Exception, e:
             self.errorLog(u"Plugin configuration error: %s" % e)
 
-        return (True, valuesDict)
+        return True, valuesDict
 
     def checkVersionNow(self):
         """
-        The checkVersionNow() method is called if user selects "Check
-        For Plugin Updates..." Indigo menu item.
+        The checkVersionNow() method is called if user selects "Check For
+        Plugin Updates..." Indigo menu item.
         """
         if self.debugLevel >= 2:
             self.debugLog(u"checkVersionNow() method called.")
@@ -188,35 +193,35 @@ class Plugin(indigo.PluginBase):
         if self.deviceNeedsUpdated:
             # This statement goes out and gets the existing state list for dev.
             self.debugLog(u"Pulling down existing state list.")
-            stateList = indigo.PluginBase.getDeviceStateList(self, dev)
+            state_list = indigo.PluginBase.getDeviceStateList(self, dev)
 
-            if stateList is not None:
+            if state_list is not None:
 
-                # Iterate the tags in finalDict into device state keys.
+                # Iterate the tags in final_dict into device state keys.
                 self.debugLog(u"  Writing dynamic states to device.")
                 for key in self.finalDict.iterkeys():
 
-                    # Example: dynamicState =
+                    # Example: dynamic_state =
                     # self.getDeviceStateDictForStringType(key, u'Trigger Test Label', u'State Label')
-                    dynamicState = self.getDeviceStateDictForStringType(key, key, key)
-                    stateList.append(dynamicState)
+                    dynamic_state = self.getDeviceStateDictForStringType(key, key, key)
+                    state_list.append(dynamic_state)
 
             self.deviceNeedsUpdated = False
             self.debugLog(u"Device needs updating set to: %s" % self.deviceNeedsUpdated)
 
-            return stateList
+            return state_list
 
         else:
             self.debugLog(u"Device has been updated. Blow state list up to Trigger and Control Page labels.")
-            stateList = indigo.PluginBase.getDeviceStateList(self, dev)
+            state_list = indigo.PluginBase.getDeviceStateList(self, dev)
 
-            # Iterate the device states into trigger and control page
-            # labels when the device is called.
+            # Iterate the device states into trigger and control page labels
+            # when the device is called.
             for state in dev.states:
-                dynamicState = self.getDeviceStateDictForStringType(state, state, state)
-                stateList.append(dynamicState)
+                dynamic_state = self.getDeviceStateDictForStringType(state, state, state)
+                state_list.append(dynamic_state)
 
-            return stateList
+            return state_list
 
     def getTheData(self, dev):
         """
@@ -236,13 +241,13 @@ class Plugin(indigo.PluginBase):
                 if proc.returncode == 6:
 
                     f = open(self.logFile, 'a')
-                    f.write(u"%s - Curl Return Code: %s\n%s \n" % (datetime.datetime.time(datetime.datetime.now()), proc.returncode, err))
+                    f.write("%s - Curl Return Code: %s\n%s \n" % (datetime.datetime.time(datetime.datetime.now()), proc.returncode, err))
                     f.close()
 
                     self.errorLog(u"Error: Could not resolve host. Possible causes:")
                     self.errorLog(u"  The data service is offline.")
                     self.errorLog(u"  Your Indigo server can not reach the Internet.")
-                    self.errorLog(u"  Your plugin is misconfigured.")
+                    self.errorLog(u"  Your plugin is mis-configured.")
                     self.debugLog(err)
 
                 elif err is not 0:
@@ -263,8 +268,8 @@ class Plugin(indigo.PluginBase):
 
     def parseTheJSON(self, dev, root):
         """
-        The parseTheJSON() method contains the steps to convert the
-        JSON file into a flat dict.
+        The parseTheJSON() method contains the steps to convert the JSON file
+        into a flat dict.
 
         http://github.com/gmr/flatdict
         class flatdict.FlatDict(value=None, delimiter=None, former_type=<type 'dict'>)
@@ -273,15 +278,15 @@ class Plugin(indigo.PluginBase):
             self.debugLog(u"parseTheJSON() method called.")
         try:
             parsed_simplejson = simplejson.loads(root)
-            self.jsonRawData = flatdict.FlatDict(parsed_simplejson, delimiter='_')
+            self.jsonRawData  = flatdict.FlatDict(parsed_simplejson, delimiter='_')
             return self.jsonRawData
         except Exception, e:
             self.errorLog(unicode(e))
 
     def stripNamespace(self, dev, root):
         """
-        The stripNamespace() method strips any XML namespace values, and
-        loads into self.rawData.
+        The stripNamespace() method strips any XML namespace values, and loads
+        into self.rawData.
         """
         if self.debugLevel >= 2:
             self.debugLog(u"stripNamespace() method called.")
@@ -290,9 +295,9 @@ class Plugin(indigo.PluginBase):
             if root == "":
                 root = '<?xml version="1.0" encoding="UTF-8"?><Emptydict><Response>No data to return.</Response></Emptydict>'
 
-            # Remove namespace stuff if it's in there. There's probably
-            # a more comprehensive re.sub() that could be run, but it
-            # also could do *too* much.
+            # Remove namespace stuff if it's in there. There's probably a more
+            # comprehensive re.sub() that could be run, but it also could do
+            # *too* much.
             self.rawData = ''
             self.rawData = re.sub(' xmlns="[^"]+"', '', root)
             self.rawData = re.sub(' xmlns:xsi="[^"]+"', '', self.rawData)
@@ -311,8 +316,8 @@ class Plugin(indigo.PluginBase):
 
     def parseStateValues(self, dev):
         """
-        The parseStateValues() method walks through the dict and
-        assigns the corresponding value to each device state.
+        The parseStateValues() method walks through the dict and assigns the
+        corresponding value to each device state.
         """
         if self.debugLevel >= 2:
             self.debugLog(u"parseStateValues() method called.")
@@ -334,8 +339,8 @@ class Plugin(indigo.PluginBase):
 
     def refreshDataAction(self, valuesDict):
         """
-        The refreshDataAction() method refreshes data for all devices
-        based on a plugin menu call.
+        The refreshDataAction() method refreshes data for all devices based on
+        a plugin menu call.
         """
         if self.debugLevel >= 2:
             self.debugLog(u"refreshDataAction() method called.")
@@ -344,8 +349,8 @@ class Plugin(indigo.PluginBase):
 
     def refreshData(self):
         """
-        The refreshData() method is controls the updating of all
-        plugin devices.
+        The refreshData() method is controls the updating of all plugin
+        devices.
         """
         if self.debugLevel >= 2:
             self.debugLog(u"refreshData() method called.")
@@ -405,19 +410,17 @@ class Plugin(indigo.PluginBase):
             self.errorLog(str(e))
             return False
 
-    def stopSleep(self, startSleep):
-        '''
-        The stopSleep() method accounts for changes to the user
-        upload interval preference. The plugin checks every 2 seconds
-        to see if the sleep interval should be updated.
-        '''
+    def stopSleep(self, start_sleep):
+        """
+        The stopSleep() method accounts for changes to the user upload interval
+        preference. The plugin checks every 2 seconds to see if the sleep
+        interval should be updated.
+        """
         try:
-            # We subtract an additional 5 seconds to account for the 5
-            # second sleep at the start of runConcurrentThread.
-            totalSleep = float(self.pluginPrefs.get('configMenuUploadInterval', 300)) - 6
+            total_sleep = float(self.pluginPrefs.get('configMenuUploadInterval', 300))
         except:
-            totalSleep = iTimer
-        if t.time() - startSleep > totalSleep:
+            total_sleep = iTimer
+        if t.time() - start_sleep > total_sleep:
             return True
         return False
 
@@ -425,16 +428,16 @@ class Plugin(indigo.PluginBase):
         if self.debugLevel >= 2:
             self.debugLog(u"indigoPluginUpdater() method called.")
 
+        self.sleep(5)
 
         try:
             while True:
-                self.sleep(5)
                 self.updater.checkVersionPoll()
                 self.refreshData()
 
-                startSleep = t.time()
+                start_sleep = t.time()
                 while True:
-                    if self.stopSleep(startSleep):
+                    if self.stopSleep(start_sleep):
                         break
                     self.sleep(2)
 
