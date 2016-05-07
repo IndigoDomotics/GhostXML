@@ -1,4 +1,4 @@
 ghostXML Plugin
 
-TODO list depricated and integrated into plugin.py.
+TODO list deprecated and integrated into plugin.py.
 

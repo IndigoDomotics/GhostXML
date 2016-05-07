@@ -1,4 +1,11 @@
 ghostXML Change Log
 
+v0.2.04
+- Fixes bug where some Unicode sources could cause data download error ('ascii' codec can't decode).
+- Deprecates _toDo.txt file over embedded TODOs in the code.
+
+v0.2.03
+- Small update to correct fatal error in data typing.
+
 v0.2.02
 - Fixes plugin config menu error.
