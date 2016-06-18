@@ -14,6 +14,7 @@ transitive Indigo plugin device states.
 # TODO: Right now, there is only low(1) and high(3) debugging.
 # TODO: Why not add a refresh when a new device is added so that it doesn't have to wait until the next comprehensive refresh?
 # TODO: Move device refresh timing to the device config menu so that each device refreshes at its own rate?
+# TODO: Add individual device refresh actions so that a user can call for an individual device to be refreshed.
 # TODO: Right now, everything is a string. Could we implement evaluation logic (i.e.): float(), int(), bool() before creating states and adding data?
 
 # Known Issues:
