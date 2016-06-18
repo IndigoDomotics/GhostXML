@@ -1,5 +1,9 @@
 ghostXML Change Log
 
+v0.2.05
+- Adds a method, cleanTheKeys() which removes certain characters from dictionary key names that Indigo
+  cannot use for device state names.
+
 v0.2.04
 - Fixes bug where some Unicode sources could cause data download error ('ascii' codec can't decode).
 - Deprecates _toDo.txt file over embedded TODOs in the code.

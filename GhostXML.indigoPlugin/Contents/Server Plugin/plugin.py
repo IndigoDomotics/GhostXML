@@ -267,6 +267,17 @@ class Plugin(indigo.PluginBase):
             result = ""
             return result
 
+    def cleanTheKeys(self, input_data):
+        # Some dictionaries may have keys that contain problemeatic characters which Indigo doesn't like as state names.
+        # Let's get those characters out of there.
+        try:
+            chars_to_remove = set(['/', '(', ')'])
+            for key in input_data.iterkeys():
+                new_key = ''.join([c for c in key if c not in chars_to_remove])
+                self.jsonRawData[new_key] = self.jsonRawData.pop(key)
+        except Exception:
+            self.errorLog(u'Error cleaning dictionary keys.')
+
     def parseTheJSON(self, dev, root):
         """
         The parseTheJSON() method contains the steps to convert the JSON file
@@ -280,6 +291,7 @@ class Plugin(indigo.PluginBase):
         try:
             parsed_simplejson = simplejson.loads(root)
             self.jsonRawData  = flatdict.FlatDict(parsed_simplejson, delimiter='_')
+
             return self.jsonRawData
         except Exception, e:
             self.errorLog(unicode(e))
@@ -378,10 +390,12 @@ class Plugin(indigo.PluginBase):
                                 self.debugLog(u"Source file type: XML")
                                 self.rawData = self.stripNamespace(dev, self.rawData)
                                 self.finalDict = iterateXML.iterateMain(self.rawData)
+                                # self.cleanTheKeys(self.finalDict)
 
                             elif dev.pluginProps['feedType'] == "JSON":
                                 self.debugLog(u"Source file type: JSON")
                                 self.finalDict = self.parseTheJSON(dev, self.rawData)
+                                self.cleanTheKeys(self.finalDict)
 
                             else:
                                 indigo.server.log(u"%s: The plugin only supports XML and JSON data sources." % dev.name)
