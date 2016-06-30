@@ -58,6 +58,49 @@
         </List>
       </Field>
 
+<!-- RefreshFrequency -->
+      <Field
+        id="refreshFreq"
+        type="menu"
+        defaultValue="300"
+        tooltip="How often this feed should refresh.">
+        <Label>Refresh frequency:</Label>
+        <List>
+            <Option value="0">Manual refresh</Option>
+            <Option value="15">15 Seconds</Option>
+            <Option value="30">30 Seconds</Option>
+            <Option value="60">1 Minute</Option>
+            <Option value="120">2 Minutes</Option>
+            <Option value="300">5 Minutes</Option>
+            <Option value="900">15 Minutes</Option>
+            <Option value="3600">1 Hour</Option>
+            <Option value="14400">4 Hours</Option>
+            <Option value="86400">1 Day</Option>
+        </List>
+      </Field>
+
+<!-- Substitution -->
+      <Field id="doSubs" type="checkbox" defaultValue="false" tooltip="Would you like to use substitutions in this feed?">
+      <Label>Enable substitutions?:</Label>
+      <Description>Would you like to use variable substitutions in this feed's URL?</Description>
+      </Field>
+      <Field id="subA" type="textfield" tooltip="Enter or paste a variable ID here" visibleBindingId="doSubs" visibleBindingValue="true">
+        <Label>Variable A:</Label>
+      </Field>
+      <Field id="subB" type="textfield" tooltip="Enter or paste a variable ID here" visibleBindingId="doSubs" visibleBindingValue="true">
+        <Label>Variable B:</Label>
+      </Field>
+      <Field id="subC" type="textfield" tooltip="Enter or paste a variable ID here" visibleBindingId="doSubs" visibleBindingValue="true">
+        <Label>Variable C:</Label>
+      </Field>
+      <Field id="subD" type="textfield" tooltip="Enter or paste a variable ID here" visibleBindingId="doSubs" visibleBindingValue="true">
+        <Label>Variable D:</Label>
+      </Field>
+      <Field id="subE" type="textfield" tooltip="Enter or paste a variable ID here" visibleBindingId="doSubs" visibleBindingValue="true">
+        <Label>Variable E:</Label>
+      </Field>
+
+
 </ConfigUI>
 
     <States>
