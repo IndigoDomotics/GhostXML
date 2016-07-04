@@ -1,22 +1,30 @@
 ghostXML Change Log
 
+v0.3.01
+- Increases the plugin's ability to contend with certain characters that may be
+  present in JSON keys.
+
 v0.3.00
-- Introduces a new feature to allow Indigo substitutions into URLs (added by Howartp.)
+- Introduces a new feature to allow Indigo substitutions into URLs (added by
+  Howartp.)
 - Adds device refresh Action item (added by Howartp.)
 - Code stability enhancements.
 
 v0.2.06
-- Moves device refresh timing to the device config menu so that each device refreshes at its own rate
+- Moves device refresh timing to the device config menu so that each device
+  refreshes at its own rate
 - Adds action to allow refresh of individual feeds
 - Adds option for manually refreshing feeds (ie no timed auto-refresh)
-- Adds refresh when a new device is added - runs at next runConcurrentThread() loop (ie 5 seconds)
+- Adds refresh when a new device is added - runs at next runConcurrentThread()
+  loop (ie 5 seconds)
 
 v0.2.05
-- Adds a method, cleanTheKeys() which removes certain characters from dictionary key names that Indigo
-  cannot use for device state names.
+- Adds a method, cleanTheKeys() which removes certain characters from
+  dictionary key names that Indigo cannot use for device state names.
 
 v0.2.04
-- Fixes bug where some Unicode sources could cause data download error ('ascii' codec can't decode).
+- Fixes bug where some Unicode sources could cause data download error ('ascii'
+  codec can't decode).
 - Deprecates _toDo.txt file over embedded TODOs in the code.
 
 v0.2.03

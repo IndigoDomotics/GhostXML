@@ -309,6 +309,9 @@ class Plugin(indigo.PluginBase):
             for key in input_data.iterkeys():
                 new_key = ''.join([c for c in key if c not in chars_to_remove])
                 self.jsonRawData[new_key] = self.jsonRawData.pop(key)
+            for key in input_data.iterkeys():
+                new_key = key.replace('_ghostxml_', '_')
+                self.jsonRawData[new_key] = self.jsonRawData.pop(key)
         except Exception:
             self.errorLog(u'Error cleaning dictionary keys.')
 
@@ -325,7 +328,7 @@ class Plugin(indigo.PluginBase):
         try:
             parsed_simplejson = simplejson.loads(root)
             # self.errorLog(str(parsed_simplejson))
-            self.jsonRawData = flatdict.FlatDict(parsed_simplejson, delimiter='_')
+            self.jsonRawData = flatdict.FlatDict(parsed_simplejson, delimiter='_ghostxml_')
             return self.jsonRawData
         except Exception, e:
             self.errorLog(dev.name + ": " + unicode(e))
