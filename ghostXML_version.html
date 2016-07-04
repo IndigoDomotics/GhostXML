@@ -1,13 +1,15 @@
-Version: 0.3.00
+Version: 0.3.01
 EmailSubject: ghostXML Plugin - Update Available
 EmailBody: The ghostXML Plugin you are using has been updated.
 
 The changes:
 
-v0.3.00
-- Introduces a new feature to allow Indigo substitutions into URLs (added by Howartp.)
-- Adds device refresh Action item (added by Howartp.)
-- Code stability enhancements.
+Some JSON files contain an underscore character which caused problems when parsing the keys--this
+version should eliminate the conflict. If your GhostXML implementation is working well, there is 
+no need to apply this patch. 
+
+v0.3.01
+- Increases the plugin's ability to contend with certain characters that may be present in JSON keys.
 
 --> The update can be downloaded at the following link:
 --> https://github.com/IndigoDomotics/GhostXML/archive/master.zip
