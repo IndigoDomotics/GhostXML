@@ -12,7 +12,7 @@
 	<string>GhostXML</string>
 	<key>CFBundleName</key>
 	<string>GhostXML</string>
-	<key>CFBundleIdentifier</key>
+        <key>CFBundleIdentifier</key>
 	<string>com.fogbert.indigoplugin.GhostXML</string>
 	<key>CFBundleVersion</key>
 	<string>1.0.0</string>

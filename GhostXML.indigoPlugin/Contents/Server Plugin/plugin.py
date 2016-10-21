@@ -1,9 +1,9 @@
-#! /usr/bin/env python2.5
+#! /usr/bin/env python2.6
 # -*- coding: utf-8 -*-
 
 """
 GhostXML Plugin
-Author: See (repo)
+Authors: See (repo)
 
 This plugin provides an engine which parses tag/value pairs into
 transitive Indigo plugin device states.
@@ -13,9 +13,12 @@ transitive Indigo plugin device states.
 # TODO: Get self.debugLog into iterateXML module.
 # TODO: Right now, there is only low(1) and high(3) debugging.
 # TODO: Right now, everything is a string. Could we implement evaluation logic (i.e.): float(), int(), bool() before creating states and adding data?
+# TODO: Plugin version into firmware field?  Address field?
+# TODO: Place restrictions on methods?
 
 # Known Issues:
 # TODO: There are two instances of states that are defined in Devices.xml when called from Triggers and Control Pages.
+# TODO: When the plugin is up and running, disabled devices will sometimes show green icons in the Indigo UI.
 
 import datetime
 import flatdict
@@ -83,12 +86,12 @@ class Plugin(indigo.PluginBase):
             self.debugLog(u"User prefs saved.")
 
             if self.debug:
-                indigo.server.log(u"Debugging on (Level: %s)" % self.debugLevel)
+                indigo.server.log(u"Debugging on (Level: {0})".format(self.debugLevel))
             else:
                 indigo.server.log(u"Debugging off.")
 
             if int(self.pluginPrefs['showDebugLevel']) >= 3:
-                self.debugLog(u"valuesDict: %s " % unicode(valuesDict))
+                self.debugLog(u"valuesDict: {0} ".format(valuesDict))
 
         return True
 
@@ -107,6 +110,51 @@ class Plugin(indigo.PluginBase):
         indigo.server.log(u"Stopping GhostXML device: " + dev.name)
         dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="Disabled")
 
+    def runConcurrentThread(self):
+        if self.debugLevel >= 2:
+            self.debugLog(u"indigoPluginUpdater() method called.")
+
+        self.sleep(5)
+
+        try:
+            while True:
+                self.updater.checkVersionPoll()
+                # self.debugLog(u" ")
+                # self.debugLog(u" ")
+                # self.debugLog(u" ")
+                self.debugLog(u" ")
+
+                for dev in indigo.devices.itervalues(filter="self"):
+                    self.debugLog(u"{0}:".format(dev.name))
+                    # self.debugLog(len(dev.states))
+                    if "deviceTimestamp" in dev.states.iterkeys():
+                        if dev.states["deviceTimestamp"] == "":
+                            self.fixErrorState(dev)
+                            # if len(dev.states) <= 4:
+                            # self.debugLog(u"{0}:".format(dev.name))
+                            # self.debugLog(u"    State count is less than 4 - attempting refresh")
+                            # self.refreshDataForDev(dev)
+                        if int(dev.pluginProps["refreshFreq"]) == 0:
+                            # self.debugLog(u"{0}:".format(dev.name))
+                            self.debugLog(u"    Refresh frequency: {0} (Manual refresh only)".format(dev.pluginProps["refreshFreq"]))
+                        else:
+                            # self.debugLog(u"{0}:".format(dev.name))
+                            # self.debugLog(u"    Last Updated:      {0}".format(dev.states["deviceLastUpdated"]))
+                            # self.debugLog(u"    Timestamp:         {0}".format(dev.states["deviceTimestamp"]))
+                            # self.debugLog(u"    Refresh frequency: {0}".format(dev.pluginProps["refreshFreq"]))
+                            t_since_upd = int(t.time() - float(dev.states["deviceTimestamp"]))
+                            self.debugLog(u"    Time since update: {0}".format(t_since_upd))
+                            if int(t_since_upd) > int(dev.pluginProps["refreshFreq"]):
+                                self.debugLog(u"Time since update ({0}) is greater than configured frequency ({1})".format(t_since_upd, dev.pluginProps["refreshFreq"]))
+                                self.refreshDataForDev(dev)
+                    else:
+                        self.fixErrorState(dev)
+                self.sleep(5)
+
+        except self.StopThread:
+            self.debugLog(u'Fatal error. Stopping GhostXML thread.')
+            pass
+
     def shutdown(self):
         if self.debugLevel >= 2:
             self.debugLog(u"shutdown() method called.")
@@ -119,24 +167,7 @@ class Plugin(indigo.PluginBase):
         try:
             self.updater.checkVersionPoll()
         except Exception, e:
-            self.errorLog(u"Update checker error: %s" % e)
-
-    def toggleDebugEnabled(self):
-        """
-        Toggle debug on/off.
-        """
-        if self.debugLevel >= 2:
-            self.debugLog(u"toggleDebugEnabled() method called.")
-        if not self.debug:
-            self.debug = True
-            self.pluginPrefs['showDebugInfo'] = True
-            indigo.server.log(u"Debugging on.")
-            self.debugLog(u"Debug level: %s" % self.debugLevel)
-
-        else:
-            self.debug = False
-            self.pluginPrefs['showDebugInfo'] = False
-            indigo.server.log(u"Debugging off.")
+            self.errorLog(u"Update checker error: {0}".format(e))
 
     def validatePrefsConfigUi(self, valuesDict):
         if self.debugLevel >= 2:
@@ -158,7 +189,7 @@ class Plugin(indigo.PluginBase):
                 return False, valuesDict, error_msg_dict
 
         except Exception, e:
-            self.errorLog(u"Plugin configuration error: %s" % e)
+            self.errorLog(u"Plugin configuration error: {0}".format(e))
 
         return True, valuesDict
 
@@ -172,7 +203,15 @@ class Plugin(indigo.PluginBase):
         try:
             self.updater.checkVersionPoll()
         except Exception, e:
-            self.errorLog(u"Update checker error: %s" % e)
+            self.errorLog(u"Update checker error: {0}".format(e))
+
+    def fixErrorState(self, dev):
+        self.deviceNeedsUpdated = False
+        dev.stateListOrDisplayStateIdChanged()
+        update_time = t.strftime("%m/%d/%Y at %H:%M")
+        dev.updateStateOnServer('deviceLastUpdated', value=update_time)
+        dev.updateStateOnServer('deviceTimestamp', value=t.time())
+        dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Enabled")
 
     def getDeviceStateList(self, dev):
         """
@@ -220,15 +259,14 @@ class Plugin(indigo.PluginBase):
             ###########################
 
             self.deviceNeedsUpdated = False
-            self.debugLog(u"Device needs updating set to: %s" % self.deviceNeedsUpdated)
+            self.debugLog(u"Device needs updating set to: {0}".format(self.deviceNeedsUpdated))
             return state_list
 
         else:
             self.debugLog(u"Device has been updated. Blow state list up to Trigger and Control Page labels.")
             state_list = indigo.PluginBase.getDeviceStateList(self, dev)
 
-            # Iterate the device states into trigger and control page labels
-            # when the device is called.
+            # Iterate the device states into trigger and control page labels when the device is called.
             for state in dev.states:
                 dynamic_state = self.getDeviceStateDictForStringType(state, state, state)
                 state_list.append(dynamic_state)
@@ -257,17 +295,17 @@ class Plugin(indigo.PluginBase):
 
             ###########################
             # ADDED BY howartp 18/06/16
-            # Allows substitution of variable or device states into URL
-            # using a user-friendly version of the builtin Indigo substitution mechanism
+            # Allows substitution of variable or device states into URL using a user-friendly
+            # version of the builtin Indigo substitution mechanism
 
             if dev.pluginProps['doSubs']:
-                self.debugLog(u"Device & URL: %s @ %s  (before substitution)" % (dev.name, url))
+                self.debugLog(u"Device & URL: {0} @ {1}  (before substitution)".format(dev.name, url))
                 url = self.substitute(url.replace("[A]", "%%v:" + dev.pluginProps['subA'] + "%%"))
                 url = self.substitute(url.replace("[B]", "%%v:" + dev.pluginProps['subB'] + "%%"))
                 url = self.substitute(url.replace("[C]", "%%v:" + dev.pluginProps['subC'] + "%%"))
                 url = self.substitute(url.replace("[D]", "%%v:" + dev.pluginProps['subD'] + "%%"))
                 url = self.substitute(url.replace("[E]", "%%v:" + dev.pluginProps['subE'] + "%%"))
-                self.debugLog(u"Device & URL: %s @ %s  (after substitution)" % (dev.name, url))
+                self.debugLog(u"Device & URL: {0} @ {1}  (after substitution)".format(dev.name, url))
 
             proc = subprocess.Popen(["curl", '-vs', url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             (result, err) = proc.communicate()
@@ -276,7 +314,7 @@ class Plugin(indigo.PluginBase):
                 if proc.returncode == 6:
 
                     f = open(self.logFile, 'a')
-                    f.write("%s - Curl Return Code: %s\n%s \n" % (datetime.datetime.time(datetime.datetime.now()), proc.returncode, err))
+                    f.write("{0} - Curl Return Code: {1}\n{2} \n".format(datetime.datetime.time(datetime.datetime.now()), proc.returncode, err))
                     f.close()
 
                     self.errorLog(u"Error: Could not resolve host. Possible causes:")
@@ -295,7 +333,7 @@ class Plugin(indigo.PluginBase):
 
         except Exception, e:
 
-            self.errorLog(u"%s - Error getting source data: %s. Skipping until next scheduled poll." % (dev.name, unicode(e)))
+            self.errorLog(u"{0} - Error getting source data: {1}. Skipping until next scheduled poll.".format(dev.name, unicode(e)))
             self.debugLog(u"Device is offline. No data to return. Returning dummy dict.")
             dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No comm")
             result = ""
@@ -327,42 +365,11 @@ class Plugin(indigo.PluginBase):
             self.debugLog(u"parseTheJSON() method called.")
         try:
             parsed_simplejson = simplejson.loads(root)
-            # self.errorLog(str(parsed_simplejson))
+            # self.errorLog(unicode(parsed_simplejson))
             self.jsonRawData = flatdict.FlatDict(parsed_simplejson, delimiter='_ghostxml_')
             return self.jsonRawData
         except Exception, e:
             self.errorLog(dev.name + ": " + unicode(e))
-
-    def stripNamespace(self, dev, root):
-        """
-        The stripNamespace() method strips any XML namespace values, and loads
-        into self.rawData.
-        """
-        if self.debugLevel >= 2:
-            self.debugLog(u"stripNamespace() method called.")
-
-        try:
-            if root == "":
-                root = '<?xml version="1.0" encoding="UTF-8"?><Emptydict><Response>No data to return.</Response></Emptydict>'
-
-            # Remove namespace stuff if it's in there. There's probably a more
-            # comprehensive re.sub() that could be run, but it also could do
-            # *too* much.
-            self.rawData = ''
-            self.rawData = re.sub(' xmlns="[^"]+"', '', root)
-            self.rawData = re.sub(' xmlns:xsi="[^"]+"', '', self.rawData)
-            self.rawData = re.sub(' xmlns:xsd="[^"]+"', '', self.rawData)
-            self.rawData = re.sub(' xsi:noNamespaceSchemaLocation="[^"]+"', '', self.rawData)
-
-            if self.debugLevel >= 3:
-                self.debugLog(self.rawData)
-            return self.rawData
-
-        except Exception, e:
-            self.errorLog(u"%s - Error parsing source data: %s. Skipping until next scheduled poll." % (dev.name, unicode(e)))
-            self.rawData = '<?xml version="1.0" encoding="UTF-8"?><Emptydict><Response>No data to return.</Response></Emptydict>'
-            dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No data")
-            return self.rawData
 
     def parseStateValues(self, dev):
         """
@@ -377,13 +384,13 @@ class Plugin(indigo.PluginBase):
         for key in sorted_list:
             try:
                 if self.debugLevel >= 3:
-                    self.debugLog(u"   %s = %s" % (unicode(key), unicode(self.finalDict[key])))
+                    self.debugLog(u"   {0} = {1}".format(unicode(key), unicode(self.finalDict[key])))
                 dev.updateStateOnServer(unicode(key), value=unicode(self.finalDict[key]))
                 dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
                 dev.updateStateOnServer('deviceIsOnline', value=True, uiValue=" ")
 
             except Exception, e:
-                self.errorLog("Error parsing key/value pair: %s = %s. Reason: %s" % (unicode(key), unicode(self.finalDict[key]), e))
+                self.errorLog(u"Error parsing key/value pair: {0} = {1}. Reason: {2}".format(unicode(key), unicode(self.finalDict[key]), e))
                 dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
                 dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Error")
 
@@ -395,19 +402,6 @@ class Plugin(indigo.PluginBase):
         if self.debugLevel >= 2:
             self.debugLog(u"refreshDataAction() method called.")
         self.refreshData()
-        return True
-
-    def refreshDataForDevAction(self, valuesDict):
-        """
-        The refreshDataForDevAction() method refreshes data for a selected device based on
-        a plugin menu call.
-        """
-        if self.debugLevel >= 2:
-            self.debugLog(u"refreshDataForDevAction() method called.")
-
-        dev = indigo.devices[valuesDict.deviceId]
-
-        self.refreshDataForDev(dev)
         return True
 
     def refreshData(self):
@@ -433,21 +427,21 @@ class Plugin(indigo.PluginBase):
 
         except Exception, e:
             self.errorLog(u"Error refreshing devices. Please check settings.")
-            self.errorLog(str(e))
+            self.errorLog(unicode(e))
             return False
 
     def refreshDataForDev(self, dev):
         # ADDED BY howartp 18/06/16
-        # This was previously all inside refreshData() function
-        # Seperating it out allows devices to be refreshed individually
+        # This was previously all inside refreshData() function Separating it out allows devices
+        # to be refreshed individually
         if dev.configured:
-            self.debugLog(u"Found configured device: %s" % dev.name)
+            self.debugLog(u"Found configured device: {0}".format(dev.name))
 
             if dev.enabled:
-                self.debugLog(u"   %s is enabled." % dev.name)
+                self.debugLog(u"   {0} is enabled.".format(dev.name))
 
                 # Get the data.
-                self.debugLog(u"Refreshing device: %s" % dev.name)
+                self.debugLog(u"Refreshing device: {0}".format(dev.name))
                 self.rawData = self.getTheData(dev)
 
                 # Throw the data to the appropriate module to flatten it.
@@ -463,12 +457,12 @@ class Plugin(indigo.PluginBase):
                     self.cleanTheKeys(self.finalDict)
 
                 else:
-                    indigo.server.log(u"%s: The plugin only supports XML and JSON data sources." % dev.name)
+                    indigo.server.log(u"{0}: The plugin only supports XML and JSON data sources.".format(dev.name))
 
                 if self.finalDict is not None:
                     # Create the device states.
                     self.deviceNeedsUpdated = True
-                    self.debugLog(u"Device needs updating set to: %s" % self.deviceNeedsUpdated)
+                    self.debugLog(u"Device needs updating set to: {0}".format(self.deviceNeedsUpdated))
                     dev.stateListOrDisplayStateIdChanged()
 
                     # Put the final values into the device states.
@@ -479,16 +473,30 @@ class Plugin(indigo.PluginBase):
                     dev.updateStateOnServer('deviceTimestamp', value=t.time())
                     dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Enabled")
                     dev.setErrorStateOnServer(None)
-                    self.debugLog(u"%s updated." % dev.name)
+                    self.debugLog(u"{0} updated.".format(dev.name))
                 else:
-                    # Set the Timestamp so that the seconds-since-update code doesn't keep checking a dead
-                    # link / invalid URL every 5 seconds - it will keep checking on it's normal schedule.
-                    # BUT don't set the "lastUpdated" value so humans can see when it last successfully updated.
+                    # Set the Timestamp so that the seconds-since-update code doesn't keep checking
+                    # a dead link / invalid URL every 5 seconds - it will keep checking on it's
+                    # normal schedule. BUT don't set the "lastUpdated" value so humans can see when
+                    # it last successfully updated.
                     dev.updateStateOnServer('deviceTimestamp', value=t.time())
                     dev.setErrorStateOnServer("Error")
 
             else:
-                self.debugLog(unicode('    Disabled: %s' % dev.name))
+                self.debugLog(u"    Disabled: {0}".format(dev.name))
+
+    def refreshDataForDevAction(self, valuesDict):
+        """
+        The refreshDataForDevAction() method refreshes data for a selected device based on
+        a plugin menu call.
+        """
+        if self.debugLevel >= 2:
+            self.debugLog(u"refreshDataForDevAction() method called.")
+
+        dev = indigo.devices[valuesDict.deviceId]
+
+        self.refreshDataForDev(dev)
+        return True
 
     def stopSleep(self, start_sleep):
         """
@@ -499,60 +507,55 @@ class Plugin(indigo.PluginBase):
         try:
             total_sleep = float(self.pluginPrefs.get('configMenuUploadInterval', 300))
         except:
-            total_sleep = iTimer
+            total_sleep = iTimer  # TODO: Note variable iTimer is an unresolved reference.
         if t.time() - start_sleep > total_sleep:
             return True
         return False
 
-    def runConcurrentThread(self):
+    def stripNamespace(self, dev, root):
+        """
+        The stripNamespace() method strips any XML namespace values, and loads
+        into self.rawData.
+        """
         if self.debugLevel >= 2:
-            self.debugLog(u"indigoPluginUpdater() method called.")
-
-        self.sleep(5)
+            self.debugLog(u"stripNamespace() method called.")
 
         try:
-            while True:
-                self.updater.checkVersionPoll()
-                # self.debugLog(u" ")
-                # self.debugLog(u" ")
-                # self.debugLog(u" ")
-                self.debugLog(u" ")
+            if root == "":
+                root = '<?xml version="1.0" encoding="UTF-8"?><Emptydict><Response>No data to return.</Response></Emptydict>'
 
-                for dev in indigo.devices.itervalues(filter="self"):
-                    self.debugLog(u"%s:" % dev.name)
-                    # self.debugLog(len(dev.states))
-                    if "deviceTimestamp" in dev.states.iterkeys():
-                        if dev.states["deviceTimestamp"] == "":
-                            self.fixErrorState(dev)
-                            # if len(dev.states) <= 4:
-                            # self.debugLog(u"%s:" % dev.name)
-                            # self.debugLog(u"    State count is less than 4 - attempting refresh")
-                            # self.refreshDataForDev(dev)
-                        if int(dev.pluginProps["refreshFreq"]) == 0:
-                            # self.debugLog(u"%s:" % dev.name)
-                            self.debugLog(u"    Refresh frequency: %s (Manual refresh only)" % (dev.pluginProps["refreshFreq"]))
-                        else:
-                            # self.debugLog(u"%s:" % dev.name)
-                            # self.debugLog(u"    Last Updated:      %s" % (dev.states["deviceLastUpdated"]))
-                            # self.debugLog(u"    Timestamp:         %s" % (dev.states["deviceTimestamp"]))
-                            # self.debugLog(u"    Refresh frequency: %s" % (dev.pluginProps["refreshFreq"]))
-                            t_since_upd = int(t.time() - float(dev.states["deviceTimestamp"]))
-                            self.debugLog(u"    Time since update: %s" % t_since_upd)
-                            if int(t_since_upd) > int(dev.pluginProps["refreshFreq"]):
-                                self.debugLog(u"Time since update (%s) is greater than configured frequency (%s)" % (t_since_upd, dev.pluginProps["refreshFreq"]))
-                                self.refreshDataForDev(dev)
-                    else:
-                        self.fixErrorState(dev)
-                self.sleep(5)
+            # Remove namespace stuff if it's in there. There's probably a more comprehensive re.sub() that could be run,
+            # but it also could do *too* much.
+            self.rawData = ''
+            self.rawData = re.sub(' xmlns="[^"]+"', '', root)
+            self.rawData = re.sub(' xmlns:xsi="[^"]+"', '', self.rawData)
+            self.rawData = re.sub(' xmlns:xsd="[^"]+"', '', self.rawData)
+            self.rawData = re.sub(' xsi:noNamespaceSchemaLocation="[^"]+"', '', self.rawData)
 
-        except self.StopThread:
-            self.debugLog(u'Fatal error. Stopping GhostXML thread.')
-            pass
+            if self.debugLevel >= 3:
+                self.debugLog(self.rawData)
+            return self.rawData
 
-    def fixErrorState(self, dev):
-        self.deviceNeedsUpdated = False
-        dev.stateListOrDisplayStateIdChanged()
-        update_time = t.strftime("%m/%d/%Y at %H:%M")
-        dev.updateStateOnServer('deviceLastUpdated', value=update_time)
-        dev.updateStateOnServer('deviceTimestamp', value=t.time())
-        dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Enabled")
+        except Exception, e:
+            self.errorLog(u"{0} - Error parsing source data: {1}. Skipping until next scheduled poll.".format(dev.name, unicode(e)))
+            self.rawData = '<?xml version="1.0" encoding="UTF-8"?><Emptydict><Response>No data to return.</Response></Emptydict>'
+            dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No data")
+            return self.rawData
+
+    def toggleDebugEnabled(self):
+        """
+        Toggle debug on/off.
+        """
+        if self.debugLevel >= 2:
+            self.debugLog(u"toggleDebugEnabled() method called.")
+        if not self.debug:
+            self.debug = True
+            self.pluginPrefs['showDebugInfo'] = True
+            indigo.server.log(u"Debugging on.")
+            self.debugLog(u"Debug level: {0}".format(self.debugLevel))
+
+        else:
+            self.debug = False
+            self.pluginPrefs['showDebugInfo'] = False
+            indigo.server.log(u"Debugging off.")
+
