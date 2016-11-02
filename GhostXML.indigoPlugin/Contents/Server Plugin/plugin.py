@@ -166,8 +166,8 @@ class Plugin(indigo.PluginBase):
         # See if there is a plugin update and whether the user wants to be notified.
         try:
             self.updater.checkVersionPoll()
-        except Exception as e:
-            self.errorLog(u"Update checker error: {0}".format(e))
+        except Exception as error:
+            self.errorLog(u"Update checker error: {0}".format(error))
 
     def validatePrefsConfigUi(self, valuesDict):
         if self.debugLevel >= 2:
@@ -188,8 +188,8 @@ class Plugin(indigo.PluginBase):
 
                 return False, valuesDict, error_msg_dict
 
-        except Exception as e:
-            self.errorLog(u"Plugin configuration error: {0}".format(e))
+        except Exception as error:
+            self.errorLog(u"Plugin configuration error: {0}".format(error))
 
         return True, valuesDict
 
@@ -202,8 +202,8 @@ class Plugin(indigo.PluginBase):
             self.debugLog(u"checkVersionNow() method called.")
         try:
             self.updater.checkVersionPoll()
-        except Exception as e:
-            self.errorLog(u"Update checker error: {0}".format(e))
+        except Exception as error:
+            self.errorLog(u"Update checker error: {0}".format(error))
 
     def fixErrorState(self, dev):
         self.deviceNeedsUpdated = False
@@ -331,9 +331,9 @@ class Plugin(indigo.PluginBase):
 
             return result
 
-        except Exception as e:
+        except Exception as error:
 
-            self.errorLog(u"{0} - Error getting source data: {1}. Skipping until next scheduled poll.".format(dev.name, unicode(e)))
+            self.errorLog(u"{0} - Error getting source data: {1}. Skipping until next scheduled poll.".format(dev.name, unicode(error)))
             self.debugLog(u"Device is offline. No data to return. Returning dummy dict.")
             dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No comm")
             result = ""
@@ -350,8 +350,8 @@ class Plugin(indigo.PluginBase):
             for key in input_data.iterkeys():
                 new_key = key.replace('_ghostxml_', '_')
                 self.jsonRawData[new_key] = self.jsonRawData.pop(key)
-        except Exception as e:
-            self.errorLog(u'Error cleaning dictionary keys.')
+        except Exception as error:
+            self.errorLog(u'Error cleaning dictionary keys: {0}'.format(error))
 
     def parseTheJSON(self, dev, root):
         """
@@ -368,8 +368,8 @@ class Plugin(indigo.PluginBase):
             # self.errorLog(unicode(parsed_simplejson))
             self.jsonRawData = flatdict.FlatDict(parsed_simplejson, delimiter='_ghostxml_')
             return self.jsonRawData
-        except Exception as e:
-            self.errorLog(dev.name + ": " + unicode(e))
+        except Exception as error:
+            self.errorLog(dev.name + ": " + unicode(error))
 
     def parseStateValues(self, dev):
         """
@@ -389,8 +389,8 @@ class Plugin(indigo.PluginBase):
                 dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
                 dev.updateStateOnServer('deviceIsOnline', value=True, uiValue=" ")
 
-            except Exception as e:
-                self.errorLog(u"Error parsing key/value pair: {0} = {1}. Reason: {2}".format(unicode(key), unicode(self.finalDict[key]), e))
+            except Exception as error:
+                self.errorLog(u"Error parsing key/value pair: {0} = {1}. Reason: {2}".format(unicode(key), unicode(self.finalDict[key]), error))
                 dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
                 dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Error")
 
@@ -425,9 +425,9 @@ class Plugin(indigo.PluginBase):
 
             return True
 
-        except Exception as e:
+        except Exception as error:
             self.errorLog(u"Error refreshing devices. Please check settings.")
-            self.errorLog(unicode(e))
+            self.errorLog(unicode(error))
             return False
 
     def refreshDataForDev(self, dev):
@@ -536,8 +536,8 @@ class Plugin(indigo.PluginBase):
                 self.debugLog(self.rawData)
             return self.rawData
 
-        except Exception as e:
-            self.errorLog(u"{0} - Error parsing source data: {1}. Skipping until next scheduled poll.".format(dev.name, unicode(e)))
+        except Exception as error:
+            self.errorLog(u"{0} - Error parsing source data: {1}. Skipping until next scheduled poll.".format(dev.name, unicode(error)))
             self.rawData = '<?xml version="1.0" encoding="UTF-8"?><Emptydict><Response>No data to return.</Response></Emptydict>'
             dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No data")
             return self.rawData
