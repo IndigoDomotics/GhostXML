@@ -19,6 +19,7 @@ transitive Indigo plugin device states.
 # Known Issues:
 # TODO: There are two instances of states that are defined in Devices.xml when called from Triggers and Control Pages.
 # TODO: When the plugin is up and running, disabled devices will sometimes show green icons in the Indigo UI.
+# TODO: Find out why some legacy devices aren't getting refreshFreq isn't getting pushed by startComm().
 
 import datetime
 import flatdict
