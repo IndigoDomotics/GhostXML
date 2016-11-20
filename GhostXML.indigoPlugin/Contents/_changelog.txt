@@ -1,5 +1,10 @@
 ghostXML Change Log
 
+v0.3.02
+- Fixes bug where 'refreshFreq' is not a valid device property.
+- Eliminates some deprecated code.
+- Cleans up plugin configuration menu.
+
 v0.3.01
 - Increases the plugin's ability to contend with certain characters that may be
   present in JSON keys.

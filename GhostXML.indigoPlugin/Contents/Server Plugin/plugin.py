@@ -19,7 +19,6 @@ transitive Indigo plugin device states.
 # Known Issues:
 # TODO: There are two instances of states that are defined in Devices.xml when called from Triggers and Control Pages.
 # TODO: When the plugin is up and running, disabled devices will sometimes show green icons in the Indigo UI.
-# TODO: Find out why some legacy devices aren't getting refreshFreq isn't getting pushed by startComm().
 
 import datetime
 import flatdict
@@ -39,6 +38,7 @@ except:
 kDefaultPluginPrefs = {
     u'configMenuPollInterval': "300",  # Frequency of refreshes.
     u'configMenuServerTimeout': "15",  # Server timeout limit.
+    u'refreshFreq': 300,  # Device-specific update frequency
     u'showDebugInfo': False,  # Verbose debug logging?
     u'showDebugLevel': "1",  # Low, Medium or High debug output.
     u'updaterEmail': "",  # Email to notify of plugin updates.
@@ -54,7 +54,7 @@ class Plugin(indigo.PluginBase):
         self.debug = self.pluginPrefs.get('showDebugInfo', False)
         self.debugLevel = self.pluginPrefs.get('showDebugLevel', "1")
         self.deviceNeedsUpdated = ''
-        self.prefPollInterval = int(self.pluginPrefs.get('configMenuPollInterval', "300"))
+        # self.prefPollInterval = int(self.pluginPrefs.get('configMenuPollInterval', "300"))
         self.prefServerTimeout = int(self.pluginPrefs.get('configMenuServerTimeout', "15"))
         self.updater = indigoPluginUpdateChecker.updateChecker(self, "http://indigodomotics.github.io/GhostXML/ghostXML_version.html")
         self.updaterEmailsEnabled = self.pluginPrefs.get('updaterEmailsEnabled', False)

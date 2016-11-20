@@ -1,56 +1,33 @@
 <?xml version="1.0"?>
 <Devices>
 
-  <Device
-    type="custom"
-    id="GhostXMLdevice">
+  <Device type="custom" id="GhostXMLdevice">
     <Name>GhostXML Device</Name>
 
     <ConfigUI>
       <Field
-        id="sourceXML"
-        type="textfield">
+        id="sourceXML" type="textfield">
         <Label>URL/Path:</Label>
       </Field>
 
-      <Field
-        id="label0"
-        type="label"
-        fontSize="small"
-        fontColor="black">
+      <Field id="label0" type="label" fontSize="small" fontColor="black">
         <Label></Label>
       </Field>
 
-      <Field
-        id="label1"
-        type="label"
-        fontSize="small"
-        fontColor="black">
+      <Field id="label1" type="label" fontSize="small" fontColor="black">
         <Label>Examples:</Label>
       </Field>
 
-      <Field
-        id="example1"
-        type="label"
-        fontSize="small"
-        fontColor="black">
+      <Field id="example1" type="label" fontSize="small" fontColor="black">
         <Label>           URL:  http://www.ip_address.com/filename.xml</Label>
       </Field>
 
-      <Field
-        id="example2"
-        type="label"
-        fontSize="small"
-        fontColor="black">
+      <Field id="example2" type="label" fontSize="small" fontColor="black">
         <Label>   Local file:  file:///Users/user_name/folder_path/filename.json</Label>
       </Field>
 
 <!-- FeedType -->
-      <Field
-        id="feedType"
-        type="menu"
-        defaultValue="XML"
-        tooltip="The type of feed you will be using.">
+      <Field id="feedType" type="menu" defaultValue="XML" tooltip="The type of feed you will be using.">
         <Label>Feed Type:</Label>
         <List>
             <Option value="JSON">JSON</Option>
@@ -59,11 +36,7 @@
       </Field>
 
 <!-- RefreshFrequency -->
-      <Field
-        id="refreshFreq"
-        type="menu"
-        defaultValue="300"
-        tooltip="How often this feed should refresh.">
+      <Field id="refreshFreq" type="menu" defaultValue="300" tooltip="How often this feed should refresh.">
         <Label>Refresh frequency:</Label>
         <List>
             <Option value="0">Manual refresh</Option>
@@ -84,18 +57,23 @@
       <Label>Enable substitutions?:</Label>
       <Description>Would you like to use variable substitutions in this feed's URL?</Description>
       </Field>
+
       <Field id="subA" type="textfield" tooltip="Enter or paste a variable ID here" visibleBindingId="doSubs" visibleBindingValue="true">
         <Label>Variable A:</Label>
       </Field>
+
       <Field id="subB" type="textfield" tooltip="Enter or paste a variable ID here" visibleBindingId="doSubs" visibleBindingValue="true">
         <Label>Variable B:</Label>
       </Field>
+
       <Field id="subC" type="textfield" tooltip="Enter or paste a variable ID here" visibleBindingId="doSubs" visibleBindingValue="true">
         <Label>Variable C:</Label>
       </Field>
+
       <Field id="subD" type="textfield" tooltip="Enter or paste a variable ID here" visibleBindingId="doSubs" visibleBindingValue="true">
         <Label>Variable D:</Label>
       </Field>
+
       <Field id="subE" type="textfield" tooltip="Enter or paste a variable ID here" visibleBindingId="doSubs" visibleBindingValue="true">
         <Label>Variable E:</Label>
       </Field>
@@ -104,15 +82,13 @@
 </ConfigUI>
 
     <States>
-      <State
-        id="deviceIsOnline">
+      <State id="deviceIsOnline">
         <ValueType>Boolean</ValueType>
         <TriggerLabel>Device online?</TriggerLabel>
         <ControlPageLabel>Device online?</ControlPageLabel>
       </State>
 
-      <State
-        id="deviceLastUpdated">
+      <State id="deviceLastUpdated">
         <ValueType>String</ValueType>
         <TriggerLabel>Device Last Updated</TriggerLabel>
         <ControlPageLabel>Device Last Updated</ControlPageLabel>
