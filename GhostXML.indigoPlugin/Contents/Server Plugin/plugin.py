@@ -344,13 +344,26 @@ class Plugin(indigo.PluginBase):
         # Some dictionaries may have keys that contain problematic characters which Indigo doesn't like as state names.
         # Let's get those characters out of there.
         try:
+            # Added by DaveL17 on 11/25/2016. ##############################################
+            # Some characters need to be replaced with a valid replacement value because
+            # simply deleting them could cause problems. Add additional k/v pairs to
+            # chars_to_replace as needed.
+            chars_to_replace = {'_ghostxml_': '_', '+': '_plus_', '-': '_minus_'}
+            chars_to_replace = dict((re.escape(k), v) for k, v in chars_to_replace.iteritems())
+            pattern = re.compile("|".join(chars_to_replace.keys()))
+            for key in input_data.iterkeys():
+                new_key = pattern.sub(lambda m: chars_to_replace[re.escape(m.group(0))], key)
+                input_data[new_key] = input_data.pop(key)
+
+            # Some characters can simply be eliminated. If something here causes problems, remove the element from the
+            # set and add it to the replacement dict above.
             chars_to_remove = set(['/', '(', ')'])
             for key in input_data.iterkeys():
                 new_key = ''.join([c for c in key if c not in chars_to_remove])
-                self.jsonRawData[new_key] = self.jsonRawData.pop(key)
-            for key in input_data.iterkeys():
-                new_key = key.replace('_ghostxml_', '_')
-                self.jsonRawData[new_key] = self.jsonRawData.pop(key)
+                input_data[new_key] = input_data.pop(key)
+
+            self.jsonRawData = input_data
+
         except Exception as error:
             self.errorLog(u'Error cleaning dictionary keys: {0}'.format(error))
 
