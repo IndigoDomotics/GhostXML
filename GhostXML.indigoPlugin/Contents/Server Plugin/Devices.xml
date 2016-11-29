@@ -84,11 +84,11 @@
         <Description>Would you like to use Digest Auth in this feed's URL?</Description>
       </Field>
 	  
-      <Field id="Digestuser" type="textfield" tooltip="Enter or paste a Username ID here" visibleBindingId="useDigest" visibleBindingValue="true">
+      <Field id="digestUser" type="textfield" tooltip="Enter or paste a Username ID here" visibleBindingId="useDigest" visibleBindingValue="true">
         <Label>Username:</Label>
       </Field>
 
-      <Field id="Digestpass" type="textfield" tooltip="Enter or paste a Password ID here" visibleBindingId="useDigest" visibleBindingValue="true">
+      <Field id="digestPass" type="textfield" tooltip="Enter or paste a Password ID here" visibleBindingId="useDigest" visibleBindingValue="true">
         <Label>Password:</Label>
       </Field>
 
