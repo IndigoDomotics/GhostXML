@@ -53,11 +53,12 @@
       </Field>
 
 <!-- Substitution -->
-      <Field id="doSubs" type="checkbox" defaultValue="false" tooltip="Would you like to use substitutions in this feed?">
-      <Label>Enable substitutions?:</Label>
-      <Description>Would you like to use variable substitutions in this feed's URL?</Description>
-      </Field>
 
+      <Field id="doSubs" type="checkbox" defaultValue="false" tooltip="Would you like to use Digest Auth in this feed?">
+        <Label>Enable substitutions?:</Label>
+        <Description>Would you like to use variable substitutions in this feed's URL?</Description>
+      </Field>
+      	  
       <Field id="subA" type="textfield" tooltip="Enter or paste a variable ID here" visibleBindingId="doSubs" visibleBindingValue="true">
         <Label>Variable A:</Label>
       </Field>
@@ -77,9 +78,21 @@
       <Field id="subE" type="textfield" tooltip="Enter or paste a variable ID here" visibleBindingId="doSubs" visibleBindingValue="true">
         <Label>Variable E:</Label>
       </Field>
+	  
+      <Field id="useDigest" type="checkbox" defaultValue="false" tooltip="Would you like to use substitutions in this feed?">
+        <Label>Use Digest Auth?:</Label>
+        <Description>Would you like to use Digest Auth in this feed's URL?</Description>
+      </Field>
+	  
+      <Field id="Digestuser" type="textfield" tooltip="Enter or paste a Username ID here" visibleBindingId="useDigest" visibleBindingValue="true">
+        <Label>Username:</Label>
+      </Field>
 
+      <Field id="Digestpass" type="textfield" tooltip="Enter or paste a Password ID here" visibleBindingId="useDigest" visibleBindingValue="true">
+        <Label>Password:</Label>
+      </Field>
 
-</ConfigUI>
+    </ConfigUI>
 
     <States>
       <State id="deviceIsOnline">

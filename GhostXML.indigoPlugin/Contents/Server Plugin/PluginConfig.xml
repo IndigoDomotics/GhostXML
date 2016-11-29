@@ -8,41 +8,6 @@
     <Label>Developed by: Indigo Users</Label>
   </Field>
 
-<!-- THe following code blocks are no longer needed with device-specific updating. They should
-     be eliminated once we're sure the plugin is operating as intended.  DaveL17-->
-
-<!--
-  <Field id="space1" type="label" fontColor="black">
-    <Label>Polling Interval</Label>
-  </Field>
-
-  <Field id="space2" type="label" fontSize="small" fontColor="black">
-    <Label>The amount of time that the plugin will wait between updates. This setting affects all plugin devices.</Label>
-  </Field>
-
-The poll interval is time in seconds minus 5 (there is a built in delay at
-the beginning of the thread of 5 seconds to let the server catch up. Therefore,
-we subtract the 5 seconds from the default value.
-  <Field id="configMenuPollInterval" type="menu" defaultValue="300" tooltip="Select preference for how often the data will be refreshed.">
-    <Label>Polling Interval:</Label>
-    <List>
-      <Option value="15">15 Seconds</Option>
-      <Option value="30">30 Seconds</Option>
-      <Option value="60">1 Minute</Option>
-      <Option value="120">2 Minutes</Option>
-      <Option value="300">5 Minutes</Option>
-      <Option value="900">15 Minutes</Option>
-      <Option value="3600">1 Hour</Option>
-      <Option value="14400">4 Hours</Option>
-      <Option value="86400">1 Day</Option>
-    </List>
-  </Field>
-
-  <Field id="space3" type="label" fontColor="black">
-    <Label></Label>
-  </Field>
--->
-
   <Field id="space4" type="label" fontColor="black" alignText="right">
     <Label>Server Timeout:</Label>
   </Field>

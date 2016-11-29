@@ -21,13 +21,15 @@ transitive Indigo plugin device states.
 # TODO: When the plugin is up and running, disabled devices will sometimes show green icons in the Indigo UI.
 
 import datetime
-import flatdict
-import indigoPluginUpdateChecker
-import iterateXML
 import re
-import simplejson
 import subprocess
 import time as t
+
+import flatdict
+import simplejson
+
+import indigoPluginUpdateChecker
+import iterateXML
 
 try:
     import indigo
@@ -56,7 +58,7 @@ class Plugin(indigo.PluginBase):
         self.deviceNeedsUpdated = ''
         # self.prefPollInterval = int(self.pluginPrefs.get('configMenuPollInterval', "300"))
         self.prefServerTimeout = int(self.pluginPrefs.get('configMenuServerTimeout', "15"))
-        self.updater = indigoPluginUpdateChecker.updateChecker(self, "http://indigodomotics.github.io/GhostXML/ghostXML_version.html")
+        self.updater = indigoPluginUpdateChecker.updateChecker(self, "http://indigodomotics.github.io/GhostXML/ghoprostXML_version.html")
         self.updaterEmailsEnabled = self.pluginPrefs.get('updaterEmailsEnabled', False)
 
         # Convert old debugLevel scale to new scale if needed.
@@ -294,6 +296,13 @@ class Plugin(indigo.PluginBase):
             # Initiate curl call to data source.
             url = dev.pluginProps['sourceXML']
 
+# Added by GlennNZ use Digest Username and Password if enabled
+# will need devices open and resaved ?could add check
+
+            if dev.pluginProps['useDigest'] == True:
+                username = dev.pluginProps['Digestuser']
+                password = dev.pluginProps['Digestpass']
+				
             ###########################
             # ADDED BY howartp 18/06/16
             # Allows substitution of variable or device states into URL using a user-friendly
@@ -308,7 +317,13 @@ class Plugin(indigo.PluginBase):
                 url = self.substitute(url.replace("[E]", "%%v:" + dev.pluginProps['subE'] + "%%"))
                 self.debugLog(u"Device & URL: {0} @ {1}  (after substitution)".format(dev.name, url))
 
-            proc = subprocess.Popen(["curl", '-vs', url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+# Added by GlennNZ - to use Digest Auth or not           
+# add one normal call, one digest curl call
+
+            if dev.pluginProps['useDigest'] == False:    
+                proc = subprocess.Popen(["curl", '-vs', url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            else:
+                proc = subprocess.Popen(["curl", '-vs','--digest', '-u',username+':'+password, url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             (result, err) = proc.communicate()
 
             if err:
@@ -348,7 +363,10 @@ class Plugin(indigo.PluginBase):
             # Some characters need to be replaced with a valid replacement value because
             # simply deleting them could cause problems. Add additional k/v pairs to
             # chars_to_replace as needed.
-            chars_to_replace = {'_ghostxml_': '_', '+': '_plus_', '-': '_minus_'}
+
+            # GlennNZ 28.11 - add true for True and false for False exchanges
+            
+            chars_to_replace = {'_ghostxml_': '_', '+': '_plus_', '-': '_minus_','true':'True','false':'False'}
             chars_to_replace = dict((re.escape(k), v) for k, v in chars_to_replace.iteritems())
             pattern = re.compile("|".join(chars_to_replace.keys()))
             for key in input_data.iterkeys():
@@ -363,7 +381,11 @@ class Plugin(indigo.PluginBase):
                 input_data[new_key] = input_data.pop(key)
 
             self.jsonRawData = input_data
-
+# More Debug GlennNZ
+            if self.debugLevel >= 2:
+                self.debugLog("cleanTheKeys result:")
+                self.debugLog(self.jsonRawData)
+            
         except Exception as error:
             self.errorLog(u'Error cleaning dictionary keys: {0}'.format(error))
 
@@ -379,8 +401,28 @@ class Plugin(indigo.PluginBase):
             self.debugLog(u"parseTheJSON() method called.")
         try:
             parsed_simplejson = simplejson.loads(root)
-            # self.errorLog(unicode(parsed_simplejson))
+            #self.errorLog(unicode(parsed_simplejson))
+            if self.debugLevel >= 2:
+                self.debugLog("Prior to FlatDict Running Json")
+                self.debugLog(parsed_simplejson)
+#GlennNZ check if list and then flatten to allow FlatDict to work
+# in theory!
+#
+# if List flattens once - with addition of No_ to the begining (Indigo appears to not allow DeviceNames to start with Numbers)
+# then flatDict runs - and appears to run correctly (as no longer list - dict)
+#if isinstance(list) then will flatten list down to dict.
+
+            if isinstance(parsed_simplejson, list):
+                if self.debugLevel >= 2:
+                    self.debugLog("List Detected - Flattening to Dict")
+                parsed_simplejson = dict(("No_"+str(i),v) for  (i,v) in enumerate(parsed_simplejson))
+            if self.debugLevel >= 2:    
+                self.debugLog("After List Check, Before FlatDict Running Json")
+
             self.jsonRawData = flatdict.FlatDict(parsed_simplejson, delimiter='_ghostxml_')
+
+            if self.debugLevel >= 2:
+                self.debugLog(self.jsonRawData)
             return self.jsonRawData
         except Exception as error:
             self.errorLog(dev.name + ": " + unicode(error))
@@ -394,6 +436,7 @@ class Plugin(indigo.PluginBase):
             self.debugLog(u"parseStateValues() method called.")
 
         self.debugLog(u"Writing device states:")
+        
         sorted_list = sorted(self.finalDict.iterkeys())
         for key in sorted_list:
             try:
