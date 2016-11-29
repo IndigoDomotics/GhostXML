@@ -311,15 +311,20 @@ class Plugin(indigo.PluginBase):
             # ADDED BY GlennNZ 28.11.16
             # to use Digest Auth or not add one normal call, one digest curl
             # call
+            ###########################
+            # ADDED BY DaveL17 11/28/16
+            # Revised GlennNZ's additions to account for props that may not yet
+            # be added to some devices. Should now not require devices to be
+            # edited and saved.
 
-            if dev.pluginProps['useDigest']:
+            if dev.pluginProps.get('useDigest', False):
                 ###########################
                 # ADDED BY GlennNZ 28.11.16, moved by DaveL17 11/28/2016.
                 # use Digest Username and Password if enabled will need devices
                 #  open and resaved ?could add check
 
-                username = dev.pluginProps['digestUser']
-                password = dev.pluginProps['digestPass']
+                username = dev.pluginProps.get('digestUser', '')
+                password = dev.pluginProps.get('digestPass', '')
 
                 proc = subprocess.Popen(["curl", '-vs', '--digest', '-u', username + ':' + password, url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             else:
