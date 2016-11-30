@@ -57,7 +57,7 @@ class Plugin(indigo.PluginBase):
         self.debugLevel = self.pluginPrefs.get('showDebugLevel', "1")
         self.deviceNeedsUpdated = ''
         self.prefServerTimeout = int(self.pluginPrefs.get('configMenuServerTimeout', "15"))
-        self.updater = indigoPluginUpdateChecker.updateChecker(self, "http://indigodomotics.github.io/GhostXML/ghoprostXML_version.html")
+        self.updater = indigoPluginUpdateChecker.updateChecker(self, "http://indigodomotics.github.io/GhostXML/ghostXML_version.html")
         self.updaterEmailsEnabled = self.pluginPrefs.get('updaterEmailsEnabled', False)
 
         # Convert old debugLevel scale to new scale if needed.
