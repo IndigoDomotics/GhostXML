@@ -20,6 +20,7 @@ transitive Indigo plugin device states.
 # TODO: There are two instances of states that are defined in Devices.xml when called from Triggers and Control Pages.
 # TODO: When the plugin is up and running, disabled devices will sometimes show green icons in the Indigo UI.
 # TODO: Sometimes devices will show as disabled in the UI for a brief time.
+# TODO: Checking for plugin updates from the menu appears not to be working.
 
 import datetime
 import re
