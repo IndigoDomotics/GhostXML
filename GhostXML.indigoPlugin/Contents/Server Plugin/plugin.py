@@ -34,6 +34,11 @@ import indigoPluginUpdateChecker
 import iterateXML
 
 try:
+    import pydevd  # To support remote debugging
+except ImportError as error:
+    pass
+
+try:
     import indigo
 except:
     pass
@@ -245,6 +250,20 @@ class Plugin(indigo.PluginBase):
                     state_list.append(dynamic_state)
 
             ###########################
+            # ADDED BY DaveL17 12/26/16
+            # Inspect existing state list to new one to see if the state list needs to be updated.
+            # If it doesn't, we can save some effort here.
+            interim_state_list = [thing['Key'] for thing in state_list]
+            for thing in [u'deviceIsOnline', u'deviceLastUpdated',]:
+                interim_state_list.remove(thing)
+            self.debugLog(unicode(interim_state_list))  # existing states
+            self.debugLog(unicode(self.finalDict.keys()))  # new states
+            self.debugLog(unicode(set(interim_state_list) == set(self.finalDict.keys())))  # compare existing states to new ones
+            #
+            # END DaveL17 changes
+            ###########################
+
+            ###########################
             # ADDED BY howartp 18/06/16
             # Resolves issue with deviceIsOnline and deviceLastUpdated states disappearing if there's a fault
             # in the JSON data we receive, as state_list MUST contain all desired states when it returns
@@ -262,6 +281,7 @@ class Plugin(indigo.PluginBase):
 
             self.deviceNeedsUpdated = False
             self.debugLog(u"Device needs updating set to: {0}".format(self.deviceNeedsUpdated))
+
             return state_list
 
         else:
@@ -600,6 +620,8 @@ class Plugin(indigo.PluginBase):
             total_sleep = float(self.pluginPrefs.get('configMenuUploadInterval', 300))
         except:
             total_sleep = iTimer  # TODO: Note variable iTimer is an unresolved reference.
+                                  # howartp: I think the try/except block could simply be removed since the self.pluginPrefs.get()
+                                  # statement will set the value to 300 if there's value available.  Suggest that fix.  DaveL17
         if t.time() - start_sleep > total_sleep:
             return True
         return False
