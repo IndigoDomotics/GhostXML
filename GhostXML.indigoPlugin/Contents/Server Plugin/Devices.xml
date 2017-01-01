@@ -54,7 +54,7 @@
 
 <!-- Substitution -->
 
-      <Field id="doSubs" type="checkbox" defaultValue="false" tooltip="Would you like to use Digest Auth in this feed?">
+      <Field id="doSubs" type="checkbox" defaultValue="false" tooltip="Would you like to use substitutions in this feed?">
         <Label>Enable substitutions?:</Label>
         <Description>Would you like to use variable substitutions in this feed's URL?</Description>
       </Field>
@@ -79,7 +79,7 @@
         <Label>Variable E:</Label>
       </Field>
 	  
-      <Field id="useDigest" type="checkbox" defaultValue="false" tooltip="Would you like to use substitutions in this feed?">
+      <Field id="useDigest" type="checkbox" defaultValue="false" tooltip="Would you like to use Digest Auth in this feed?">
         <Label>Use Digest Auth?:</Label>
         <Description>Would you like to use Digest Auth in this feed's URL?</Description>
       </Field>
