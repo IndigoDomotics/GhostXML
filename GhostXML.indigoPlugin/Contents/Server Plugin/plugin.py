@@ -9,18 +9,9 @@ This plugin provides an engine which parses tag/value pairs into
 transitive Indigo plugin device states.
 """
 # TODO: Keep an eye on unicode snafus.
-# TODO: Look at using Beautiful Soup. Would it be better at iterating the entire XML file??
 # TODO: Get self.debugLog into iterateXML module.
 # TODO: Right now, there is only low(1) and high(3) debugging.
-# TODO: Right now, everything is a string. Could we implement evaluation logic (i.e.): float(), int(), bool() before creating states and adding data?
-# TODO: Plugin version into firmware field?  Address field?
 # TODO: Place restrictions on methods?
-
-# Known Issues:
-# TODO: There are two instances of states that are defined in Devices.xml when called from Triggers and Control Pages.
-# TODO: When the plugin is up and running, disabled devices will sometimes show green icons in the Indigo UI.
-# TODO: Sometimes devices will show as disabled in the UI for a brief time.
-# TODO: Checking for plugin updates from the menu appears not to be working.
 
 import datetime
 import re
@@ -133,22 +124,14 @@ class Plugin(indigo.PluginBase):
 
                 for dev in indigo.devices.itervalues(filter="self"):
                     self.debugLog(u"{0}:".format(dev.name))
-                    # self.debugLog(len(dev.states))
                     if "deviceTimestamp" in dev.states.iterkeys():
                         if dev.states["deviceTimestamp"] == "":
                             self.fixErrorState(dev)
-                            # if len(dev.states) <= 4:
-                            # self.debugLog(u"{0}:".format(dev.name))
-                            # self.debugLog(u"    State count is less than 4 - attempting refresh")
-                            # self.refreshDataForDev(dev)
+
                         if int(dev.pluginProps["refreshFreq"]) == 0:
-                            # self.debugLog(u"{0}:".format(dev.name))
                             self.debugLog(u"    Refresh frequency: {0} (Manual refresh only)".format(dev.pluginProps["refreshFreq"]))
+
                         else:
-                            # self.debugLog(u"{0}:".format(dev.name))
-                            # self.debugLog(u"    Last Updated:      {0}".format(dev.states["deviceLastUpdated"]))
-                            # self.debugLog(u"    Timestamp:         {0}".format(dev.states["deviceTimestamp"]))
-                            # self.debugLog(u"    Refresh frequency: {0}".format(dev.pluginProps["refreshFreq"]))
                             t_since_upd = int(t.time() - float(dev.states["deviceTimestamp"]))
                             self.debugLog(u"    Time since update: {0}".format(t_since_upd))
                             if int(t_since_upd) > int(dev.pluginProps["refreshFreq"]):
@@ -208,7 +191,7 @@ class Plugin(indigo.PluginBase):
         if self.debugLevel >= 2:
             self.debugLog(u"checkVersionNow() method called.")
         try:
-            self.updater.checkVersionPoll()
+            self.updater.checkVersionNow()
         except Exception as error:
             self.errorLog(u"Update checker error: {0}".format(error))
 
@@ -272,9 +255,10 @@ class Plugin(indigo.PluginBase):
                 state_list.append(self.getDeviceStateDictForStringType('deviceIsOnline', 'deviceIsOnline', 'deviceIsOnline'))
                 state_list.append(self.getDeviceStateDictForStringType('deviceLastUpdated', 'deviceLastUpdated', 'deviceLastUpdated'))
                 state_list.append(self.getDeviceStateDictForStringType('deviceTimestamp', 'deviceTimestamp', 'deviceTimestamp'))
+
             except KeyError:
-                pass
                 # Ignore this error as we expect it to happen when all is healthy
+                pass
 
             # END howartp changes
             ###########################
@@ -297,9 +281,10 @@ class Plugin(indigo.PluginBase):
                 state_list.append(self.getDeviceStateDictForStringType('deviceIsOnline', 'deviceIsOnline', 'deviceIsOnline'))
                 state_list.append(self.getDeviceStateDictForStringType('deviceLastUpdated', 'deviceLastUpdated', 'deviceLastUpdated'))
                 state_list.append(self.getDeviceStateDictForStringType('deviceTimestamp', 'deviceTimestamp', 'deviceTimestamp'))
+
             except KeyError:
-                pass
                 # Ignore this error as we expect it to happen when all is healthy
+                pass
 
             return state_list
 
@@ -596,6 +581,7 @@ class Plugin(indigo.PluginBase):
 
             else:
                 self.debugLog(u"    Disabled: {0}".format(dev.name))
+                dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
     def refreshDataForDevAction(self, valuesDict):
         """

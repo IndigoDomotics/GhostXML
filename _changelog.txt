@@ -1,5 +1,10 @@
 ghostXML Change Log
 
+v0.3.06
+- Fixes bug in plugin update checker when invoked from the Indigo plugins menu.
+- Properly sets icon state to off when GhostXML device is disabled.
+- Code refinements.
+
 v0.3.05
 - Adds capacity to work with more data sources:
   - Adds digest authentication option.

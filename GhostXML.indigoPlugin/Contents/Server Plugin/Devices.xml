@@ -5,8 +5,7 @@
         <Name>GhostXML Device</Name>
 
         <ConfigUI>
-            <Field
-                    id="sourceXML" type="textfield">
+            <Field id="sourceXML" type="textfield">
                 <Label>URL/Path:</Label>
             </Field>
 

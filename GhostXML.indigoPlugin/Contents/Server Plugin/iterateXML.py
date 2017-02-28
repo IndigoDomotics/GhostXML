@@ -17,7 +17,7 @@ class XmlDictConfig(dict):
     def __init__(self, parent_element):
         if parent_element.items():
             self.updateShim(dict(parent_element.items()))
-            
+
         for element in parent_element:
             if len(element):
                 aDict = XmlDictConfig(element)
