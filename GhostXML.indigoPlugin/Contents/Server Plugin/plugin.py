@@ -110,6 +110,7 @@ class Plugin(indigo.PluginBase):
             self.debugLog(u"deviceStopComm() method called.")
         indigo.server.log(u"Stopping GhostXML device: " + dev.name)
         dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="Disabled")
+        dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
     def runConcurrentThread(self):
         if self.debugLevel >= 2:
