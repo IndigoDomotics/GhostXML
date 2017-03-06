@@ -1,5 +1,8 @@
 ghostXML Change Log
 
+v0.3.07
+-
+
 v0.3.06
 - Adds menu item to enable/disable all plugin devices.
 - Fixes bug in plugin update checker when invoked from the Indigo plugins menu.
