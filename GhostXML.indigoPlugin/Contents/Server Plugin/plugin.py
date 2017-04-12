@@ -17,6 +17,7 @@ import datetime
 import re
 import subprocess
 import time as t
+import sys
 
 import flatdict
 import simplejson
@@ -49,7 +50,15 @@ kDefaultPluginPrefs = {
 class Plugin(indigo.PluginBase):
     def __init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs):
         indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
-        self.debugLog(u"Initializing GhostXML plugin.")
+
+        indigo.server.log(u"")
+        indigo.server.log(u"{:=^80}".format(" Initializing New Plugin Session "))
+        indigo.server.log(u"{0:<31} {1}".format("Plugin name:", pluginDisplayName))
+        indigo.server.log(u"{0:<31} {1}".format("Plugin version:", pluginVersion))
+        indigo.server.log(u"{0:<31} {1}".format("Plugin ID:", pluginId))
+        indigo.server.log(u"{0:<31} {1}".format("Indigo version:", indigo.server.version))
+        indigo.server.log(u"{0:<31} {1}".format("Python version:", sys.version.replace('\n', '')))
+        indigo.server.log(u"{:=^80}".format(""))
 
         self.debug = self.pluginPrefs.get('showDebugInfo', False)
         self.debugLevel = self.pluginPrefs.get('showDebugLevel', "1")
@@ -172,10 +181,12 @@ class Plugin(indigo.PluginBase):
         try:
             if update_wanted and not update_email:
                 error_msg_dict['updaterEmail'] = u"If you want to be notified of updates, you must supply an email address."
+                error_msg_dict['showAlertText'] = u"Updater Email Error:\n\nThe plugin requires a valid email address in order to notify of plugin updates."
                 return False, valuesDict, error_msg_dict
 
             elif update_wanted and "@" not in update_email:
                 error_msg_dict['updaterEmail'] = u"Valid email addresses have at least one @ symbol in them (foo@bar.com)."
+                error_msg_dict['showAlertText'] = u"Updater Email Error:\n\nThe plugin requires a valid email address in order to notify of plugin updates (email address must contain an '@' sign."
 
                 return False, valuesDict, error_msg_dict
 
