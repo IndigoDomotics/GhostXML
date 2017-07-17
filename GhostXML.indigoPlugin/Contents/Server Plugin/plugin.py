@@ -12,6 +12,7 @@ transitive Indigo plugin device states.
 # TODO: Get self.debugLog into iterateXML module.
 # TODO: Right now, there is only low(1) and high(3) debugging.
 # TODO: Place restrictions on methods?
+# TODO: Potential bugs for keys with empty list values {'key': []} will not produce a custom state?
 
 import datetime
 import re
@@ -52,13 +53,13 @@ class Plugin(indigo.PluginBase):
         indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
 
         indigo.server.log(u"")
-        indigo.server.log(u"{:=^80}".format(" Initializing New Plugin Session "))
+        indigo.server.log(u"{0:=^80}".format(" Initializing New Plugin Session "))
         indigo.server.log(u"{0:<31} {1}".format("Plugin name:", pluginDisplayName))
         indigo.server.log(u"{0:<31} {1}".format("Plugin version:", pluginVersion))
         indigo.server.log(u"{0:<31} {1}".format("Plugin ID:", pluginId))
         indigo.server.log(u"{0:<31} {1}".format("Indigo version:", indigo.server.version))
         indigo.server.log(u"{0:<31} {1}".format("Python version:", sys.version.replace('\n', '')))
-        indigo.server.log(u"{:=^80}".format(""))
+        indigo.server.log(u"{0:=^80}".format(""))
 
         self.debug = self.pluginPrefs.get('showDebugInfo', False)
         self.debugLevel = self.pluginPrefs.get('showDebugLevel', "1")
@@ -269,7 +270,7 @@ class Plugin(indigo.PluginBase):
             # Inspect existing state list to new one to see if the state list needs to be updated.
             # If it doesn't, we can save some effort here.
             interim_state_list = [thing['Key'] for thing in state_list]
-            for thing in [u'deviceIsOnline', u'deviceLastUpdated',]:
+            for thing in [u'deviceIsOnline', u'deviceLastUpdated', ]:
                 interim_state_list.remove(thing)
             self.debugLog(unicode(interim_state_list))  # existing states
             self.debugLog(unicode(self.finalDict.keys()))  # new states
@@ -618,7 +619,7 @@ class Plugin(indigo.PluginBase):
     def refreshDataForDevAction(self, valuesDict):
         """
         The refreshDataForDevAction() method refreshes data for a selected device based on
-        a plugin menu call.
+        a plugin action call.
         """
         if self.debugLevel >= 2:
             self.debugLog(u"refreshDataForDevAction() method called.")

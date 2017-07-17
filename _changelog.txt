@@ -1,5 +1,8 @@
 ghostXML Change Log
 
+v0.3.08
+-
+
 v0.3.07
 - Stylistic changes to Indigo Plugin Update Checker module.
 - Adds environment information to the log when plugin is initialized.
