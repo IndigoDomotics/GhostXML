@@ -13,6 +13,7 @@ transitive Indigo plugin device states.
 # TODO: Right now, there is only low(1) and high(3) debugging.
 # TODO: Place restrictions on methods?
 # TODO: Potential bugs for keys with empty list values {'key': []} will not produce a custom state?
+# TODO: Implement a "lock and queue" so that devices don't try to refresh until the last one is done (with a queue or with separate threads).
 
 import datetime
 import re
