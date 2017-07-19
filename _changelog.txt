@@ -1,7 +1,7 @@
 ghostXML Change Log
 
 v0.3.08
--
+- Added dict.get() to certain dev.pluginProps for robustness.
 
 v0.3.07
 - Stylistic changes to Indigo Plugin Update Checker module.

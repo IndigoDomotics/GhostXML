@@ -54,13 +54,13 @@ class Plugin(indigo.PluginBase):
         indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
 
         indigo.server.log(u"")
-        indigo.server.log(u"{0:=^80}".format(" Initializing New Plugin Session "))
+        indigo.server.log(u"{0:=^130}".format(" Initializing New Plugin Session "))
         indigo.server.log(u"{0:<31} {1}".format("Plugin name:", pluginDisplayName))
         indigo.server.log(u"{0:<31} {1}".format("Plugin version:", pluginVersion))
         indigo.server.log(u"{0:<31} {1}".format("Plugin ID:", pluginId))
         indigo.server.log(u"{0:<31} {1}".format("Indigo version:", indigo.server.version))
         indigo.server.log(u"{0:<31} {1}".format("Python version:", sys.version.replace('\n', '')))
-        indigo.server.log(u"{0:=^80}".format(""))
+        indigo.server.log(u"{0:=^130}".format(""))
 
         self.debug = self.pluginPrefs.get('showDebugInfo', False)
         self.debugLevel = self.pluginPrefs.get('showDebugLevel', "1")
@@ -140,13 +140,13 @@ class Plugin(indigo.PluginBase):
                         if dev.states["deviceTimestamp"] == "":
                             self.fixErrorState(dev)
 
-                        if int(dev.pluginProps["refreshFreq"]) == 0:
+                        if int(dev.pluginProps.get("refreshFreq", 300)) == 0:
                             self.debugLog(u"    Refresh frequency: {0} (Manual refresh only)".format(dev.pluginProps["refreshFreq"]))
 
                         else:
                             t_since_upd = int(t.time() - float(dev.states["deviceTimestamp"]))
                             self.debugLog(u"    Time since update: {0}".format(t_since_upd))
-                            if int(t_since_upd) > int(dev.pluginProps["refreshFreq"]):
+                            if int(t_since_upd) > int(dev.pluginProps.get("refreshFreq", 300)):
                                 self.debugLog(u"Time since update ({0}) is greater than configured frequency ({1})".format(t_since_upd, dev.pluginProps["refreshFreq"]))
                                 self.refreshDataForDev(dev)
                     else:
@@ -340,7 +340,7 @@ class Plugin(indigo.PluginBase):
             #  user-friendly  version of the builtin Indigo substitution
             #  mechanism
 
-            if dev.pluginProps['doSubs']:
+            if dev.pluginProps.get('doSubs', False):
                 self.debugLog(u"Device & URL: {0} @ {1}  (before substitution)".format(dev.name, url))
                 url = self.substitute(url.replace("[A]", "%%v:" + dev.pluginProps['subA'] + "%%"))
                 url = self.substitute(url.replace("[B]", "%%v:" + dev.pluginProps['subB'] + "%%"))
