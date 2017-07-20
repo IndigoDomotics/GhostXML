@@ -63,8 +63,9 @@ class Plugin(indigo.PluginBase):
         indigo.server.log(u"{0:=^130}".format(""))
 
         self.debug = self.pluginPrefs.get('showDebugInfo', False)
-        self.debugLevel = self.pluginPrefs.get('showDebugLevel', "1")
+        self.debugLevel = self.pluginPrefs.get('showDebugLevel', 1)
         self.deviceNeedsUpdated = ''
+        self.logFile = u"{0}/Logs/com.fogbert.indigoplugin.GhostXML/plugin.log".format(indigo.server.getInstallFolderPath())
         self.prefServerTimeout = int(self.pluginPrefs.get('configMenuServerTimeout', "15"))
         updater_url = "http://indigodomotics.github.io/GhostXML/ghostXML_version.html"
         self.updater = indigoPluginUpdateChecker.updateChecker(self, updater_url)

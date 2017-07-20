@@ -72,7 +72,7 @@
         <Description>Enable/Disable</Description>
     </Field>
 
-    <Field id="showDebugLevel" type="menu" defaultValue="Low" tooltip="Controls the amount of debug information written to the log.">
+    <Field id="showDebugLevel" type="menu" defaultValue="1" tooltip="Controls the amount of debug information written to the log.">
         <Label>Debug level:</Label>
         <Description>Enable/Disable</Description>
         <List>
