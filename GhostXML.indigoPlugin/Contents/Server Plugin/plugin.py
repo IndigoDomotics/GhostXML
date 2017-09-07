@@ -18,6 +18,7 @@ transitive Indigo plugin device states.
 import datetime
 import re
 import subprocess
+from multiprocessing import Pool
 import time as t
 import sys
 
@@ -70,6 +71,9 @@ class Plugin(indigo.PluginBase):
         updater_url = "http://indigodomotics.github.io/GhostXML/ghostXML_version.html"
         self.updater = indigoPluginUpdateChecker.updateChecker(self, updater_url)
         self.updaterEmailsEnabled = self.pluginPrefs.get('updaterEmailsEnabled', False)
+
+        # Adding support for remote debugging in PyCharm. Other remote debugging facilities can be added, but only one can be run at a time.
+        # pydevd.settrace('localhost', port=5678, stdoutToServer=True, stderrToServer=True, suspend=False)  # To enable remote PyCharm Debugging, uncomment this line.
 
         # Convert old debugLevel scale to new scale if needed.
         # =============================================================
@@ -125,6 +129,7 @@ class Plugin(indigo.PluginBase):
         dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
     def runConcurrentThread(self):
+        # TODO: note that I disabled several self.debugLog entries in runConcurrentThread() because they will flood the log with entries every five seconds.
         if self.debugLevel >= 2:
             self.debugLog(u"indigoPluginUpdater() method called.")
 
@@ -133,10 +138,14 @@ class Plugin(indigo.PluginBase):
         try:
             while True:
                 self.updater.checkVersionPoll()
-                self.debugLog(u" ")
 
+                # self.debugLog(u" ")
+
+                pool = Pool()
                 for dev in indigo.devices.itervalues(filter="self"):
-                    self.debugLog(u"{0}:".format(dev.name))
+
+                    # self.debugLog(u"{0}:".format(dev.name))
+
                     if "deviceTimestamp" in dev.states.iterkeys():
                         if dev.states["deviceTimestamp"] == "":
                             self.fixErrorState(dev)
@@ -146,10 +155,30 @@ class Plugin(indigo.PluginBase):
 
                         else:
                             t_since_upd = int(t.time() - float(dev.states["deviceTimestamp"]))
-                            self.debugLog(u"    Time since update: {0}".format(t_since_upd))
+
+                            # self.debugLog(u"    Time since update: {0}".format(t_since_upd))
+
                             if int(t_since_upd) > int(dev.pluginProps.get("refreshFreq", 300)):
-                                self.debugLog(u"Time since update ({0}) is greater than configured frequency ({1})".format(t_since_upd, dev.pluginProps["refreshFreq"]))
-                                self.refreshDataForDev(dev)
+
+                                # self.debugLog(u"Time since update ({0}) is greater than configured frequency ({1})".format(t_since_upd, dev.pluginProps["refreshFreq"]))
+
+                                # self.refreshDataForDev(dev)
+
+                                # ##################################################
+                                # Added by DaveL17 on 2017-07-20
+                                #
+                                # Forces the refresh cycle to wait for the thread to
+                                # finish before trying to process the next one. The
+                                # purpose is to try to eliminate a race condition
+                                # where devices that take an unusually long time to
+                                # parse would lock up the plugin.
+                                #
+                                # t1 = pool.apply_async(self.refreshDataForDev, [dev])
+                                # result1 = t1.get(timeout=20)
+                                # indigo.server.log(unicode(result1))
+                                # ##################################################
+
+                                pool.apply_async(self.refreshDataForDev, [dev])
                     else:
                         self.fixErrorState(dev)
                 self.sleep(5)

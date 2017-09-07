@@ -12,11 +12,11 @@
     <MenuItem id="titleSeparator" type="separator"/>
 
     <MenuItem id="checkForUpdates">
-        <Name>Check for Plugin Updates...</Name>
+        <Name>Check for Plugin Updates</Name>
         <CallbackMethod>checkVersionNow</CallbackMethod>
     </MenuItem>
     <MenuItem id="refreshData">
-        <Name>Refresh Data Now...</Name>
+        <Name>Refresh Data Now</Name>
         <CallbackMethod>refreshData</CallbackMethod>
     </MenuItem>
     <MenuItem id="toggleDebug">

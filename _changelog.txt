@@ -1,8 +1,14 @@
 ghostXML Change Log
 
 v0.3.08
+- Migrated processing of device updates to multiprocessing pool. This change
+  lays the groundwork for devices to update individually and without having to
+  wait for other devices to finish updating.
 - Added dict.get() to certain dev.pluginProps for robustness.
 - Fixes bug in establishment of logFile write under certain exceptions.
+- Standardizes plugin menu item styles. Menu items with an ellipsis (...)
+  denote that a dialog box will open. Menu items without an ellipsis denote
+  that the plugin will take immediate action.
 
 v0.3.07
 - Stylistic changes to Indigo Plugin Update Checker module.
