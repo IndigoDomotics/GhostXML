@@ -1,6 +1,9 @@
 ghostXML Change Log
 
 v0.3.08
+- Moved GhostXML Action Refresh Data For Device to the Device Actions Group.
+  Moved GhostXML Action Refresh Data For All Devices to the Device Actions Group.
+  (Select New Action Group --> Device Actions --> GhostXML Controls)
 - Migrated processing of device updates to multiprocessing pool. This change
   lays the groundwork for devices to update individually and without having to
   wait for other devices to finish updating.

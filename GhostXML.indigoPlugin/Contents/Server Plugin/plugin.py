@@ -38,6 +38,13 @@ try:
 except:
     pass
 
+__author__    = "DaveL17, GlennNZ, howartp"
+__build__     = ""
+__copyright__ = 'There is no copyright for the GhostXML code base.'
+__license__   = "MIT"
+__title__     = 'Bike Share Plugin for Indigo Home Control'
+__version__   = '0.3.08'
+
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
     u'configMenuPollInterval': "300",  # Frequency of refreshes.
