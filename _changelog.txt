@@ -1,5 +1,8 @@
 ghostXML Change Log
 
+v0.3.09
+- Unwinds multiprocessing pool changes.
+
 v0.3.08
 - Moved GhostXML Action Refresh Data For Device to the Device Actions Group.
   Moved GhostXML Action Refresh Data For All Devices to the Device Actions Group.

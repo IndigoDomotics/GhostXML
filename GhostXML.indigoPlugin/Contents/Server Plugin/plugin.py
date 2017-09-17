@@ -13,12 +13,10 @@ transitive Indigo plugin device states.
 # TODO: Right now, there is only low(1) and high(3) debugging.
 # TODO: Place restrictions on methods?
 # TODO: Potential bugs for keys with empty list values {'key': []} will not produce a custom state?
-# TODO: Implement a "lock and queue" so that devices don't try to refresh until the last one is done (with a queue or with separate threads).
 
 import datetime
 import re
 import subprocess
-from multiprocessing import Pool
 import time as t
 import sys
 
@@ -43,7 +41,7 @@ __build__     = ""
 __copyright__ = 'There is no copyright for the GhostXML code base.'
 __license__   = "MIT"
 __title__     = 'Bike Share Plugin for Indigo Home Control'
-__version__   = '0.3.08'
+__version__   = '0.3.09'
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -148,10 +146,9 @@ class Plugin(indigo.PluginBase):
 
                 # self.debugLog(u" ")
 
-                pool = Pool()
                 for dev in indigo.devices.itervalues(filter="self"):
 
-                    # self.debugLog(u"{0}:".format(dev.name))
+                    # self.debugLog(u"{0}:".format(dev.name))  # DaveL17: I commented out this line so that it didn't print to the log every 5 seconds.
 
                     if "deviceTimestamp" in dev.states.iterkeys():
                         if dev.states["deviceTimestamp"] == "":
@@ -163,31 +160,17 @@ class Plugin(indigo.PluginBase):
                         else:
                             t_since_upd = int(t.time() - float(dev.states["deviceTimestamp"]))
 
-                            # self.debugLog(u"    Time since update: {0}".format(t_since_upd))
+                            # self.debugLog(u"    Time since update: {0}".format(t_since_upd))  # DaveL17: I commented out this line so that it didn't print to the log every 5 seconds.
 
                             if int(t_since_upd) > int(dev.pluginProps.get("refreshFreq", 300)):
 
-                                # self.debugLog(u"Time since update ({0}) is greater than configured frequency ({1})".format(t_since_upd, dev.pluginProps["refreshFreq"]))
+                                self.debugLog(u"Time since update ({0}) is greater than configured frequency ({1})".format(t_since_upd, dev.pluginProps["refreshFreq"]))
 
-                                # self.refreshDataForDev(dev)
+                                self.refreshDataForDev(dev)
 
-                                # ##################################################
-                                # Added by DaveL17 on 2017-07-20
-                                #
-                                # Forces the refresh cycle to wait for the thread to
-                                # finish before trying to process the next one. The
-                                # purpose is to try to eliminate a race condition
-                                # where devices that take an unusually long time to
-                                # parse would lock up the plugin.
-                                #
-                                # t1 = pool.apply_async(self.refreshDataForDev, [dev])
-                                # result1 = t1.get(timeout=20)
-                                # indigo.server.log(unicode(result1))
-                                # ##################################################
-
-                                pool.apply_async(self.refreshDataForDev, [dev])
                     else:
                         self.fixErrorState(dev)
+
                 self.sleep(5)
 
         except self.StopThread:
@@ -595,7 +578,9 @@ class Plugin(indigo.PluginBase):
             self.errorLog(unicode(error))
             return False
 
-    def refreshDataForDev(self, dev):
+    def refreshDataForDev(self, devId):
+
+        dev = indigo.devices[devId]
 
         ###########################
         # ADDED BY howartp 18/06/16
