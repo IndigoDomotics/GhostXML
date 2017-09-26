@@ -2,7 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import xml.etree.ElementTree as ElementTree
-import indigo
+
+try:
+    import indigo
+except ImportError:
+    pass
 
 """ This module receives the XML data as a string and returns a dictionary (finalDict)
     which contains key/value pairs which represent the source XML.
@@ -48,7 +52,8 @@ class XmlDictConfig(dict):
                     self.update({key: value})
             else:
                 self.update(aDict)
-                    
+
+
 def flatten_dict(d):
     def expand(key, value):
         if isinstance(value, dict):
@@ -59,8 +64,9 @@ def flatten_dict(d):
     items = [ item for k, v in d.items() for item in expand(k, v) ]
     return dict(items)
 
+
 def iterateMain(root):
-    
+
     try:
         root = ElementTree.fromstring(root)
         xmlDict = XmlDictConfig(root)
@@ -116,11 +122,11 @@ def iterateMain(root):
         # need it anymore.        
         for (key,value) in finalDict.items():
             del finalDict[key]
-            key = key.replace(u'_A_t_t_r_i_b_s',"")
+            key = key.replace(u'_A_t_t_r_i_b_s', "")
             finalDict[key] = value
     
     except:
         indigo.server.log(u'There was an parse error. Check XML source.')
-        finalDict = {'Response':'Parse error. Check XML source.'}
+        finalDict = {'Response': 'Parse error. Check XML source.'}
     
     return finalDict

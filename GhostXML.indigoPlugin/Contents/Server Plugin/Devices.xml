@@ -26,6 +26,7 @@
             </Field>
 
             <!-- FeedType -->
+
             <Field id="feedType" type="menu" defaultValue="XML" tooltip="The type of feed you will be using.">
                 <Label>Feed Type:</Label>
                 <List>
@@ -35,6 +36,7 @@
             </Field>
 
             <!-- RefreshFrequency -->
+
             <Field id="refreshFreq" type="menu" defaultValue="300" tooltip="How often this feed should refresh.">
                 <Label>Refresh frequency:</Label>
                 <List>
@@ -104,6 +106,12 @@
                 <ValueType>String</ValueType>
                 <TriggerLabel>Device Last Updated</TriggerLabel>
                 <ControlPageLabel>Device Last Updated</ControlPageLabel>
+            </State>
+
+            <State id="updateInProcess">
+                <ValueType>Boolean</ValueType>
+                <TriggerLabel>Device Update Status</TriggerLabel>
+                <ControlPageLabel>Device Update Status</ControlPageLabel>
             </State>
         </States>
 

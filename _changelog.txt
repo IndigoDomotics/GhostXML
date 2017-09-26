@@ -1,5 +1,8 @@
 ghostXML Change Log
 
+v0.3.10
+- Installs threading in place of multiprocessing.
+
 v0.3.09
 - Unwinds multiprocessing pool changes.
 
