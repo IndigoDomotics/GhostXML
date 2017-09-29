@@ -13,7 +13,6 @@ transitive Indigo plugin device states.
 # TODO: Right now, there is only low(1) and high(3) debugging.
 # TODO: Place restrictions on methods?
 # TODO: Potential bugs for keys with empty list values {'key': []} will not produce a custom state?
-# TODO: X
 
 import datetime
 import re
@@ -30,13 +29,13 @@ import indigoPluginUpdateChecker
 import iterateXML
 
 try:
-    import pydevd  # To support remote debugging
-except ImportError as error:
+    import indigo
+except:
     pass
 
 try:
-    import indigo
-except:
+    import pydevd
+except ImportError as error:
     pass
 
 __author__    = u"DaveL17, GlennNZ, howartp"
@@ -44,11 +43,10 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"Bike Share Plugin for Indigo Home Control"
-__version__   = u"0.3.10"
+__version__   = u"0.3.11"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
-    u'configMenuPollInterval': "300",  # Frequency of refreshes.  # TODO: No longer on PluginConfig.xml and should come out.
     u'configMenuServerTimeout': "15",  # Server timeout limit.
     u'refreshFreq': 300,  # Device-specific update frequency
     u'showDebugInfo': False,  # Verbose debug logging?
@@ -62,6 +60,8 @@ class Plugin(indigo.PluginBase):
     def __init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs):
         indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
 
+        self.pluginIsInitializing = True
+
         indigo.server.log(u"")
         indigo.server.log(u"{0:=^130}".format(" Initializing New Plugin Session "))
         indigo.server.log(u"{0:<31} {1}".format("Plugin name:", pluginDisplayName))
@@ -74,16 +74,22 @@ class Plugin(indigo.PluginBase):
         self.debug = self.pluginPrefs.get('showDebugInfo', False)
         self.debugLevel = self.pluginPrefs.get('showDebugLevel', 1)
         self.deviceNeedsUpdated = ''
+        self.finalDict = {}
+        self.jsonRawData = {}
         self.logFile = u"{0}/Logs/com.fogbert.indigoplugin.GhostXML/plugin.log".format(indigo.server.getInstallFolderPath())
         self.prefServerTimeout = int(self.pluginPrefs.get('configMenuServerTimeout', "15"))
-        updater_url = "http://indigodomotics.github.io/GhostXML/ghostXML_version.html"
-        self.updater = indigoPluginUpdateChecker.updateChecker(self, updater_url)
+        self.rawData = ''
+        self.updater = indigoPluginUpdateChecker.updateChecker(self, "http://indigodomotics.github.io/GhostXML/ghostXML_version.html")
         self.updaterEmailsEnabled = self.pluginPrefs.get('updaterEmailsEnabled', False)
-        self.commStartStopLock = threading.Lock()
 
-        # Adding support for remote debugging in PyCharm. Other remote
-        # debugging facilities can be added, but only one can be run at a time.
-        # pydevd.settrace('localhost', port=5678, stdoutToServer=True, stderrToServer=True, suspend=False)  # To enable remote PyCharm Debugging, uncomment this line.
+        # Create a dictionary of plugin devices that will be used to hold a
+        # copy of each active plugin device. The dict will be (re)populated
+        # in self.deviceStartComm() method.
+        self.managedDevices = {}
+
+        # Create a command queue to manage calls for device updates, etc.
+        # maxsize=0 allows for unlimited commands in the queue.
+        self.command_queue = Queue(maxsize=0)
 
         # Convert old debugLevel scale to new scale if needed.
         # =============================================================
@@ -95,19 +101,14 @@ class Plugin(indigo.PluginBase):
             else:
                 self.pluginPrefs['showDebugLevel'] = 1
 
-        # =============================================================
-        # Added by DaveL17 on 2017-09-17
-        # Set up threads for device updating.
-        self.q = Queue(maxsize=0)  # maxsize=0 provides for an unlimited queue size
-        num_threads = 20
+        # Adding support for remote debugging in PyCharm. Other remote
+        # debugging facilities can be added, but only one can be run at a time.
+        # try:
+        #     pydevd.settrace('localhost', port=5678, stdoutToServer=True, stderrToServer=True, suspend=False)
+        # except:
+        #     pass
 
-        for i in range(num_threads):
-            worker = threading.Thread(target=self.worker, args=(self.q,))
-            worker.setDaemon(True)
-            worker.start()
-        # =============================================================
-
-        self.lock = threading.Lock()
+        self.pluginIsInitializing = False
 
     def __del__(self):
         if self.debugLevel >= 2:
@@ -136,34 +137,51 @@ class Plugin(indigo.PluginBase):
 
         return True
 
-    # Start 'em up.
+    # Start device/server communications.
     def deviceStartComm(self, dev):
+
         if self.debugLevel >= 2:
             self.debugLog(u"deviceStartComm() method called.")
         indigo.server.log(u"Starting GhostXML device: {0}".format(dev.name))
+
+        # =============================================================
+        # Added by DaveL17 on 2017-09-28
+        #
+        # Add the device to the dict of managed devices where the key is the
+        # device ID and the value is a copy of the device. References now
+        # become self.managedDevices[dev.id].name instead of dev.name
+
+        self.managedDevices[dev.id] = dev
+
+        # Start a thread for the device instance (each device will have its own
+        # thread.
+        t = threading.Thread(name=self.managedDevices[dev.id].id, target=self.worker, args=('a',))
+        t.start()
+
+        # =============================================================
+
         dev.stateListOrDisplayStateIdChanged()
-        dev.updateStateOnServer('updateInProcess', value=False)
         dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Enabled")
 
-    # Shut 'em down.
+    # Stop device/server communications.
     def deviceStopComm(self, dev):
+
         if self.debugLevel >= 2:
             self.debugLog(u"deviceStopComm() method called.")
         indigo.server.log(u"Stopping GhostXML device: {0}".format(dev.name))
-        dev.updateStateOnServer('updateInProcess', value=False)
-        dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="Disabled")
-        dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
-
-    def worker(self, q):
-        """ """
 
         # =============================================================
-        # Added by DaveL17 on 2017-09-17
-        # Pull items from the queue for updating.
-        while True:
-            self.refreshDataForDev(q.get())
-            self.sleep(1)
-            q.task_done()
+        # Added by DaveL17 on 2017-09-28
+        #
+        # Remove the device from the dict of managed devices when communication
+        # with the device has been stopped.
+
+        del self.managedDevices[dev.id]
+
+        # =============================================================
+
+        dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="Disabled")
+        dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
     def runConcurrentThread(self):
         """ docstring placeholder """
@@ -176,13 +194,18 @@ class Plugin(indigo.PluginBase):
             while True:
                 self.updater.checkVersionPoll()
 
-                # self.debugLog(u" ")
+                # =============================================================
+                # Added by DaveL17 on 2017-09-29
+                #
+                # Remove the call to the server to iterate over plugin devices,
+                # instead using the dict of devices managed globally within the
+                # plugin.
 
-                for dev in indigo.devices.itervalues(filter="self"):
+                for devId in self.managedDevices:
 
-                    # DaveL17: I commented out the following line so that it
-                    # didn't print to the log every 5 seconds.
-                    # self.debugLog(u"{0}:".format(dev.name))
+                    dev = self.managedDevices[devId]
+
+                # =============================================================
 
                     if "deviceTimestamp" in dev.states.iterkeys() and dev.enabled:  # Added dev.enabled test - DaveL17 @ 2017-09-18
 
@@ -195,21 +218,12 @@ class Plugin(indigo.PluginBase):
                         else:
                             t_since_upd = int(t.time() - float(dev.states["deviceTimestamp"]))
 
-                            # DaveL17: I commented out the following line so
-                            # that it didn't print to the log every 5 seconds.
-                            # self.debugLog(u"    Time since update: {0}".format(t_since_upd))
-
                             if int(t_since_upd) > int(dev.pluginProps.get("refreshFreq", 300)):
                                 # It's time for the device to be updated.
 
                                 self.debugLog(u"Time since update ({0}) is greater than configured frequency ({1})".format(t_since_upd, dev.pluginProps["refreshFreq"]))
 
-                                # =============================================================
-                                # Added by DaveL17 on 2017-09-17
-                                # Add device to the queue.
-                                if dev.enabled and not dev.states['updateInProcess']:
-                                    dev.updateStateOnServer('updateInProcess', value=True)
-                                    self.q.put(dev)
+                                self.refreshDataForDev(dev)
 
                     else:
                         self.fixErrorState(dev)
@@ -224,7 +238,7 @@ class Plugin(indigo.PluginBase):
         if self.debugLevel >= 2:
             self.debugLog(u"shutdown() method called.")
 
-            # TODO: determine whether a queue.join() is warranted/wanted.
+            # TODO: Add code to ensure that all queue items have been processed and then shut down the device threads.
             # =============================================================
             # Added by DaveL17 on 2017-09-17
             # Block shut down until all devices in the queue have been
@@ -232,7 +246,6 @@ class Plugin(indigo.PluginBase):
             # a reason to shutdown before all devices have been processed.
 
             self.debugLog(u"Shutting down device queue.")
-            # self.q.join()
 
     def startup(self):
         if self.debugLevel >= 2:
@@ -262,7 +275,8 @@ class Plugin(indigo.PluginBase):
 
             elif update_wanted and "@" not in update_email:
                 error_msg_dict['updaterEmail'] = u"Valid email addresses have at least one @ symbol in them (foo@bar.com)."
-                error_msg_dict['showAlertText'] = u"Updater Email Error:\n\nThe plugin requires a valid email address in order to notify of plugin updates (email address must contain an '@' sign."
+                error_msg_dict['showAlertText'] = u"Updater Email Error:\n\nThe plugin requires a valid email address in order to notify of plugin updates (email address must " \
+                                                  u"contain an '@' sign."
 
                 return False, valuesDict, error_msg_dict
 
@@ -287,9 +301,21 @@ class Plugin(indigo.PluginBase):
         """ killAllComms() sets the enabled status of all plugin devices to
         false. """
 
-        for dev in indigo.devices.itervalues("self"):
+        # =============================================================
+        # Added by DaveL17 on 2017-09-29
+        #
+        # Remove the call to the server to iterate over plugin devices, instead
+        # using the dict of devices managed globally within the plugin.
+
+        for devId in self.managedDevices:
+
+            dev = self.managedDevices[devId]
+
+        # =============================================================
+
             try:
                 indigo.device.enable(dev, value=False)
+
             except Exception as error:
                 self.debugLog(u"Exception when trying to kill all comms. Error: {0} (Line {1})".format(error, sys.exc_traceback.tb_lineno))
 
@@ -297,7 +323,12 @@ class Plugin(indigo.PluginBase):
         """ unkillAllComms() sets the enabled status of all plugin devices to
         true. """
 
+        # Note that we can't use self.managed devices here because the list of
+        # managed devices only includes those that are already enabled. Devices
+        # are added to the managed list via deviceStartComm().  Therefore, we
+        # need to use the Indigo iterator.
         for dev in indigo.devices.itervalues("self"):
+
             try:
                 indigo.device.enable(dev, value=True)
             except Exception as error:
@@ -309,7 +340,6 @@ class Plugin(indigo.PluginBase):
         update_time = t.strftime("%m/%d/%Y at %H:%M")
         dev.updateStateOnServer('deviceLastUpdated', value=update_time)
         dev.updateStateOnServer('deviceTimestamp', value=t.time())
-        dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Enabled")
 
     def getDeviceStateList(self, dev):
         """
@@ -350,7 +380,7 @@ class Plugin(indigo.PluginBase):
             self.debugLog(unicode(interim_state_list))  # existing states
             self.debugLog(unicode(self.finalDict.keys()))  # new states
             self.debugLog(unicode(set(interim_state_list) == set(self.finalDict.keys())))  # compare existing states to new ones
-            #
+
             # END DaveL17 changes
             ###########################
 
@@ -413,8 +443,8 @@ class Plugin(indigo.PluginBase):
             ###########################
             # ADDED BY howartp 18/06/16
             # Allows substitution of variable or device states into URL using a
-            #  user-friendly  version of the builtin Indigo substitution
-            #  mechanism
+            # user-friendly  version of the builtin Indigo substitution
+            # mechanism
 
             if dev.pluginProps.get('doSubs', False):
                 self.debugLog(u"Device & URL: {0} @ {1}  (before substitution)".format(dev.name, url))
@@ -543,7 +573,7 @@ class Plugin(indigo.PluginBase):
             self.debugLog(u"parseTheJSON() method called.")
         try:
             parsed_simplejson = simplejson.loads(root)
-            # self.errorLog(unicode(parsed_simplejson))
+
             if self.debugLevel >= 2:
                 self.debugLog(u"Prior to FlatDict Running Json")
                 self.debugLog(parsed_simplejson)
@@ -560,17 +590,22 @@ class Plugin(indigo.PluginBase):
             # dict.
 
             if isinstance(parsed_simplejson, list):
+
                 if self.debugLevel >= 2:
                     self.debugLog(u"List Detected - Flattening to Dict")
+
                 parsed_simplejson = dict(("No_" + str(i), v) for (i, v) in enumerate(parsed_simplejson))
-            if self.debugLevel >= 2:    
+
+            if self.debugLevel >= 2:
                 self.debugLog(u"After List Check, Before FlatDict Running Json")
 
             self.jsonRawData = flatdict.FlatDict(parsed_simplejson, delimiter='_ghostxml_')
 
             if self.debugLevel >= 2:
                 self.debugLog(self.jsonRawData)
+
             return self.jsonRawData
+
         except Exception as error:
             self.errorLog(dev.name + ": " + unicode(error))
 
@@ -591,11 +626,6 @@ class Plugin(indigo.PluginBase):
                     self.debugLog(u"   {0} = {1}".format(unicode(key), unicode(self.finalDict[key])))
                 dev.updateStateOnServer(unicode(key), value=unicode(self.finalDict[key]))
                 dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
-                # TODO: the following comment and line below it can be deleted.
-                # DaveL17 commented the following line because devices that
-                # take longer to parse would show a blank status between
-                # 'processing' and 'Enabled'.
-                # dev.updateStateOnServer('deviceIsOnline', value=True, uiValue=" ")
 
             except Exception as error:
                 self.errorLog(u"Error parsing key/value pair: {0} = {1}. Reason: {2}".format(unicode(key), unicode(self.finalDict[key]), error))
@@ -620,90 +650,91 @@ class Plugin(indigo.PluginBase):
         if self.debugLevel >= 2:
             self.debugLog(u"refreshData() method called.")
 
+        # If there are no devices created or all devices are disabled.
+        if len(self.managedDevices) == 0:
+            indigo.server.log(u"No GhostXML devices have been created.")
+            return True
+
         try:
-            # Check to see if there have been any devices created.
-            if indigo.devices.itervalues(filter="self"):
-                self.debugLog(u"Updating data...")
+            # =============================================================
+            # Added by DaveL17 on 2017-09-29
+            #
+            # Remove the call to the server to iterate over plugin devices,
+            # instead using the dict of devices managed globally within the
+            # plugin.
 
-                for dev in indigo.devices.itervalues(filter="self"):
+            for devId in self.managedDevices:
+                dev = self.managedDevices[devId]
 
-                    # =============================================================
-                    # Added by DaveL17 on 2017-09-17
-                    # Add device to the queue.
-                    self.q.put(dev)
-            else:
-                indigo.server.log(u"No GhostXML devices have been created.")
+                self.refreshDataForDev(dev)
 
             return True
+
+            # =============================================================
 
         except Exception as error:
             self.errorLog(u"Error refreshing devices. Please check settings.")
             self.errorLog(unicode(error))
             return False
 
-    def refreshDataForDev(self, devId):
+    def refreshDataForDev(self, dev):
 
-        with self.lock:
-            dev = indigo.devices[devId]
+        ###########################
+        # ADDED BY howartp 18/06/16
+        # This was previously all inside refreshData() function Separating
+        # it out allows devices to be refreshed individually
+        if dev.configured:
+            self.debugLog(u"Found configured device: {0}".format(dev.name))
 
-            ###########################
-            # ADDED BY howartp 18/06/16
-            # This was previously all inside refreshData() function Separating
-            # it out allows devices to be refreshed individually
-            if dev.configured:
-                self.debugLog(u"Found configured device: {0}".format(dev.name))
+            if dev.enabled:
+                self.debugLog(u"   {0} is enabled.".format(dev.name))
 
-                if dev.enabled:
-                    self.debugLog(u"   {0} is enabled.".format(dev.name))
+                # Get the data.
+                self.debugLog(u"Refreshing device: {0}".format(dev.name))
+                self.rawData = self.getTheData(dev)
 
-                    # Get the data.
-                    self.debugLog(u"Refreshing device: {0}".format(dev.name))
-                    self.rawData = self.getTheData(dev)
+                # Throw the data to the appropriate module to flatten it.
+                dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Processing")
+                if dev.pluginProps['feedType'] == "XML":
+                    self.debugLog(u"Source file type: XML")
+                    self.rawData = self.stripNamespace(dev, self.rawData)
+                    self.finalDict = iterateXML.iterateMain(self.rawData)
 
-                    # Throw the data to the appropriate module to flatten it.
-                    dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Processing")
-                    if dev.pluginProps['feedType'] == "XML":
-                        self.debugLog(u"Source file type: XML")
-                        self.rawData = self.stripNamespace(dev, self.rawData)
-                        self.finalDict = iterateXML.iterateMain(self.rawData)
-
-                    elif dev.pluginProps['feedType'] == "JSON":
-                        self.debugLog(u"Source file type: JSON")
-                        self.finalDict = self.parseTheJSON(dev, self.rawData)
-                        self.cleanTheKeys(self.finalDict)
-
-                    else:
-                        indigo.server.log(u"{0}: The plugin only supports XML and JSON data sources.".format(dev.name))
-
-                    if self.finalDict is not None:
-                        # Create the device states.
-                        self.deviceNeedsUpdated = True
-                        self.debugLog(u"Device needs updating set to: {0}".format(self.deviceNeedsUpdated))
-                        dev.stateListOrDisplayStateIdChanged()
-
-                        # Put the final values into the device states.
-                        self.parseStateValues(dev)
-
-                        update_time = t.strftime("%m/%d/%Y at %H:%M")
-                        dev.updateStateOnServer('deviceLastUpdated', value=update_time)
-                        dev.updateStateOnServer('deviceTimestamp', value=t.time())
-                        dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Enabled")
-                        dev.updateStateOnServer('updateInProcess', value=False)
-                        dev.setErrorStateOnServer(None)
-                        self.debugLog(u"{0} updated.".format(dev.name))
-                    else:
-                        # Set the Timestamp so that the seconds-since-update
-                        # code doesn't keep checking a dead link / invalid URL
-                        # every 5 seconds - it will keep checking on it's
-                        # normal schedule. BUT don't set the "lastUpdated"
-                        # value so humans can see when it last successfully
-                        # updated.
-                        dev.updateStateOnServer('deviceTimestamp', value=t.time())
-                        dev.setErrorStateOnServer("Error")
+                elif dev.pluginProps['feedType'] == "JSON":
+                    self.debugLog(u"Source file type: JSON")
+                    self.finalDict = self.parseTheJSON(dev, self.rawData)
+                    self.cleanTheKeys(self.finalDict)
 
                 else:
-                    self.debugLog(u"    Disabled: {0}".format(dev.name))
-                    dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
+                    indigo.server.log(u"{0}: The plugin only supports XML and JSON data sources.".format(dev.name))
+
+                if self.finalDict is not None:
+                    # Create the device states.
+                    self.deviceNeedsUpdated = True
+                    self.debugLog(u"Device needs updating set to: {0}".format(self.deviceNeedsUpdated))
+                    dev.stateListOrDisplayStateIdChanged()
+
+                    # Put the final values into the device states.
+                    self.parseStateValues(dev)
+
+                    update_time = t.strftime("%m/%d/%Y at %H:%M")
+                    dev.updateStateOnServer('deviceLastUpdated', value=update_time)
+                    dev.updateStateOnServer('deviceTimestamp', value=t.time())
+                    dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Enabled")
+                    dev.setErrorStateOnServer(None)
+                    self.debugLog(u"{0} updated.".format(dev.name))
+                else:
+                    # Set the Timestamp so that the seconds-since-update code
+                    # doesn't keep checking a dead link / invalid URL every 5
+                    # seconds - it will keep checking on it's normal schedule.
+                    # BUT don't set the "lastUpdated" value so humans can see
+                    # when it last successfully updated.
+                    dev.updateStateOnServer('deviceTimestamp', value=t.time())
+                    dev.setErrorStateOnServer("Error")
+
+            else:
+                self.debugLog(u"    Disabled: {0}".format(dev.name))
+                dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
     def refreshDataForDevAction(self, valuesDict):
         """
@@ -713,12 +744,10 @@ class Plugin(indigo.PluginBase):
         if self.debugLevel >= 2:
             self.debugLog(u"refreshDataForDevAction() method called.")
 
-        dev = indigo.devices[valuesDict.deviceId]
+        dev = self.managedDevices[valuesDict.deviceId]
 
-        # =============================================================
-        # Added by DaveL17 on 2017-09-17
-        # Add device to the queue.
-        self.q.put(dev)
+        self.refreshDataForDev(dev)
+
         return True
 
     def stopSleep(self, start_sleep):
@@ -727,14 +756,11 @@ class Plugin(indigo.PluginBase):
         preference. The plugin checks every 2 seconds to see if the sleep
         interval should be updated.
         """
-        try:
-            total_sleep = float(self.pluginPrefs.get('configMenuUploadInterval', 300))
-        except:
-            total_sleep = iTimer  # TODO: Note variable iTimer is an unresolved reference.
-                                  # howartp: I think the try/except block could simply be removed since the self.pluginPrefs.get()
-                                  # statement will set the value to 300 if there's value available.  Suggest that fix.  DaveL17
+        total_sleep = float(self.pluginPrefs.get('configMenuUploadInterval', 300))
+
         if t.time() - start_sleep > total_sleep:
             return True
+
         return False
 
     def stripNamespace(self, dev, root):
@@ -784,3 +810,7 @@ class Plugin(indigo.PluginBase):
             self.debug = False
             self.pluginPrefs['showDebugInfo'] = False
             indigo.server.log(u"Debugging off.")
+
+    def worker(self, a):
+        self.debugLog(u"{0} thread starting.".format(threading.currentThread().getName()))
+        pass

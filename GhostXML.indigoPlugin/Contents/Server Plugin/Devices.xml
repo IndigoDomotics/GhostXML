@@ -108,11 +108,6 @@
                 <ControlPageLabel>Device Last Updated</ControlPageLabel>
             </State>
 
-            <State id="updateInProcess">
-                <ValueType>Boolean</ValueType>
-                <TriggerLabel>Device Update Status</TriggerLabel>
-                <ControlPageLabel>Device Update Status</ControlPageLabel>
-            </State>
         </States>
 
         <UiDisplayStateId>deviceIsOnline</UiDisplayStateId>
