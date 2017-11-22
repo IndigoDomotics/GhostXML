@@ -1,10 +1,13 @@
 """FlatDict is a dict object that allows for single level, delimited
-key/value pair mapping of nested dictionaries.
+key/value pair mapping of nested dictionaries."""
 
-"""
+try:
+    import indigo
+except ImportError:
+    pass
+
 __version__ = '1.2.0'
 
-import indigo
 
 class FlatDict(dict):
     """:py:class:`~flatdict.FlatDict` is a dictionary object that allows for

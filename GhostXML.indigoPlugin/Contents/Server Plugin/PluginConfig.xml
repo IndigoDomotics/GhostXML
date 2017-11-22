@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <PluginConfig>
+
     <Field id="infoLabel0" type="label" fontColor="black">
         <Label>GhostXML Plugin</Label>
     </Field>
@@ -30,9 +31,7 @@
         </List>
     </Field>
 
-    <Field id="space6" type="label">
-        <Label/>
-    </Field>
+    <Field id="space6" type="label"/>
 
     <Field id="space7" type="label" alignText="right">
         <Label>Update Notification:</Label>
@@ -53,9 +52,7 @@
         <Label>Email address:</Label>
     </Field>
 
-    <Field id="space9" type="label">
-        <Label/>
-    </Field>
+    <Field id="space9" type="label"/>
 
     <Field id="space10" type="label" alignText="right">
         <Label>Debugging:</Label>

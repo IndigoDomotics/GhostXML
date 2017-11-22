@@ -9,9 +9,7 @@
                 <Label>URL/Path:</Label>
             </Field>
 
-            <Field id="label0" type="label" fontSize="small" fontColor="black">
-                <Label/>
-            </Field>
+            <Field id="label0" type="label"/>
 
             <Field id="label1" type="label" fontSize="small" fontColor="black">
                 <Label>Examples:</Label>

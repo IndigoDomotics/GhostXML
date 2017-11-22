@@ -1,6 +1,5 @@
-#GhostXML
-This plugin allows XML and JSON data sources (either local or on the internet) to populate device states 
-in an Indigo device.
+# GhostXML
+The GhostXML plugin allows users to create custom devices for XML and JSON data sources.
 
 The purpose of the GhostXML plugin is to interface with XML and JSON files (web-based or on the local 
 machine) and parse the XML to device states. If the structure of the XML or JSON changes over time, the 

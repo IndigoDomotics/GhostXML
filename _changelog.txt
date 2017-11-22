@@ -5,6 +5,7 @@ v0.3.11
   maintained by the plugin (instead of making a server call to
   indigo.devices.itervalues('self')
 - Code cleanup.
+- Configures for IPS distribution.
 
 v0.3.10
 - Installs threading in place of multiprocessing.
