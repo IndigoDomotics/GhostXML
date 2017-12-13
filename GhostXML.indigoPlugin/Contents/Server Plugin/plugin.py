@@ -10,16 +10,13 @@ transitive Indigo plugin device states.
 """
 
 # TODO: Any utility in moving from subprocess to requests?
-# TODO: Keep an eye on unicode snafus.
 # TODO: Get self.debugLog into iterateXML module.
 # TODO: Right now, there is only low(1) and high(3) debugging.
 # TODO: Place restrictions on methods?
 # TODO: Potential bugs for keys with empty list values {'key': []} will not produce a custom state?
-# TODO: Passing device updates to threads is working, but everything is still happening synchronously.
 # TODO: Check where green icon is set after processing. cta.xml shows green while processing (on startup)
 # TODO: Logging needs to be much improved so that you can tell what thread is doing the work.
 # TODO: How to make sure that the queue items are processed by the proper thread?
-# TODO: [Feature Request] Possible to combine JSON/XML from more than one source into one device?
 
 import datetime
 import flatdict
@@ -48,7 +45,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.3.11"
+__version__   = u"0.3.12"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -352,6 +349,13 @@ class Plugin(indigo.PluginBase):
                         task = device_queue.get()
                         self.refreshDataForDev(task)
 
+            # =============================================================
+            # Added by DaveL17 - 2017-12-13
+            # The following sleep is necessary to cause the method to rest.
+            # Otherwise, the method will chew up resources while waiting.
+            self.sleep(1)
+            # =============================================================
+
     def fixErrorState(self, dev):
         """
         If the 'deviceLastUpdated' state is an empty string, populate the state
@@ -405,9 +409,9 @@ class Plugin(indigo.PluginBase):
             # Moved to debug level 3 to reduce debug log size (only log the
             # state values and comparison when verbose logging is desired.
             if self.debugLevel >= 3:
-                self.debugLog(unicode(interim_state_list))  # existing states
-                self.debugLog(unicode(self.finalDict.keys()))  # new states
-                self.debugLog(unicode(set(interim_state_list) == set(self.finalDict.keys())))  # compare existing states to new ones
+                self.debugLog(u"Initial states: {0}".format(interim_state_list))  # existing states
+                self.debugLog(u"New states: {0}".format(self.finalDict.keys()))  # new states
+                self.debugLog(u"New same as old: {0}".format(set(interim_state_list) == set(self.finalDict.keys())))  # compare existing states to new ones
 
             # END DaveL17 changes
             ###########################
@@ -629,7 +633,13 @@ class Plugin(indigo.PluginBase):
                 if self.debugLevel >= 2:
                     self.debugLog(u"List Detected - Flattening to Dict")
 
-                parsed_simplejson = dict(("No_" + str(i), v) for (i, v) in enumerate(parsed_simplejson))
+                # =============================================================
+                # Added by DaveL17 - 2017-12-13
+                # Updates to Unicode. If this works correctly, commented
+                # version can be deleted.
+                # parsed_simplejson = dict(("No_" + str(i), v) for (i, v) in enumerate(parsed_simplejson))
+                parsed_simplejson = dict((u"No_" + unicode(i), v) for (i, v) in enumerate(parsed_simplejson))
+            # =============================================================
 
             if self.debugLevel >= 2:
                 self.debugLog(u"After List Check, Before FlatDict Running Json")

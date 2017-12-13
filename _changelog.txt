@@ -1,5 +1,9 @@
 ghostXML Change Log
 
+v0.3.12
+- Fixes bug where plugin was using too many system resources while waiting for
+  device update request.
+
 v0.3.11
 - Implements self.managedDevices where a dict of plugin devices will be
   maintained by the plugin (instead of making a server call to
