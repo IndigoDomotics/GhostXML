@@ -17,6 +17,7 @@ transitive Indigo plugin device states.
 # TODO: Check where green icon is set after processing. cta.xml shows green while processing (on startup)
 # TODO: Logging needs to be much improved so that you can tell what thread is doing the work.
 # TODO: How to make sure that the queue items are processed by the proper thread?
+# TODO: Improve polite shutdown.
 
 import datetime
 import flatdict
@@ -45,7 +46,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.3.12"
+__version__   = u"0.3.13"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
