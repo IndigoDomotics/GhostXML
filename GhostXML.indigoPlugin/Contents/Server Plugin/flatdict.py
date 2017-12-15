@@ -23,9 +23,11 @@ class FlatDict(dict):
 
     def __init__(self, value=None, delimiter=None, former_type=dict):
         super(FlatDict, self).__init__()
-        self._values = {}
-        self._delimiter = delimiter or self.DELIMITER
+
+        self._values     = {}
+        self._delimiter  = delimiter or self.DELIMITER
         self.former_type = former_type
+
         if isinstance(value, dict):
             for key in value.keys():
                 self.__setitem__(key, value[key])
@@ -41,8 +43,7 @@ class FlatDict(dict):
             del self._values[key]
         else:
             parent, child = key.split(self._delimiter, 1)
-            if (parent in self._values and
-                child in self._values[parent]):
+            if parent in self._values and child in self._values[parent]:
                 del self._values[parent][child]
                 if not self._values[parent]:
                     del self._values[parent]
