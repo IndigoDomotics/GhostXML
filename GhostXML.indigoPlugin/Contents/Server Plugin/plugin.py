@@ -13,7 +13,7 @@ transitive Indigo plugin device states.
 # TODO: Potential bugs for keys with empty list values {'key': []} will not produce a custom state?
 # TODO: How to make sure that the queue items are processed by the proper thread? Do we actually care if they aren't?
 # TODO: Recover gracefully when a user improperly selects digest auth (had a user try to use digest instead of basic).  Return code 401 "unauthorized"
-# TODO: Add device config validation to ensure source starts with file or http(s).
+# TODO: How to catch when a user establishes a variable substitution and then later deletes the variable?
 
 # Stock imports
 import datetime
@@ -271,17 +271,35 @@ class Plugin(indigo.PluginBase):
         """ Validate select device config menu settings. """
 
         # =============================================================
-        # validateDeviceConfigUi() method added DaveL17 17/12/19
-        # =============================================================
+        # Added DaveL17 17/12/19
 
         self.debugLog(u"validateDeviceConfigUi() method called.")
 
         error_msg_dict = indigo.Dict()
 
+        # Test the source URL/Path for proper prefix.
         if not valuesDict['sourceXML'].startswith( ('http://', 'https://', 'file:///') ):
             error_msg_dict['sourceXML'] = u"You must supply a valid URL/Path."
             error_msg_dict['showAlertText'] = u"URL/Path Error.\n\nA valid URL/Path starts with:\n'http://',\n'https://', or\n'file:///'."
             return False, valuesDict, error_msg_dict
+
+        # Test the variable substitution IDs.
+        if valuesDict['doSubs']:
+
+            for field in ('subA', 'subB', 'subC', 'subD', 'subE'):
+                try:
+                    if valuesDict[field].isspace() or valuesDict[field] == "":
+                        pass
+                    else:
+                        lst = [var.id for var in indigo.variables]
+                        if int(valuesDict[field]) not in lst:
+                            raise ValueError
+                except ValueError:
+                    error_msg_dict[field] = u"You must supply a valid variable ID."
+                    error_msg_dict['showAlertText'] = u"Variable {0} Error\n\nYou must supply a valid variable ID number to perform substitutions (or leave the field blank).".format(field.replace('sub', ''))
+                    return False, valuesDict, error_msg_dict
+
+        # =============================================================
 
         return True
 

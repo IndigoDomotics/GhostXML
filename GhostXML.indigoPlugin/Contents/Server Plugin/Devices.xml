@@ -5,7 +5,7 @@
         <Name>GhostXML Device</Name>
 
         <ConfigUI>
-            <Field id="sourceXML" type="textfield">
+            <Field id="sourceXML" type="textfield" tooltip="Enter the path to your data source using the examples below as a guide.">
                 <Label>URL/Path:</Label>
             </Field>
 
@@ -53,41 +53,41 @@
 
             <!-- Substitution -->
 
-            <Field id="doSubs" type="checkbox" defaultValue="false" tooltip="Would you like to use substitutions in this feed?">
+            <Field id="doSubs" type="checkbox" defaultValue="false" tooltip="Would you like to use substitutions in this feed? Checking the box turns them on and unchecking the box turns them off.">
                 <Label>Enable substitutions?:</Label>
                 <Description>Would you like to use variable substitutions in this feed's URL?</Description>
             </Field>
 
-            <Field id="subA" type="textfield" tooltip="Enter or paste a variable ID here" visibleBindingId="doSubs" visibleBindingValue="true">
+            <Field id="subA" type="textfield" tooltip="Enter or paste a variable ID here." visibleBindingId="doSubs" visibleBindingValue="true">
                 <Label>Variable A:</Label>
             </Field>
 
-            <Field id="subB" type="textfield" tooltip="Enter or paste a variable ID here" visibleBindingId="doSubs" visibleBindingValue="true">
+            <Field id="subB" type="textfield" tooltip="Enter or paste a variable ID here." visibleBindingId="doSubs" visibleBindingValue="true">
                 <Label>Variable B:</Label>
             </Field>
 
-            <Field id="subC" type="textfield" tooltip="Enter or paste a variable ID here" visibleBindingId="doSubs" visibleBindingValue="true">
+            <Field id="subC" type="textfield" tooltip="Enter or paste a variable ID here." visibleBindingId="doSubs" visibleBindingValue="true">
                 <Label>Variable C:</Label>
             </Field>
 
-            <Field id="subD" type="textfield" tooltip="Enter or paste a variable ID here" visibleBindingId="doSubs" visibleBindingValue="true">
+            <Field id="subD" type="textfield" tooltip="Enter or paste a variable ID here." visibleBindingId="doSubs" visibleBindingValue="true">
                 <Label>Variable D:</Label>
             </Field>
 
-            <Field id="subE" type="textfield" tooltip="Enter or paste a variable ID here" visibleBindingId="doSubs" visibleBindingValue="true">
+            <Field id="subE" type="textfield" tooltip="Enter or paste a variable ID here." visibleBindingId="doSubs" visibleBindingValue="true">
                 <Label>Variable E:</Label>
             </Field>
 
-            <Field id="useDigest" type="checkbox" defaultValue="false" tooltip="Would you like to use Digest Auth in this feed?">
+            <Field id="useDigest" type="checkbox" defaultValue="false" tooltip="Would you like to use Digest Auth in this feed? Checking the box turns authentication on and unchecking the box turns it off.">
                 <Label>Use Digest Auth?:</Label>
                 <Description>Would you like to use Digest Auth in this feed's URL?</Description>
             </Field>
 
-            <Field id="digestUser" type="textfield" tooltip="Enter or paste a Username ID here" visibleBindingId="useDigest" visibleBindingValue="true">
+            <Field id="digestUser" type="textfield" tooltip="Enter or paste a Username ID here." visibleBindingId="useDigest" visibleBindingValue="true">
                 <Label>Username:</Label>
             </Field>
 
-            <Field id="digestPass" type="textfield" tooltip="Enter or paste a Password ID here" visibleBindingId="useDigest" visibleBindingValue="true">
+            <Field id="digestPass" type="textfield" tooltip="Enter or paste a Password ID here." visibleBindingId="useDigest" visibleBindingValue="true">
                 <Label>Password:</Label>
             </Field>
 
