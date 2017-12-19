@@ -2,6 +2,7 @@ ghostXML Change Log
 
 v0.3.14
 - Improves Indigo UI messages for device processing.
+- Improves device configuration settings validation.
 - Added 'self.pluginIsShuttingDown' to make plugin shutdown more politely.
 - Added timeout to deviceStopComm to force threads to join after 0.5 seconds.
 - Improves PEP 8 compliance for iterateXML.py.

@@ -12,6 +12,8 @@ transitive Indigo plugin device states.
 # TODO: Add device name to logging entries so that we know what device is being updated. (Perhaps this should wait until update for Indigo 7?)
 # TODO: Potential bugs for keys with empty list values {'key': []} will not produce a custom state?
 # TODO: How to make sure that the queue items are processed by the proper thread? Do we actually care if they aren't?
+# TODO: Recover gracefully when a user improperly selects digest auth (had a user try to use digest instead of basic).  Return code 401 "unauthorized"
+# TODO: Add device config validation to ensure source starts with file or http(s).
 
 # Stock imports
 import datetime
@@ -265,6 +267,24 @@ class Plugin(indigo.PluginBase):
         except Exception as sub_error:
             self.errorLog(u"Update checker error: {0}".format(sub_error))
 
+    def validateDeviceConfigUi(self, valuesDict, typeID, devId):
+        """ Validate select device config menu settings. """
+
+        # =============================================================
+        # validateDeviceConfigUi() method added DaveL17 17/12/19
+        # =============================================================
+
+        self.debugLog(u"validateDeviceConfigUi() method called.")
+
+        error_msg_dict = indigo.Dict()
+
+        if not valuesDict['sourceXML'].startswith( ('http://', 'https://', 'file:///') ):
+            error_msg_dict['sourceXML'] = u"You must supply a valid URL/Path."
+            error_msg_dict['showAlertText'] = u"URL/Path Error.\n\nA valid URL/Path starts with:\n'http://',\n'https://', or\n'file:///'."
+            return False, valuesDict, error_msg_dict
+
+        return True
+
     def validatePrefsConfigUi(self, valuesDict):
         """ docstring placeholder """
 
@@ -400,13 +420,15 @@ class Plugin(indigo.PluginBase):
 
             stateListOrDisplayStateIdChanged()
 
-        and by Indigo when Triggers and Control Pages are built.
+        and by Indigo when Triggers and Control Pages are built. Note that it's
+        not possible to override Indigo's sorting of devices states which will
+        present them as A, B, a, b.
         """
 
         if self.debugLevel >= 2:
             self.debugLog(u"getDeviceStateList() method called.")
 
-        if self.deviceNeedsUpdated and dev.enabled:  # Added dev.enabled test - DaveL17 @ 2017-09-18
+        if self.deviceNeedsUpdated and dev.enabled:  # Added dev.enabled test - DaveL17 17/09/18
             # This statement goes out and gets the existing state list for dev.
             self.debugLog(u"Pulling down existing state list.")
             state_list = indigo.PluginBase.getDeviceStateList(self, dev)
@@ -415,22 +437,20 @@ class Plugin(indigo.PluginBase):
 
                 # Iterate the tags in final_dict into device state keys.
                 self.debugLog(u"  Writing dynamic states to device.")
+
                 for key in self.finalDict.iterkeys():
-                    # Example: dynamic_state =
-                    # self.getDeviceStateDictForStringType(key, u'Trigger Test Label', u'State Label')
+                    # Example: dynamic_state = self.getDeviceStateDictForStringType(key, u'Trigger Test Label', u'State Label')
                     dynamic_state = self.getDeviceStateDictForStringType(key, key, key)
                     state_list.append(dynamic_state)
 
             ###########################
-            # ADDED BY DaveL17 12/26/16
+            # ADDED BY DaveL17 16/12/26
             # Inspect existing state list to new one to see if the state list
             # needs to be updated. If it doesn't, we can save some effort here.
             interim_state_list = [thing['Key'] for thing in state_list]
             for thing in [u'deviceIsOnline', u'deviceLastUpdated', ]:
                 interim_state_list.remove(thing)
 
-            # Moved to debug level 3 to reduce debug log size (only log the
-            # state values and comparison when verbose logging is desired.
             if self.debugLevel >= 3:
                 self.debugLog(u"Initial states: {0}".format(interim_state_list))  # existing states
                 self.debugLog(u"New states: {0}".format(self.finalDict.keys()))  # new states
@@ -571,7 +591,7 @@ class Plugin(indigo.PluginBase):
 
         try:
             ###########################
-            # Added by DaveL17 on 11/25/2016.
+            # Added by DaveL17 on 16/11/25.
             # Some characters need to be replaced with a valid replacement
             # value because simply deleting them could cause problems. Add
             # additional k/v pairs to chars_to_replace as needed.
@@ -598,7 +618,7 @@ class Plugin(indigo.PluginBase):
                 input_data[new_key] = input_data.pop(key)
 
             ###########################
-            # Added by DaveL17 on 11/28/2016.
+            # Added by DaveL17 on 16/11/28.
             # Indigo will not accept device state names that begin with a
             # number, so inspect them and prepend any with the string "No_" to
             # force them to something that Indigo will accept.
@@ -659,12 +679,12 @@ class Plugin(indigo.PluginBase):
                     self.debugLog(u"List Detected - Flattening to Dict")
 
                 # =============================================================
-                # Added by DaveL17 - 2017-12-13
+                # Added by DaveL17 - 17/12/13
                 # Updates to Unicode. If this works correctly, commented
                 # version can be deleted.
                 # parsed_simplejson = dict(("No_" + str(i), v) for (i, v) in enumerate(parsed_simplejson))
                 parsed_simplejson = dict((u"No_" + unicode(i), v) for (i, v) in enumerate(parsed_simplejson))
-            # =============================================================
+                # =============================================================
 
             if self.debugLevel >= 2:
                 self.debugLog(u"After List Check, Before FlatDict Running Json")
@@ -694,12 +714,12 @@ class Plugin(indigo.PluginBase):
         for key in sorted_list:
             try:
                 if self.debugLevel >= 3:
-                    self.debugLog(u"   {0} = {1}".format(unicode(key), unicode(self.finalDict[key])))
+                    self.debugLog(u"   {0} = {1}".format(key, self.finalDict[key]))
                 dev.updateStateOnServer(unicode(key), value=unicode(self.finalDict[key]))
                 dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
 
             except Exception as sub_error:
-                self.errorLog(u"Error parsing key/value pair: {0} = {1}. Reason: {2}".format(unicode(key), unicode(self.finalDict[key]), sub_error))
+                self.errorLog(u"Error parsing key/value pair: {0} = {1}. Reason: {2}".format(key, self.finalDict[key], sub_error))
                 dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
                 dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Error")
 
@@ -779,11 +799,11 @@ class Plugin(indigo.PluginBase):
                     # Moved here by DaveL17 2017-12-15
                     #
                     # By setting the device last updated time at the outset of
-                    # the refresh cycle, we can avoid the collisions that take
+                    # the refresh cycle, we can avoid the collisions that takes
                     # place when a device refresh takes longer than the 2
                     # second poll (when a device takes more than 2 seconds to
                     # refresh, it can be called to refresh again before it's
-                    # finished -- resulting in a race condition).
+                    # finished the first -- resulting in a race).
 
                     update_time = t.strftime("%m/%d/%Y at %H:%M")
                     dev.updateStateOnServer('deviceLastUpdated', value=update_time)
