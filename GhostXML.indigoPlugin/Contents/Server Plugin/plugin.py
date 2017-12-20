@@ -13,7 +13,6 @@ transitive Indigo plugin device states.
 # TODO: Potential bugs for keys with empty list values {'key': []} will not produce a custom state?
 # TODO: How to make sure that the queue items are processed by the proper thread? Do we actually care if they aren't?
 # TODO: Recover gracefully when a user improperly selects digest auth (had a user try to use digest instead of basic).  Return code 401 "unauthorized"
-# TODO: How to catch when a user establishes a variable substitution and then later deletes the variable?
 
 # Stock imports
 import datetime
@@ -481,9 +480,14 @@ class Plugin(indigo.PluginBase):
                 interim_state_list.remove(thing)
 
             if self.debugLevel >= 3:
-                self.debugLog(u"Initial states: {0}".format(interim_state_list))  # existing states
-                self.debugLog(u"New states: {0}".format(self.finalDict.keys()))  # new states
-                self.debugLog(u"New same as old: {0}".format(set(interim_state_list) == set(self.finalDict.keys())))  # compare existing states to new ones
+
+                # Compare existing states to new ones
+                if not set(interim_state_list) == set(self.finalDict.keys()):
+                    self.debugLog(u"New states found.")
+                    self.debugLog(u"Initial states: {0}".format(interim_state_list))  # existing states
+                    self.debugLog(u"New states: {0}".format(self.finalDict.keys()))  # new states
+                else:
+                    self.debugLog(u"No new states found.")
 
             # END DaveL17 changes
             ###########################
@@ -539,6 +543,7 @@ class Plugin(indigo.PluginBase):
             self.debugLog(u"getTheData() method called.")
 
         dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Download")
+
         try:
             # Initiate curl call to data source.
             url = dev.pluginProps['sourceXML']
@@ -582,15 +587,13 @@ class Plugin(indigo.PluginBase):
             (result, err) = proc.communicate()
 
             if err:
-                if proc.returncode == 6:
+                if proc.returncode in (6, 37):
 
                     f = open(self.logFile, 'a')
                     f.write("{0} - Curl Return Code: {1}\n{2} \n".format(datetime.datetime.time(datetime.datetime.now()), proc.returncode, err))
                     f.close()
 
-                    self.errorLog(u"Device Error: Could not resolve host for device: {0}.".format(dev.name))
-                    self.errorLog(u"   Possible causes: The data service is offline, your Indigo server can not reach the data source, or your plugin is mis-configured.")
-                    self.debugLog(err)
+                    raise IOError
 
                 elif err is not 0:
                     self.debugLog(err)
@@ -600,13 +603,13 @@ class Plugin(indigo.PluginBase):
 
             return result
 
-        except Exception as sub_error:
+        # IOError Added by DaveL17 17/12/20
+        except IOError:
 
-            self.errorLog(u"{0} - Error getting source data: {1}. Skipping until next scheduled poll.".format(dev.name, unicode(sub_error)))
+            self.errorLog(u"{0} - IOError:  Skipping until next scheduled poll.".format(dev.name))
             self.debugLog(u"Device is offline. No data to return. Returning dummy dict.")
             dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No comm")
-            result = ""
-            return result
+            return '{"GhostXML": "IOError"}'
 
     def cleanTheKeys(self, input_data):
         """
@@ -688,7 +691,7 @@ class Plugin(indigo.PluginBase):
             parsed_simplejson = simplejson.loads(root)
 
             if self.debugLevel >= 2:
-                self.debugLog(u"Prior to FlatDict Running Json")
+                self.debugLog(u"Prior to FlatDict Running JSON")
                 self.debugLog(parsed_simplejson)
 
             ###########################
@@ -716,7 +719,7 @@ class Plugin(indigo.PluginBase):
                 # =============================================================
 
             if self.debugLevel >= 2:
-                self.debugLog(u"After List Check, Before FlatDict Running Json")
+                self.debugLog(u"After List Check, Before FlatDict Running JSON")
 
             self.jsonRawData = flatdict.FlatDict(parsed_simplejson, delimiter='_ghostxml_')
 
@@ -745,7 +748,6 @@ class Plugin(indigo.PluginBase):
                 if self.debugLevel >= 3:
                     self.debugLog(u"   {0} = {1}".format(key, self.finalDict[key]))
                 dev.updateStateOnServer(unicode(key), value=unicode(self.finalDict[key]))
-                dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
 
             except Exception as sub_error:
                 self.errorLog(u"Error parsing key/value pair: {0} = {1}. Reason: {2}".format(key, self.finalDict[key], sub_error))
@@ -814,7 +816,6 @@ class Plugin(indigo.PluginBase):
             self.debugLog(u"Found configured device: {0}".format(dev.name))
 
             if dev.enabled:
-                self.debugLog(u"   {0} is enabled.".format(dev.name))
 
                 # Get the data.
                 self.debugLog(u"Refreshing device: {0}".format(dev.name))
@@ -828,7 +829,7 @@ class Plugin(indigo.PluginBase):
                     # Moved here by DaveL17 2017-12-15
                     #
                     # By setting the device last updated time at the outset of
-                    # the refresh cycle, we can avoid the collisions that takes
+                    # the refresh cycle, we can avoid the collisions that take
                     # place when a device refresh takes longer than the 2
                     # second poll (when a device takes more than 2 seconds to
                     # refresh, it can be called to refresh again before it's
@@ -862,7 +863,12 @@ class Plugin(indigo.PluginBase):
                         # Put the final values into the device states.
                         self.parseStateValues(dev)
 
-                        dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Updated")
+                        if "GhostXML" in dev.states:
+                            dev.updateStateOnServer('deviceIsOnline', value=False, uiValue=dev.states['GhostXML'])
+                            dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
+                        else:
+                            dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Updated")
+                            dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
                         dev.setErrorStateOnServer(None)
                         self.debugLog(u"{0} updated.".format(dev.name))
 
