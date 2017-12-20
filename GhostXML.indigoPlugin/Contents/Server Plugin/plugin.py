@@ -271,32 +271,43 @@ class Plugin(indigo.PluginBase):
         """ Validate select device config menu settings. """
 
         # =============================================================
-        # Added DaveL17 17/12/19
+        # Device configuration validation Added DaveL17 17/12/19
 
         self.debugLog(u"validateDeviceConfigUi() method called.")
 
         error_msg_dict = indigo.Dict()
+        url = valuesDict['sourceXML']
+        url_list = ('file:///', 'http://', 'https://')
 
         # Test the source URL/Path for proper prefix.
-        if not valuesDict['sourceXML'].startswith( ('http://', 'https://', 'file:///') ):
+        if not url.startswith(url_list):
             error_msg_dict['sourceXML'] = u"You must supply a valid URL/Path."
             error_msg_dict['showAlertText'] = u"URL/Path Error.\n\nA valid URL/Path starts with:\n'http://',\n'https://', or\n'file:///'."
             return False, valuesDict, error_msg_dict
 
-        # Test the variable substitution IDs.
+        # Test the variable substitution IDs and indexes. If substitutions
+        # aren't enabled, we can skip this bit.
         if valuesDict['doSubs']:
 
-            for field in ('subA', 'subB', 'subC', 'subD', 'subE'):
-                try:
-                    if valuesDict[field].isspace() or valuesDict[field] == "":
-                        pass
-                    else:
-                        lst = [var.id for var in indigo.variables]
-                        if int(valuesDict[field]) not in lst:
-                            raise ValueError
-                except ValueError:
-                    error_msg_dict[field] = u"You must supply a valid variable ID."
-                    error_msg_dict['showAlertText'] = u"Variable {0} Error\n\nYou must supply a valid variable ID number to perform substitutions (or leave the field blank).".format(field.replace('sub', ''))
+            sub_list = [('subA', '[A]'), ('subB', '[B]'), ('subC', '[C]'), ('subD', '[D]'), ('subE', '[E]')]
+            var_list = [var.id for var in indigo.variables]
+
+            for sub in sub_list:
+
+                # Ensure that the values entered in the substitution fields are
+                # valid Indigo variable IDs.
+                if valuesDict[sub[0]].isspace() or valuesDict[sub[0]] == "":
+                    pass
+                elif int(valuesDict[sub[0]]) not in var_list:
+                    error_msg_dict[sub[0]] = u"You must supply a valid variable ID."
+                    error_msg_dict['showAlertText'] = u"Variable {0} Error\n\nYou must supply a valid Indigo variable ID number to perform substitutions (or leave the field blank).".format(sub[0].replace('sub', ''))
+                    return False, valuesDict, error_msg_dict
+
+                # Ensure that the proper substitution index is included in the
+                # source URL.
+                if valuesDict[sub[0]].strip() != "" and sub[1].strip() not in url:
+                    error_msg_dict[sub[0]] = u"Please add a substitution index to the source URL for this variable ID."
+                    error_msg_dict['showAlertText'] = u"Variable {0} Error\n\nYou must include a valid substitution index in your source URL for this variable.".format(sub[0].replace('sub', ''))
                     return False, valuesDict, error_msg_dict
 
         # =============================================================
