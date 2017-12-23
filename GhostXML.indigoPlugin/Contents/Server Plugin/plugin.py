@@ -29,12 +29,12 @@ import flatdict  # https://github.com/gmr/flatdict
 import indigoPluginUpdateChecker
 try:
     import indigo
-except ImportError as error:
+except ImportError:
     pass
 
 try:
     import pydevd
-except ImportError as error:
+except ImportError:
     pass
 
 # Custom imports
@@ -50,11 +50,10 @@ __version__   = u"0.3.14"
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
     u'configMenuServerTimeout': "15",  # Server timeout limit.
-    u'refreshFreq': 300,  # Device-specific update frequency
-    u'showDebugInfo': False,  # Verbose debug logging?
-    u'showDebugLevel': "1",  # Low, Medium or High debug output.
-    u'updaterEmail': "",  # Email to notify of plugin updates.
-    u'updaterEmailsEnabled': False  # Notification of plugin updates wanted.
+    u'showDebugInfo': False,           # Verbose debug logging?
+    u'showDebugLevel': "1",            # Low, Medium or High debug output.
+    u'updaterEmail': "",               # Email to notify of plugin updates.
+    u'updaterEmailsEnabled': False     # Notification of plugin updates wanted.
 }
 
 
@@ -69,18 +68,18 @@ class Plugin(indigo.PluginBase):
 
         indigo.server.log(u"")
         indigo.server.log(u"{0:=^130}".format(" Initializing New Plugin Session "))
-        indigo.server.log(u"{0:<31} {1}".format("Plugin name:", pluginDisplayName))
-        indigo.server.log(u"{0:<31} {1}".format("Plugin version:", pluginVersion))
-        indigo.server.log(u"{0:<31} {1}".format("Plugin ID:", pluginId))
-        indigo.server.log(u"{0:<31} {1}".format("Indigo version:", indigo.server.version))
-        indigo.server.log(u"{0:<31} {1}".format("Python version:", sys.version.replace('\n', '')))
+        indigo.server.log(u"{0:<30} {1}".format("Plugin name:", pluginDisplayName))
+        indigo.server.log(u"{0:<30} {1}".format("Plugin version:", pluginVersion))
+        indigo.server.log(u"{0:<30} {1}".format("Plugin ID:", pluginId))
+        indigo.server.log(u"{0:<30} {1}".format("Indigo version:", indigo.server.version))
+        indigo.server.log(u"{0:<30} {1}".format("Python version:", sys.version.replace('\n', '')))
         indigo.server.log(u"{0:=^130}".format(""))
 
-        self.debug = self.pluginPrefs.get('showDebugInfo', False)
-        self.debugLevel = self.pluginPrefs.get('showDebugLevel', 1)
-        self.logFile = u"{0}/Logs/com.fogbert.indigoplugin.GhostXML/plugin.log".format(indigo.server.getInstallFolderPath())
-        self.prefServerTimeout = int(self.pluginPrefs.get('configMenuServerTimeout', "15"))
-        self.updater = indigoPluginUpdateChecker.updateChecker(self, "http://indigodomotics.github.io/GhostXML/ghostXML_version.html")
+        self.debug                = self.pluginPrefs.get('showDebugInfo', False)
+        self.debugLevel           = int(self.pluginPrefs.get('showDebugLevel', 1))
+        self.logFile              = u"{0}/Logs/com.fogbert.indigoplugin.GhostXML/plugin.log".format(indigo.server.getInstallFolderPath())
+        self.prefServerTimeout    = int(self.pluginPrefs.get('configMenuServerTimeout', "15"))
+        self.updater              = indigoPluginUpdateChecker.updateChecker(self, "http://indigodomotics.github.io/GhostXML/ghostXML_version.html")
         self.updaterEmailsEnabled = self.pluginPrefs.get('updaterEmailsEnabled', False)
 
         self.deviceNeedsUpdated  = ''
@@ -88,7 +87,7 @@ class Plugin(indigo.PluginBase):
         self.jsonRawData         = {}
         self.rawData             = ''
 
-        # A dict of plugin devices that will be used to hold a copy of  each
+        # A dict of plugin devices that will be used to hold a copy of each
         # active plugin device and a queue for processing device updates. The
         # dict will be (re)populated in self.deviceStartComm() method.
         self.managedDevices = {}
@@ -137,13 +136,13 @@ class Plugin(indigo.PluginBase):
 
         if not userCancelled:
             self.debug = valuesDict.get('showDebugInfo', False)
-            self.debugLevel = self.pluginPrefs.get('showDebugLevel', "1")
+            self.debugLevel = int(self.pluginPrefs.get('showDebugLevel', "1"))
             self.debugLog(u"User prefs saved.")
 
             if self.debug:
                 indigo.server.log(u"Debugging on (Level: {0})".format(self.debugLevel))
             else:
-                indigo.server.log(u"Debugging off.")
+                pass
 
             if int(self.pluginPrefs['showDebugLevel']) >= 3:
                 self.debugLog(u"valuesDict: {0} ".format(valuesDict))
@@ -158,7 +157,7 @@ class Plugin(indigo.PluginBase):
         self.debugLog(u"Starting GhostXML device: {0}".format(dev.name))
 
         # =============================================================
-        # Added by DaveL17 on 2017-09-28
+        # Added by DaveL17 17/09/28
         #
         # Add the device to the dict of managed devices where the key is the
         # device ID and the value is a copy of the device. References now
@@ -167,7 +166,7 @@ class Plugin(indigo.PluginBase):
         self.managedDevices[dev.id] = PluginDevice(dev)
 
         # Start a thread for the device instance (each device will have its own
-        # thread.
+        # thread).
         # dev_thread = threading.Thread(name=self.managedDevices[dev.id].device.id, target=self.deviceQueueProcessor, args=('args',))
 
         thread_name = u"{0} - {1}".format(dev.id, dev.name)
@@ -188,13 +187,13 @@ class Plugin(indigo.PluginBase):
         self.debugLog(u"Stopping GhostXML device: {0}".format(dev.name))
 
         # =============================================================
-        # Added by DaveL17 on 2017-09-28
-
+        # Added by DaveL17 17/09/28
+        #
         # Remove the device from the dict of managed devices and stop the
         # related thread when communication  with the device has been stopped.
         del self.managedDevices[dev.id]
 
-        # Added by DaveL17 2017-12-14
+        # Added by DaveL17 17/12/14
         # Timeout (0.5) to force join the thread if needed.
         self.managedThreads[dev.id].join(0.5)
 
@@ -216,12 +215,12 @@ class Plugin(indigo.PluginBase):
                 self.updater.checkVersionPoll()
 
                 # =============================================================
-                # Added by DaveL17 on 2017-09-29
+                # Added by DaveL17 17/09/29
 
                 for devId in self.managedDevices:
                     dev = self.managedDevices[devId].device
 
-                    # DaveL17 @ 2017-09-30 moved update test to its own method.
+                    # DaveL17 17/09/30 moved update test to its own method.
                     if self.timeToUpdate(dev):
                         self.managedDevices[devId].queue.put(dev)
                         self.heartbeat_queue.put(u'')  # a placeholder to make the queue non-empty
@@ -253,7 +252,7 @@ class Plugin(indigo.PluginBase):
         # =============================================================
         for dev in indigo.devices.itervalues("self"):
             if not dev.enabled:
-                dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Disabled")
+                dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="Disabled")
 
             else:
                 dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Initialized")
@@ -311,7 +310,7 @@ class Plugin(indigo.PluginBase):
 
         # =============================================================
 
-        return True
+        return True, valuesDict, error_msg_dict
 
     def validatePrefsConfigUi(self, valuesDict):
         """ docstring placeholder """
@@ -320,8 +319,8 @@ class Plugin(indigo.PluginBase):
             self.debugLog(u"validatePrefsConfigUi() method called.")
 
         error_msg_dict = indigo.Dict()
-        update_email = valuesDict['updaterEmail']
-        update_wanted = valuesDict['updaterEmailsEnabled']
+        update_email   = valuesDict['updaterEmail']
+        update_wanted  = valuesDict['updaterEmailsEnabled']
 
         # Test plugin update notification settings.
         try:
@@ -365,7 +364,7 @@ class Plugin(indigo.PluginBase):
             self.debugLog(u"killAllComms() method called.")
 
         # =============================================================
-        # Added by DaveL17 on 2017-09-29
+        # Added by DaveL17 17/09/29
         #
         # Remove the call to the server to iterate over plugin devices, instead
         # using the dict of devices managed globally within the plugin.
@@ -414,11 +413,12 @@ class Plugin(indigo.PluginBase):
 
                     if not device_queue.empty():
                         task = device_queue.get()
-                        # indigo.server.log(u"Queue task {0} sent to thread {1}".format(task.id, threading.current_thread().name))
+                        if self.debugLevel >= 3:
+                            self.debugLog(u"Queue task {0} sent to thread {1}".format(task.id, threading.current_thread().name))
                         self.refreshDataForDev(task)
 
             # =============================================================
-            # Added by DaveL17 - 2017-12-13
+            # Added by DaveL17 17/12/13
             # The following sleep is necessary to cause the method to rest.
             # Otherwise, the method will chew up resources while waiting.
             self.sleep(1)
@@ -574,25 +574,20 @@ class Plugin(indigo.PluginBase):
             # edited and saved.
 
             if dev.pluginProps.get('useDigest', False):
-
                 username = dev.pluginProps.get('digestUser', '')
                 password = dev.pluginProps.get('digestPass', '')
-
                 proc = subprocess.Popen(["curl", '-vs', '--digest', '-u', username + ':' + password, url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             else:
-
                 proc = subprocess.Popen(["curl", '-vs', url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             (result, err) = proc.communicate()
 
             if err:
                 if proc.returncode in (6, 37):
-
                     f = open(self.logFile, 'a')
                     f.write("{0} - Curl Return Code: {1}\n{2} \n".format(datetime.datetime.time(datetime.datetime.now()), proc.returncode, err))
                     f.close()
-
                     raise IOError
 
                 elif err is not 0:
@@ -711,10 +706,8 @@ class Plugin(indigo.PluginBase):
                     self.debugLog(u"List Detected - Flattening to Dict")
 
                 # =============================================================
-                # Added by DaveL17 - 17/12/13
-                # Updates to Unicode. If this works correctly, commented
-                # version can be deleted.
-                # parsed_simplejson = dict(("No_" + str(i), v) for (i, v) in enumerate(parsed_simplejson))
+                # Added by DaveL17 17/12/13
+                # Updates to Unicode.
                 parsed_simplejson = dict((u"No_" + unicode(i), v) for (i, v) in enumerate(parsed_simplejson))
                 # =============================================================
 
@@ -780,7 +773,7 @@ class Plugin(indigo.PluginBase):
 
         try:
             # =============================================================
-            # Added by DaveL17 on 2017-09-29
+            # Added by DaveL17 17/09/29
             #
             # Remove the call to the server to iterate over plugin devices,
             # instead using the dict of devices managed globally within the
@@ -826,7 +819,7 @@ class Plugin(indigo.PluginBase):
                     dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Processing")
 
                     # =============================================================
-                    # Moved here by DaveL17 2017-12-15
+                    # Moved here by DaveL17 17/12/15
                     #
                     # By setting the device last updated time at the outset of
                     # the refresh cycle, we can avoid the collisions that take
@@ -957,7 +950,7 @@ class Plugin(indigo.PluginBase):
         # We don't make a log entry when this method is called because it's called every 2 seconds.
 
         # If device has a deviceTimestamp key and is enabled.
-        if "deviceTimestamp" in dev.states.iterkeys() and dev.enabled:  # Added dev.enabled test - DaveL17 @ 2017-09-18
+        if "deviceTimestamp" in dev.states.iterkeys() and dev.enabled:  # Added dev.enabled test - DaveL17 17/09/18
 
             # If the device timestamp is an empty string, set it to a valid value.
             if dev.states["deviceTimestamp"] == "":

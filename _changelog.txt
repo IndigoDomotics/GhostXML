@@ -3,7 +3,7 @@ ghostXML Change Log
 v0.3.14
 - Improves Indigo UI messages during device processing.
 - Implements device configuration settings validation.
-- Adds proc.returncode 37 to explicit trap for data download.
+- Adds proc.returncode 37 and explicit trap for data download.
 - Adds more descriptive response for failed data downloads.
 - Adds 'self.pluginIsShuttingDown' to make plugin shutdown more politely.
 - Adds timeout to deviceStopComm to force threads to join after 0.5 seconds.
