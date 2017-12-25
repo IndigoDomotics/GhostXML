@@ -5,25 +5,11 @@
         <Name>GhostXML Device</Name>
 
         <ConfigUI>
-            <Field id="sourceXML" type="textfield" tooltip="Enter the path to your data source using the examples below as a guide.">
-                <Label>URL/Path:</Label>
-            </Field>
-
-            <Field id="label0" type="label"/>
-
-            <Field id="label1" type="label" fontSize="small" fontColor="black">
-                <Label>Examples:</Label>
-            </Field>
-
-            <Field id="example1" type="label" fontSize="small" fontColor="black">
-                <Label>URL: http://www.ip_address.com/filename.xml</Label>
-            </Field>
-
-            <Field id="example2" type="label" fontSize="small" fontColor="black">
-                <Label>Local file: file:///Users/user_name/folder_path/filename.json</Label>
-            </Field>
-
             <!-- FeedType -->
+
+            <Field id="settingsLabel" type="label" fontSize="small">
+                <Label>Provide the feed type (XML or JSON), the frequency of data refreshes, and the source URL.</Label>
+            </Field>
 
             <Field id="feedType" type="menu" defaultValue="XML" tooltip="The type of feed you will be using.">
                 <Label>Feed Type:</Label>
@@ -51,44 +37,90 @@
                 </List>
             </Field>
 
-            <!-- Substitution -->
+            <!-- URL -->
 
-            <Field id="doSubs" type="checkbox" defaultValue="false" tooltip="Would you like to use substitutions in this feed? Checking the box turns them on and unchecking the box turns them off.">
-                <Label>Enable substitutions?:</Label>
-                <Description>Would you like to use variable substitutions in this feed's URL?</Description>
+            <Field id="sourceXML" type="textfield" tooltip="Enter the path to your data source using the examples below as a guide.">
+                <Label>URL/Path:</Label>
             </Field>
 
-            <Field id="subA" type="textfield" tooltip="Enter or paste a variable ID here." visibleBindingId="doSubs" visibleBindingValue="true">
-                <Label>Variable A:</Label>
+            <Field id="label1" type="label" fontSize="small" alignWithControl="true">
+                <Label>Examples:&#xA;URL: http://www.ip_address.com/filename.xml&#xA;Local file: file:///folder_path/filename.json</Label>
             </Field>
 
-            <Field id="subB" type="textfield" tooltip="Enter or paste a variable ID here." visibleBindingId="doSubs" visibleBindingValue="true">
-                <Label>Variable B:</Label>
+            <!-- Authentication -->
+
+            <Field id="authTitle" type="label" alignText="right">
+                <Label>Authentication</Label>
             </Field>
 
-            <Field id="subC" type="textfield" tooltip="Enter or paste a variable ID here." visibleBindingId="doSubs" visibleBindingValue="true">
-                <Label>Variable C:</Label>
+            <Field id="authSep" type="separator"/>
+
+            <Field id="authLabel" type="label" fontSize="small">
+                <Label>If your source requires authentication, tick the Use Authentication box, select type of authentication used, and enter the username and password.</Label>
             </Field>
 
-            <Field id="subD" type="textfield" tooltip="Enter or paste a variable ID here." visibleBindingId="doSubs" visibleBindingValue="true">
-                <Label>Variable D:</Label>
+            <Field id="useAuth" type="checkbox" defaultValue="false">
+                <Label>Use Authentication?</Label>
             </Field>
 
-            <Field id="subE" type="textfield" tooltip="Enter or paste a variable ID here." visibleBindingId="doSubs" visibleBindingValue="true">
-                <Label>Variable E:</Label>
+            <Field id="useDigest" type="menu" defaultValue="false" tooltip="Select the appropriate authentication type for your data source.">
+                <Label>Method:</Label>
+                <List>
+                    <Option value="false">Basic</Option>
+                    <Option value="true">Digest</Option>
+                </List>
             </Field>
 
-            <Field id="useDigest" type="checkbox" defaultValue="false" tooltip="Would you like to use Digest Auth in this feed? Checking the box turns authentication on and unchecking the box turns it off.">
-                <Label>Use Digest Auth?:</Label>
-                <Description>Would you like to use Digest Auth in this feed's URL?</Description>
-            </Field>
-
-            <Field id="digestUser" type="textfield" tooltip="Enter or paste a Username ID here." visibleBindingId="useDigest" visibleBindingValue="true">
+            <!-- Note: although the username and password fields are called
+                 digestUser and digestPass, these fields are now used for both
+                 digest and basic auth. -->
+            <Field id="digestUser" type="textfield" tooltip="Enter or paste a Username ID here.">
                 <Label>Username:</Label>
             </Field>
 
-            <Field id="digestPass" type="textfield" tooltip="Enter or paste a Password ID here." visibleBindingId="useDigest" visibleBindingValue="true">
+            <Field id="digestPass" type="textfield" tooltip="Enter or paste a Password ID here.">
                 <Label>Password:</Label>
+            </Field>
+
+            <!-- Substitutions -->
+
+            <Field id="subTitle" type="label" alignText="right">
+                <Label>Substitutions</Label>
+            </Field>
+
+            <Field id="subSep" type="separator"/>
+
+            <Field id="subLabel" type="label" fontSize="small">
+                <Label>If you would like to use variable substitutions in your feed's URL, tick the Use Substitutions box and enter the variable ID numbers and add the corresponding substitution index to the feed's URL above.</Label>
+            </Field>
+
+            <Field id="doSubs" type="checkbox" defaultValue="false" tooltip="Would you like to use substitutions in this feed? Checking the box turns them on and unchecking the box turns them off.">
+                <Label>Use substitutions?:</Label>
+                <!--<Description>Would you like to use variable substitutions in this feed's URL?</Description>-->
+            </Field>
+
+            <Field id="subA" type="textfield" tooltip="Enter or paste a variable ID here.">
+                <Label>Variable A:</Label>
+            </Field>
+
+            <Field id="subB" type="textfield" tooltip="Enter or paste a variable ID here.">
+                <Label>Variable B:</Label>
+            </Field>
+
+            <Field id="subC" type="textfield" tooltip="Enter or paste a variable ID here.">
+                <Label>Variable C:</Label>
+            </Field>
+
+            <Field id="subD" type="textfield" tooltip="Enter or paste a variable ID here.">
+                <Label>Variable D:</Label>
+            </Field>
+
+            <Field id="subE" type="textfield" tooltip="Enter or paste a variable ID here.">
+                <Label>Variable E:</Label>
+            </Field>
+
+            <Field id="subExample" type="label" fontSize="small" alignWithControl="true">
+                <Label>Examples:&#xA;URL: http://www.ip_address.com/[A].xml&#xA;Local file: file:///[A]/[B].json</Label>
             </Field>
 
         </ConfigUI>
