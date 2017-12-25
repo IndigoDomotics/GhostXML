@@ -363,21 +363,13 @@ class Plugin(indigo.PluginBase):
         if self.debugLevel >= 2:
             self.debugLog(u"killAllComms() method called.")
 
-        # =============================================================
-        # Added by DaveL17 17/09/29
-        #
-        # Remove the call to the server to iterate over plugin devices, instead
-        # using the dict of devices managed globally within the plugin.
-
-        for devId in self.managedDevices:
-            dev = self.managedDevices[devId]
-
-        # =============================================================
+        for dev in indigo.devices.itervalues("self"):
 
             try:
                 indigo.device.enable(dev, value=False)
             except Exception as sub_error:
-                self.debugLog(u"Exception when trying to kill all comms. Error: {0} (Line {1})".format(sub_error, sys.exc_traceback.tb_lineno))
+                self.debugLog(u"Exception when trying to unkill all comms. Error: {0} (Line {1})".format(sub_error, sys.exc_traceback.tb_lineno))
+
 
     def unkillAllComms(self):
         """
@@ -387,10 +379,6 @@ class Plugin(indigo.PluginBase):
         if self.debugLevel >= 2:
             self.debugLog(u"unkillAllComms() method called.")
 
-        # Note that we can't use self.managed devices here because the list of
-        # managed devices only includes those that are already enabled. Devices
-        # are added to the managed list via deviceStartComm().  Therefore, we
-        # need to use the Indigo iterator.
         for dev in indigo.devices.itervalues("self"):
 
             try:

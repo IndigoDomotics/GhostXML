@@ -3,6 +3,7 @@ ghostXML Change Log
 v0.3.15
 - Adds basic authentication.
 - Cosmetic changes to device config dialog.
+- Fixed bug in killAllComms
 
 v0.3.14
 - Improves Indigo UI messages during device processing.
