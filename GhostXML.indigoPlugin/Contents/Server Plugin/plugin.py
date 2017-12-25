@@ -45,7 +45,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.3.14"
+__version__   = u"0.3.15"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -568,16 +568,25 @@ class Plugin(indigo.PluginBase):
             # to use Digest Auth or not add one normal call, one digest curl
             # call
             ###########################
-            # ADDED BY DaveL17 11/28/16
+            # ADDED BY DaveL17 16/11/28
             # Revised GlennNZ's additions to account for props that may not yet
             # be added to some devices. Should now not require devices to be
             # edited and saved.
+            ###########################
+            # ADDED BY DaveL17 17/12/25
+            # Added basic authentication.
+            username = dev.pluginProps.get('digestUser', '')
+            password = dev.pluginProps.get('digestPass', '')
 
-            if dev.pluginProps.get('useDigest', False):
-                username = dev.pluginProps.get('digestUser', '')
-                password = dev.pluginProps.get('digestPass', '')
+            # Digest auth
+            if dev.pluginProps.get('useAuth', False) and dev.pluginProps.get('useDigest', False):
                 proc = subprocess.Popen(["curl", '-vs', '--digest', '-u', username + ':' + password, url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
+            # Basic auth
+            elif dev.pluginProps.get('useAuth', False) and not dev.pluginProps.get('useDigest', False):
+                proc = subprocess.Popen(["curl", '-vs', '-u', username + ':' + password, url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+            # No auth
             else:
                 proc = subprocess.Popen(["curl", '-vs', url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 

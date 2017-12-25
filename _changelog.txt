@@ -1,5 +1,9 @@
 ghostXML Change Log
 
+v0.3.15
+- Adds basic authentication.
+- Cosmetic changes to device config dialog.
+
 v0.3.14
 - Improves Indigo UI messages during device processing.
 - Implements device configuration settings validation.
