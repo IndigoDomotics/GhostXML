@@ -884,8 +884,8 @@ class Plugin(indigo.PluginBase):
         if self.debugLevel >= 2:
             self.debugLog(u"refreshDataForDevAction() method called.")
 
-        dev = self.managedDevices[valuesDict.deviceId]
-
+        dev = self.managedDevices[valuesDict.deviceId].device
+        # dev = self.managedDevices[valuesDict.deviceId]
         self.refreshDataForDev(dev)
 
         return True
