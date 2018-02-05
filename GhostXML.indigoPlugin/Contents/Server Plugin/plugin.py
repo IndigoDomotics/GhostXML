@@ -45,7 +45,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.3.15"
+__version__   = u"0.3.16"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -79,7 +79,7 @@ class Plugin(indigo.PluginBase):
         self.debugLevel           = int(self.pluginPrefs.get('showDebugLevel', 1))
         self.logFile              = u"{0}/Logs/com.fogbert.indigoplugin.GhostXML/plugin.log".format(indigo.server.getInstallFolderPath())
         self.prefServerTimeout    = int(self.pluginPrefs.get('configMenuServerTimeout', "15"))
-        self.updater              = indigoPluginUpdateChecker.updateChecker(self, "http://indigodomotics.github.io/GhostXML/ghostXML_version.html")
+        self.updater              = indigoPluginUpdateChecker.updateChecker(self, "https://raw.githubusercontent.com/indigodomotics/GhostXML/master/ghostXML_version.html")
         self.updaterEmailsEnabled = self.pluginPrefs.get('updaterEmailsEnabled', False)
 
         self.deviceNeedsUpdated  = ''

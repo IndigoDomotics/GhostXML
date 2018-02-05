@@ -1,5 +1,9 @@
 ghostXML Change Log
 
+v0.3.16
+- Updates plugin update checker to use curl to overcome outdated security of
+  Apple's Python install.
+
 v0.3.15
 - Adds basic authentication.
 - Cosmetic changes to device config dialog.
