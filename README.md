@@ -1,4 +1,4 @@
-# GhostXML
+![GhostXML Logo](https://github.com/IndigoDomotics/GhostXML/wiki/img/img_ghostxmlLogo.png)  
 The GhostXML plugin allows users to create custom devices for XML and 
 JSON data sources.
 
