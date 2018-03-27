@@ -1,5 +1,9 @@
 ghostXML Change Log
 
+v0.3.17
+- Fixes bug that could occur when establishing new devices with Basic Auth.
+- Code clean up.
+
 v0.3.16
 - Updates plugin update checker to use curl to overcome outdated security of
   Apple's Python install.

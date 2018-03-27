@@ -137,7 +137,7 @@ def iterateMain(root):
             final_dict[key] = value
     
     except:
-        indigo.server.log(u'There was an parse error. Check XML source.')
+        indigo.server.log(u'There was a parse error. Check XML source.')
         final_dict = {'Response': u'Parse error. Check XML source.'}
     
     return final_dict

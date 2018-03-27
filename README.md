@@ -13,3 +13,10 @@ As noted above, the plugin supports XML and JSON feeds.  It also
 includes the ability to perform variable substitutions within a 
 URL, and provides a facility for Basic and Digest Authentication for 
 downloading data from sites that require a username and password. 
+
+Notes: The plugin's need for Internet access will depend on
+the data sources used. If you limit use to data sources on
+your internal network, the only aspect of the plugin that requires 
+Internet access is to check for plugin software updates.  These 
+features are not required to use the plugin.
+
