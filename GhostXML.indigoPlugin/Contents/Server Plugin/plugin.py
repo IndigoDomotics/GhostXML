@@ -45,7 +45,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.3.17"
+__version__   = u"0.3.18"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -634,7 +634,7 @@ class Plugin(indigo.PluginBase):
             # ADDED BY GlennNZ 28.11.16
             # add true for True and false for False exchanges
             
-            chars_to_replace = {'_ghostxml_': '_', '+': '_plus_', '-': '_minus_', 'true': 'True', 'false': 'False'}
+            chars_to_replace = {'_ghostxml_': '_', '+': '_plus_', '-': '_minus_', 'true': 'True', 'false': 'False', ' ': '_'}
             chars_to_replace = dict((re.escape(k), v) for k, v in chars_to_replace.iteritems())
             pattern = re.compile("|".join(chars_to_replace.keys()))
 

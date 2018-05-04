@@ -1,5 +1,8 @@
 ghostXML Change Log
 
+v0.3.18
+- Adds ability to parse JSON keys that contains spaces.
+
 v0.3.17
 - Fixes bug that could occur when establishing new devices with Basic Auth.
 - Code clean up.
