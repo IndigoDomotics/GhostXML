@@ -1,5 +1,8 @@
 ghostXML Change Log
 
+v0.4.02
+- Migrates writing of device states to API 2.0 [ dev.updateStatesOnServer() ].
+
 v0.4.01
 - Requires Indigo 7.0
 - Updates to Indigo API 2.0

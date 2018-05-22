@@ -46,7 +46,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.01"
+__version__   = u"0.4.02"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -806,6 +806,8 @@ class Plugin(indigo.PluginBase):
         corresponding value to each device state.
         """
 
+        state_list = []
+
         # TODO: Can safely delete this block if migration to Indigo 7 is successful.
         # if self.debugLevel >= 2:
         #     self.logger.debug(u"parseStateValues() method called.")
@@ -822,12 +824,19 @@ class Plugin(indigo.PluginBase):
                 # if self.debugLevel >= 3:
                 #     self.logger.debug(u"   {0} = {1}".format(key, self.finalDict[key]))
 
-                dev.updateStateOnServer(unicode(key), value=unicode(self.finalDict[key]))
+                # dev.updateStateOnServer(unicode(key), value=unicode(self.finalDict[key]))
+
+                state_list.append({'key': unicode(key), 'value': unicode(self.finalDict[key])})
 
             except Exception as sub_error:
                 self.logger.critical(u"Error parsing key/value pair: {0} = {1}. Reason: {2}".format(key, self.finalDict[key], sub_error))
                 dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
-                dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Error")
+                state_list.append({'key': 'deviceIsOnline', 'value': True, 'uiValue': "Error"})
+
+                # TODO: Can safely delete this block if migration to Indigo 7 is successful.
+                # dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Error")
+
+        dev.updateStatesOnServer(state_list)
 
     def refreshDataAction(self, valuesDict):
         """
