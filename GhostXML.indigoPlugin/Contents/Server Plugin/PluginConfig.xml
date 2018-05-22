@@ -54,29 +54,65 @@
 
     <Field id="space9" type="label"/>
 
-    <Field id="space10" type="label" alignText="right">
-        <Label>Debugging:</Label>
+    <!--<Field id="space10" type="label" alignText="right">-->
+        <!--<Label>Debugging:</Label>-->
+    <!--</Field>-->
+
+    <!--<Field id="sep4" type="separator"/>-->
+
+    <!--<Field id="space11" type="label" fontSize="small">-->
+        <!--<Label>Turn on debugging only when needed. Be careful when posting the output to the forums or other public places as it could expose sensitive information.</Label>-->
+    <!--</Field>-->
+
+    <!--<Field id="showDebugInfo" type="checkbox" tooltip="Enabling will result in verbose logging.">-->
+        <!--<Label/>-->
+        <!--<Description>Enable/Disable</Description>-->
+    <!--</Field>-->
+
+    <!--<Field id="showDebugLevel" type="menu" defaultValue="1" tooltip="Controls the amount of debug information written to the log.">-->
+        <!--<Label>Debug level:</Label>-->
+        <!--<Description>Enable/Disable</Description>-->
+        <!--<List>-->
+            <!--<Option value="1">Low</Option>-->
+            <!--<Option value="2">Medium</Option>-->
+            <!--<Option value="3">High</Option>-->
+        <!--</List>-->
+    <!--</Field>-->
+
+    <Field id="debugHeaderSpace" type="label" fontSize="mini"/>
+
+    <Field id="debugLabel" type="label" fontColor="black" alignText="right">
+        <Label>Debugging (optional)</Label>
     </Field>
 
-    <Field id="sep4" type="separator"/>
+    <Field id="separator01" type="separator"/>
 
-    <Field id="space11" type="label" fontSize="small">
-        <Label>Turn on debugging only when needed. Be careful when posting the output to the forums or other public places as it could expose sensitive information.</Label>
+    <Field id="space06" type="label" fontSize="small" alignWithControl="True">
+        <Label>Always be careful when posting debug output to the forums or other public places. You should review it to ensure that it doesn't contain sensitive information.</Label>
     </Field>
 
-    <Field id="showDebugInfo" type="checkbox" tooltip="Enabling will result in verbose logging.">
-        <Label/>
-        <Description>Enable/Disable</Description>
-    </Field>
-
-    <Field id="showDebugLevel" type="menu" defaultValue="1" tooltip="Controls the amount of debug information written to the log.">
+    <Field id="showDebugLevel" type="menu" defaultValue="30" tooltip="Controls the amount of debug information written to the log.">
         <Label>Debug level:</Label>
-        <Description>Enable/Disable</Description>
+        <Description/>
         <List>
-            <Option value="1">Low</Option>
-            <Option value="2">Medium</Option>
-            <Option value="3">High</Option>
+            <Option value="10">Debugging Messages</Option>
+            <Option value="20">Informational Messages</Option>
+            <Option value="30">Warning Messages</Option>
+            <Option value="40">Error Messages</Option>
+            <Option value="50">Critical Errors Only</Option>
         </List>
+    </Field>
+
+    <Field id="space07" type="label" fontSize="mini" alignWithControl="True">
+        <Label>Debugging Messages - Step by step plugin logging.
+Informational Messages - Useful information about plugin health.
+Warning Messages - Typically temporary conditions.
+Error Messages - Conditions you might want to address.
+Critical Errors Only - Critical errors should probably be reported.
+        </Label>
+    </Field>
+
+    <Field id="oldDebugLevel" type="textfield" defaultValue="20" hidden="true">
     </Field>
 
 </PluginConfig>

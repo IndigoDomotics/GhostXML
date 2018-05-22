@@ -1,5 +1,10 @@
 ghostXML Change Log
 
+v0.4.01
+- Requires Indigo 7.0
+- Updates to Indigo API 2.0
+- Removes Toggle Debug from plugin menu.
+
 v0.3.18
 - Adds ability to parse JSON keys that contains spaces.
 
