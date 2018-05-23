@@ -13,6 +13,7 @@ transitive Indigo plugin device states.
 # TODO: Potential bugs for keys with empty list values {'key': []} will not produce a custom state?
 # TODO: How to make sure that the queue items are processed by the proper thread? Do we actually care if they aren't?
 # TODO: Recover gracefully when a user improperly selects digest auth (had a user try to use digest instead of basic).  Return code 401 "unauthorized"
+# TODO: (the ignoring update request) was trying to apply the values from one device to the states of another device).
 
 # Stock imports
 import datetime
@@ -149,6 +150,8 @@ class Plugin(indigo.PluginBase):
         #     self.logger.debug(u"__del__ method called.")
 
         indigo.PluginBase.__del__(self)
+
+    # =============================== Indigo Methods ===============================
 
     def closedPrefsConfigUi(self, valuesDict, userCancelled):
         """ docstring placeholder """
@@ -341,9 +344,9 @@ class Plugin(indigo.PluginBase):
                     error_msg_dict['showAlertText'] = u"Variable {0} Error\n\nYou must include a valid substitution index in your source URL for this variable.".format(sub[0].replace('sub', ''))
                     return False, valuesDict, error_msg_dict
 
-        # =============================================================
-
         return True, valuesDict, error_msg_dict
+
+    # =============================== Plugin Methods ===============================
 
     def validatePrefsConfigUi(self, valuesDict):
         """ docstring placeholder """
