@@ -1,6 +1,10 @@
 ghostXML Change Log
 
 v0.4.02
+- Updates docstrings to Sphinx standard.
+- Fixes bug where changes to debug level not applied.
+
+v0.4.02
 - Migrates writing of device states to API 2.0 [ dev.updateStatesOnServer() ].
 
 v0.4.01

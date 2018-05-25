@@ -47,7 +47,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.02"
+__version__   = u"0.4.03"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -61,7 +61,6 @@ kDefaultPluginPrefs = {
 
 class Plugin(indigo.PluginBase):
     def __init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs):
-        """ docstring placeholder """
 
         indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
 
@@ -90,10 +89,6 @@ class Plugin(indigo.PluginBase):
         self.plugin_file_handler.setFormatter(logging.Formatter('%(asctime)s.%(msecs)03d\t%(levelname)-10s\t%(name)s.%(funcName)-28s %(msg)s', datefmt='%Y-%m-%d %H:%M:%S'))
         self.indigo_log_handler.setLevel(self.debugLevel)
 
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # self.debug                = self.pluginPrefs.get('showDebugInfo', False)
-        # self.debugLevel           = int(self.pluginPrefs.get('showDebugLevel', 1))
-
         # End DaveL17 changes.
         # =====================================================================
 
@@ -120,19 +115,6 @@ class Plugin(indigo.PluginBase):
         # A queue to accept heartbeats to signal that some device needs to be updated.
         self.heartbeat_queue = Queue()
 
-        # No longer needed with move to logging module.  DaveL17 2018-05-22
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # Convert old debugLevel scale to new scale if needed.
-        # =============================================================
-        # if not isinstance(self.pluginPrefs['showDebugLevel'], int):
-        #     if self.pluginPrefs['showDebugLevel'] == "High":
-        #         self.pluginPrefs['showDebugLevel'] = 3
-        #     elif self.pluginPrefs['showDebugLevel'] == "Medium":
-        #         self.pluginPrefs['showDebugLevel'] = 2
-        #     else:
-        #         self.pluginPrefs['showDebugLevel'] = 1
-        # =============================================================
-
         # Adding support for remote debugging in PyCharm. Other remote
         # debugging facilities can be added, but only one can be run at a time.
         # try:
@@ -143,48 +125,30 @@ class Plugin(indigo.PluginBase):
         self.pluginIsInitializing = False
 
     def __del__(self):
-        """ docstring placeholder """
-
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # if self.debugLevel >= 2:
-        #     self.logger.debug(u"__del__ method called.")
 
         indigo.PluginBase.__del__(self)
 
     # =============================== Indigo Methods ===============================
 
     def closedPrefsConfigUi(self, valuesDict, userCancelled):
-        """ docstring placeholder """
-
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # if self.debugLevel >= 2:
-        #     self.logger.debug(u"closedPrefsConfigUi() method called.")
 
         if userCancelled:
             self.logger.debug(u"User prefs dialog cancelled.")
 
         if not userCancelled:
-            # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-            # self.debug = valuesDict.get('showDebugInfo', False)
-            self.debugLevel = int(self.pluginPrefs.get('showDebugLevel', "30"))
+            self.debugLevel = int(valuesDict.get('showDebugLevel', "30"))
+            self.indigo_log_handler.setLevel(self.debugLevel)
             self.logger.debug(u"User prefs saved.")
 
-            if self.debug:
-                indigo.server.log(u"Debugging on (Level: {0})".format(self.debugLevel))
-            else:
-                pass
+            indigo.server.log(u"Debugging on (Level: {0})".format(self.debugLevel))
 
-            if int(self.pluginPrefs['showDebugLevel']) >= 3:
+            if int(self.pluginPrefs['showDebugLevel']) == 10:
                 self.logger.debug(u"valuesDict: {0} ".format(valuesDict))
 
         return True
 
     def deviceStartComm(self, dev):
-        """ docstring placeholder """
 
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # if self.debugLevel >= 2:
-        #     self.logger.debug(u"deviceStartComm() method called.")
         self.logger.debug(u"Starting GhostXML device: {0}".format(dev.name))
 
         # =============================================================
@@ -211,11 +175,7 @@ class Plugin(indigo.PluginBase):
         dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Waiting")
 
     def deviceStopComm(self, dev):
-        """ docstring placeholder """
 
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # if self.debugLevel >= 2:
-        #     self.logger.debug(u"deviceStopComm() method called.")
         self.logger.debug(u"Stopping GhostXML device: {0}".format(dev.name))
 
         # =============================================================
@@ -235,11 +195,6 @@ class Plugin(indigo.PluginBase):
         dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
     def runConcurrentThread(self):
-        """ docstring placeholder """
-
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # if self.debugLevel >= 2:
-        #     self.logger.debug(u"indigoPluginUpdater() method called.")
 
         self.sleep(5)
 
@@ -267,20 +222,10 @@ class Plugin(indigo.PluginBase):
             pass
 
     def shutdown(self):
-        """ docstring placeholder """
-
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # if self.debugLevel >= 2:
-        #     self.logger.debug(u"Shutting down GhostXML. shutdown() method called")
 
         self.pluginIsShuttingDown = True
 
     def startup(self):
-        """ docstring placeholder """
-
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # if self.debugLevel >= 2:
-        #     self.logger.debug(u"Starting GhostXML. startup() method called.")
 
         # Initialize all plugin devices to ensure that they're in the proper
         # state.
@@ -301,13 +246,9 @@ class Plugin(indigo.PluginBase):
             self.logger.warning(u"Update checker error: {0}".format(sub_error))
 
     def validateDeviceConfigUi(self, valuesDict, typeID, devId):
-        """ Validate select device config menu settings. """
 
         # =============================================================
         # Device configuration validation Added DaveL17 17/12/19
-
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # self.logger.debug(u"validateDeviceConfigUi() method called.")
 
         error_msg_dict = indigo.Dict()
         url = valuesDict['sourceXML']
@@ -349,11 +290,14 @@ class Plugin(indigo.PluginBase):
     # =============================== Plugin Methods ===============================
 
     def validatePrefsConfigUi(self, valuesDict):
-        """ docstring placeholder """
+        """
+        title placeholder
 
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # if self.debugLevel >= 2:
-        #     self.logger.debug(u"validatePrefsConfigUi() method called.")
+        docstring placeholder
+
+        -----
+
+        """
 
         error_msg_dict = indigo.Dict()
         update_email   = valuesDict['updaterEmail']
@@ -380,13 +324,14 @@ class Plugin(indigo.PluginBase):
 
     def checkVersionNow(self):
         """
-        The checkVersionNow() method is called if user selects "Check For
-        Plugin Updates..." Indigo menu item.
-        """
+        Check to ensure that the plugin is the most current version
 
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # if self.debugLevel >= 2:
-        #     self.logger.debug(u"checkVersionNow() method called.")
+        The checkVersionNow() method is called if user selects "Check For Plugin
+        Updates..." Indigo menu item. It is only called by user request.
+
+        -----
+
+        """
 
         try:
             self.updater.checkVersionNow()
@@ -395,12 +340,13 @@ class Plugin(indigo.PluginBase):
 
     def killAllComms(self):
         """
-        killAllComms() sets the enabled status of all plugin devices to false.
-        """
+        Disable communication of all plugin devices
 
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # if self.debugLevel >= 2:
-        #     self.logger.debug(u"killAllComms() method called.")
+        killAllComms() sets the enabled status of all plugin devices to false.
+
+        -----
+
+        """
 
         for dev in indigo.devices.itervalues("self"):
 
@@ -409,14 +355,17 @@ class Plugin(indigo.PluginBase):
             except Exception as sub_error:
                 self.logger.critical(u"Exception when trying to unkill all comms. Error: {0} (Line {1})".format(sub_error, sys.exc_traceback.tb_lineno))
 
+        return True
+
     def unkillAllComms(self):
         """
-        unkillAllComms() sets the enabled status of all plugin devices to true.
-        """
+        Enable communication of all plugin devices
 
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # if self.debugLevel >= 2:
-        #     self.logger.debug(u"unkillAllComms() method called.")
+        unkillAllComms() sets the enabled status of all plugin devices to true.
+
+        -----
+
+        """
 
         for dev in indigo.devices.itervalues("self"):
 
@@ -425,10 +374,17 @@ class Plugin(indigo.PluginBase):
             except Exception as sub_error:
                 self.logger.critical(u"Exception when trying to unkill all comms. Error: {0} (Line {1})".format(sub_error, sys.exc_traceback.tb_lineno))
 
+        return True
+
     def deviceQueueProcessor(self):
         """
-        Inspect each device's queue and send any queued devices to be
-        processed.
+        Inspect each device's queue and send any queued devices to be processed
+
+        The deviceQueueProcessor() method inspects each device's queue and, if there
+        are queue items present, sends those tasks to be processed.
+
+        _____
+
         """
 
         while not self.pluginIsShuttingDown:
@@ -440,14 +396,12 @@ class Plugin(indigo.PluginBase):
 
                     if not device_queue.empty():
                         task = device_queue.get()
-                        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-                        # if self.debugLevel >= 3:
-                        #     self.logger.debug(u"Queue task {0} sent to thread {1}".format(task.id, threading.current_thread().name))
-                        self.logger.debug(u"Queue task {0} sent to thread {1}".format(task.id, threading.current_thread().name))
+                        indigo.server.log(u"Queue task {0} sent to thread {1}".format(task.id, threading.current_thread().name))
+                        # self.logger.debug(u"Queue task {0} sent to thread {1}".format(task.id, threading.current_thread().name))
                         self.refreshDataForDev(task)
 
             # =============================================================
-            # Added by DaveL17 17/12/13
+            # Added by DaveL17 2017-12-13
             # The following sleep is necessary to cause the method to rest.
             # Otherwise, the method will chew up resources while waiting.
             self.sleep(1)
@@ -455,13 +409,15 @@ class Plugin(indigo.PluginBase):
 
     def fixErrorState(self, dev):
         """
-        If the 'deviceLastUpdated' state is an empty string, populate the state
-        with a valid timestamp.
-        """
+        Ensure each device has a valid 'deviceLastUpdated' state
 
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # if self.debugLevel >= 2:
-        #     self.logger.debug(u"fixErrorState() method called.")
+        If the 'deviceLastUpdated' state is an empty string, populate the state with a
+        valid timestamp.
+
+        -----
+
+        :param dev:
+        """
 
         self.deviceNeedsUpdated = False
         dev.stateListOrDisplayStateIdChanged()
@@ -471,21 +427,24 @@ class Plugin(indigo.PluginBase):
 
     def getDeviceStateList(self, dev):
         """
-        The getDeviceStateList() method pulls out all the keys in
-        self.finalDict and assigns them to device states. It returns the
-        modified stateList which is then written back to the device in the main
-        thread. This method is automatically called by
+        Assign data keys to device state names
+
+        The getDeviceStateList() method pulls out all the keys in self.finalDict and
+        assigns them to device states. It returns the modified stateList which is then
+        written back to the device in the main thread. This method is automatically
+        called by
 
             stateListOrDisplayStateIdChanged()
 
-        and by Indigo when Triggers and Control Pages are built. Note that it's
-        not possible to override Indigo's sorting of devices states which will
-        present them as A, B, a, b.
-        """
+        and by Indigo when Triggers and Control Pages are built. Note that it's not
+        possible to override Indigo's sorting of devices states which will present them
+        as A, B, a, b.
 
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # if self.debugLevel >= 2:
-        #     self.logger.debug(u"getDeviceStateList() method called.")
+        -----
+
+        :param dev:
+        :return state_list:
+        """
 
         if self.deviceNeedsUpdated and dev.enabled:  # Added dev.enabled test - DaveL17 17/09/18
             # This statement goes out and gets the existing state list for dev.
@@ -517,18 +476,6 @@ class Plugin(indigo.PluginBase):
                 self.logger.debug(u"New states: {0}".format(self.finalDict.keys()))  # new states
             else:
                 self.logger.debug(u"No new states found.")
-
-            # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-            # if self.debugLevel >= 3:
-            #
-            #     # Compare existing states to new ones
-            #     if not set(interim_state_list) == set(self.finalDict.keys()):
-            #         self.logger.debug(u"New states found.")
-            #         self.logger.debug(u"Initial states: {0}".format(interim_state_list))  # existing states
-            #         self.logger.debug(u"New states: {0}".format(self.finalDict.keys()))  # new states
-            #     else:
-            #         self.logger.debug(u"No new states found.")
-            #
 
             # END DaveL17 changes
             ###########################
@@ -578,11 +525,20 @@ class Plugin(indigo.PluginBase):
             return state_list
 
     def getTheData(self, dev):
-        """ The getTheData() method is used to retrieve target data files. """
+        """
+        The getTheData() method is used to retrieve target data files.
 
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # if self.debugLevel >= 2:
-        #     self.logger.debug(u"getTheData() method called.")
+        The getTheData() method is used to construct the relevant API URL, sends
+        the call to the data source via curl, and returns the result. The URL can
+        be sent using auth as required (basic, digest) or without auth. In addition,
+        Indigo substitutions are processed as required such that the user can modify
+        the URL based on variable values.
+
+        -----
+
+        :param dev
+        :return result:
+        """
 
         dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Download")
 
@@ -669,14 +625,15 @@ class Plugin(indigo.PluginBase):
 
     def cleanTheKeys(self, input_data):
         """
-        Some dictionaries may have keys that contain problematic characters
-        which Indigo doesn't like as state names. Let's get those characters
-        out of there.
-        """
+        Ensure that state names are valid for Indigo
 
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # if self.debugLevel >= 2:
-        #     self.logger.debug(u"cleanTheKeys() method called.")
+        Some dictionaries may have keys that contain problematic characters which
+        Indigo doesn't like as state names. Let's get those characters out of there.
+
+        -----
+
+        :param input_data:
+        """
 
         try:
             ###########################
@@ -729,36 +686,31 @@ class Plugin(indigo.PluginBase):
             self.logger.debug("cleanTheKeys result:")
             self.logger.debug(self.jsonRawData)
 
-            # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-            # if self.debugLevel >= 2:
-            #     self.logger.debug("cleanTheKeys result:")
-            #     self.logger.debug(self.jsonRawData)
-
         except Exception as sub_error:
             self.logger.critical(u'Error cleaning dictionary keys: {0}'.format(sub_error))
 
     def parseTheJSON(self, dev, root):
         """
-        The parseTheJSON() method contains the steps to convert the JSON file
-        into a flat dict.
+        Parse JSON data
+
+        The parseTheJSON() method contains the steps to convert the JSON file into a
+        flat dict.
 
         http://github.com/gmr/flatdict
         class flatdict.FlatDict(value=None, delimiter=None, former_type=<type 'dict'>)
+
+        -----
+
+        :param dev:
+        :param root:
+        :return self.jsonRawData:
         """
 
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # if self.debugLevel >= 2:
-        #     self.logger.debug(u"parseTheJSON() method called.")
         try:
             parsed_simplejson = simplejson.loads(root)
 
             self.logger.debug(u"Prior to FlatDict Running JSON")
             self.logger.debug(parsed_simplejson)
-
-            # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-            # if self.debugLevel >= 2:
-            #     self.logger.debug(u"Prior to FlatDict Running JSON")
-            #     self.logger.debug(parsed_simplejson)
 
             ###########################
             # ADDED BY GlennNZ 28.11.16
@@ -775,10 +727,6 @@ class Plugin(indigo.PluginBase):
 
                 self.logger.debug(u"List Detected - Flattening to Dict")
 
-                # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-                # if self.debugLevel >= 2:
-                #     self.logger.debug(u"List Detected - Flattening to Dict")
-
                 # =============================================================
                 # Added by DaveL17 17/12/13
                 # Updates to Unicode.
@@ -794,10 +742,6 @@ class Plugin(indigo.PluginBase):
 
             self.logger.debug(self.jsonRawData)
 
-            # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-            # if self.debugLevel >= 2:
-            #     self.logger.debug(self.jsonRawData)
-
             return self.jsonRawData
 
         except Exception as sub_error:
@@ -805,15 +749,17 @@ class Plugin(indigo.PluginBase):
 
     def parseStateValues(self, dev):
         """
+        Parse data values to device states
+
         The parseStateValues() method walks through the dict and assigns the
         corresponding value to each device state.
+
+        -----
+
+        :param dev:
         """
 
         state_list = []
-
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # if self.debugLevel >= 2:
-        #     self.logger.debug(u"parseStateValues() method called.")
 
         self.logger.debug(u"Writing device states:")
         
@@ -823,12 +769,6 @@ class Plugin(indigo.PluginBase):
 
                 self.logger.debug(u"   {0} = {1}".format(key, self.finalDict[key]))
 
-                # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-                # if self.debugLevel >= 3:
-                #     self.logger.debug(u"   {0} = {1}".format(key, self.finalDict[key]))
-
-                # dev.updateStateOnServer(unicode(key), value=unicode(self.finalDict[key]))
-
                 state_list.append({'key': unicode(key), 'value': unicode(self.finalDict[key])})
 
             except Exception as sub_error:
@@ -836,31 +776,32 @@ class Plugin(indigo.PluginBase):
                 dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
                 state_list.append({'key': 'deviceIsOnline', 'value': True, 'uiValue': "Error"})
 
-                # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-                # dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Error")
-
         dev.updateStatesOnServer(state_list)
 
     def refreshDataAction(self, valuesDict):
         """
-        The refreshDataAction() method refreshes data for all devices based on
-        a plugin menu call.
+        Initiate data refresh based on menu call
+
+        The refreshDataAction() method refreshes data for all devices based on a plugin
+        menu call.
+
+        -----
+
+        :param valuesDict:
         """
 
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # if self.debugLevel >= 2:
-        #     self.logger.debug(u"refreshDataAction() method called.")
         self.refreshData()
         return True
 
     def refreshData(self):
         """
-        The refreshData() method controls the updating of all plugin devices.
-        """
+        The refreshData() method controls the updating of all plugin devices
 
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # if self.debugLevel >= 2:
-        #     self.logger.debug(u"refreshData() method called.")
+        Initiate a data refresh based on a normal plugin cycle.
+
+        -----
+
+        """
 
         # If there are no devices created or all devices are disabled.
         if len(self.managedDevices) == 0:
@@ -872,7 +813,7 @@ class Plugin(indigo.PluginBase):
             # Added by DaveL17 17/09/29
             #
             # Remove the call to the server to iterate over plugin devices,
-            # instead using the dict of devices managed globally within the
+            # instead of using the dict of devices managed globally within the
             # plugin.
 
             for devId in self.managedDevices:
@@ -890,11 +831,15 @@ class Plugin(indigo.PluginBase):
             return False
 
     def refreshDataForDev(self, dev):
-        """ Refreshes device data. """
+        """
+        Initiate refresh of device as required
 
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # if self.debugLevel >= 2:
-        #     self.logger.debug(u"refreshDataForDev() method called.")
+        If a device is both configured and enabled, initiate a refresh.
+
+        -----
+
+        :param dev:
+        """
 
         lock = threading.Lock()
 
@@ -977,30 +922,33 @@ class Plugin(indigo.PluginBase):
 
     def refreshDataForDevAction(self, valuesDict):
         """
-        The refreshDataForDevAction() method refreshes data for a selected
-        device based on a plugin action call.
+        Initiate a device refresh baed on an Indigo Action call
+
+        The refreshDataForDevAction() method refreshes data for a selected device
+        based on a plugin action call.
+
+        -----
+
+        :param valuesDict:
         """
 
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # if self.debugLevel >= 2:
-        #     self.logger.debug(u"refreshDataForDevAction() method called.")
-
         dev = self.managedDevices[valuesDict.deviceId].device
-        # dev = self.managedDevices[valuesDict.deviceId]
         self.refreshDataForDev(dev)
 
         return True
 
     def stopSleep(self, start_sleep):
         """
-        The stopSleep() method accounts for changes to the user upload
-        interval preference. The plugin checks every 2 seconds to see if the
-        sleep interval should be updated.
-        """
+        Update device sleep value as warranted
 
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # if self.debugLevel >= 2:
-        #     self.logger.debug(u"stopSleep() method called.")
+        The stopSleep() method accounts for changes to the user upload interval
+        preference. The plugin checks every 2 seconds to see if the sleep interval
+        should be updated.
+
+        -----
+
+        :param start_sleep:
+        """
 
         total_sleep = float(self.pluginPrefs.get('configMenuUploadInterval', 300))
 
@@ -1011,13 +959,17 @@ class Plugin(indigo.PluginBase):
 
     def stripNamespace(self, dev, root):
         """
-        The stripNamespace() method strips any XML namespace values, and loads
-        into self.rawData.
-        """
+        Strip XML namespace from payload
 
-        # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-        # if self.debugLevel >= 2:
-        #     self.logger.debug(u"stripNamespace() method called.")
+        The stripNamespace() method strips any XML namespace values, and loads into
+        self.rawData.
+
+        -----
+
+        :param dev:
+        :param root:
+        :return self.rawData:
+        """
 
         try:
             if root == "":
@@ -1034,10 +986,6 @@ class Plugin(indigo.PluginBase):
 
             self.logger.debug(self.rawData)
 
-            # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-            # if self.debugLevel >= 3:
-            #     self.logger.debug(self.rawData)
-
             return self.rawData
 
         except Exception as sub_error:
@@ -1048,7 +996,13 @@ class Plugin(indigo.PluginBase):
 
     def timeToUpdate(self, dev):
         """
+        Determine if a device is ready for a refresh
+
         Returns True if the device is ready to be updated, else returns False.
+
+        -----
+
+        :param dev:
         """
 
         # We don't make a log entry when this method is called because it's called every 2 seconds.
@@ -1062,8 +1016,6 @@ class Plugin(indigo.PluginBase):
 
             # If the refresh frequency is zero, the device is a manual only refresh.
             if int(dev.pluginProps.get("refreshFreq", 300)) == 0:
-                # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-                # self.logger.debug(u"    Refresh frequency: {0} (Manual refresh only)".format(dev.pluginProps["refreshFreq"]))
                 return False
 
             # If the refresh frequency is not zero, test to see if the device is ready for a refresh.
@@ -1083,30 +1035,18 @@ class Plugin(indigo.PluginBase):
         else:
             return False
 
-    # TODO: Can safely delete this block if migration to Indigo 7 is successful.
-    # def toggleDebugEnabled(self):
-    #     """ Toggle debug on/off. """
-    #
-    #     if self.debugLevel >= 2:
-    #         self.logger.debug(u"toggleDebugEnabled() method called.")
-    #
-    #     if not self.debug:
-    #         self.debug = True
-    #         self.pluginPrefs['showDebugInfo'] = True
-    #         self.logger.info(u"Debugging on.")
-    #         self.logger.debug(u"Debug level: {0}".format(self.debugLevel))
-    #
-    #     else:
-    #         self.debug = False
-    #         self.pluginPrefs['showDebugInfo'] = False
-    #         self.logger.info(u"Debugging off.")
-
 class PluginDevice(object):
     """
-    The PluginDevice class is used to create an object to store data related to
-    each enabled plugin device. The object contains an instance of the Indigo
-    device and a command queue.
+    Create device object and corresponding queue
+
+    The PluginDevice class is used to create an object to store data related to each
+    enabled plugin device. The object contains an instance of the Indigo device and a
+    command queue.
+
+    -----
+
     """
     def __init__(self, device=None):
+
         self.device = device
         self.queue = Queue()
