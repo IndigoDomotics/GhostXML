@@ -210,8 +210,9 @@ class Plugin(indigo.PluginBase):
 
                     # DaveL17 17/09/30 moved update test to its own method.
                     if self.timeToUpdate(dev):
+
                         self.managedDevices[devId].queue.put(dev)
-                        self.heartbeat_queue.put(u'')  # a placeholder to make the queue non-empty
+                        self.heartbeat_queue.put(u'')  # a placeholder to make the queue non-empty, there will be a heartbeat for each device that needs updating.
 
                 # =============================================================
 
@@ -392,13 +393,22 @@ class Plugin(indigo.PluginBase):
             if not self.heartbeat_queue.empty():
 
                 for device in self.managedDevices:
+
                     device_queue = self.managedDevices[device].queue
 
                     if not device_queue.empty():
+
                         task = device_queue.get()
-                        indigo.server.log(u"Queue task {0} sent to thread {1}".format(task.id, threading.current_thread().name))
-                        # self.logger.debug(u"Queue task {0} sent to thread {1}".format(task.id, threading.current_thread().name))
+
+                        # TODO: I *think* I have found the problem.  I think we need to replicate the refresh cycle for each thread.
+                        # In other words, call the whole thing when the device thread is started. In that way, each thing runs within
+                        # its own thread.  Change the whole thing to its own class?
                         self.refreshDataForDev(task)
+
+                    # Added by DaveL17 on 2018-05-25
+                    # Delete a heartbeat for the device just updated. We do this so that there
+                    # are no more heartbeats left when there are no devices needing an update.
+                    self.heartbeat_queue.get()
 
             # =============================================================
             # Added by DaveL17 2017-12-13
