@@ -152,7 +152,7 @@ class Plugin(indigo.PluginBase):
         self.logger.debug(u"Starting GhostXML device: {0}".format(dev.name))
 
         # =============================================================
-        # Added by DaveL17 17/09/28
+        # Added by DaveL17 2017-09-28
         #
         # Add the device to the dict of managed devices where the key is the
         # device ID and the value is a copy of the device. References now
@@ -160,12 +160,10 @@ class Plugin(indigo.PluginBase):
 
         self.managedDevices[dev.id] = PluginDevice(dev)
 
-        # Start a thread for the device instance (each device will have its own
-        # thread).
-        # dev_thread = threading.Thread(name=self.managedDevices[dev.id].device.id, target=self.deviceQueueProcessor, args=('args',))
-
+        # Start a thread for the device instance (each device will have its own thread)
         thread_name = u"{0} - {1}".format(dev.id, dev.name)
         dev_thread = threading.Thread(name=thread_name, target=self.deviceQueueProcessor)
+        # dev_thread = threading.Thread(name=thread_name, target=self.refreshDataForDev, args=(self.managedDevices[dev.id].queue,))
         self.managedThreads[dev.id] = dev_thread
         dev_thread.start()
 
@@ -179,13 +177,13 @@ class Plugin(indigo.PluginBase):
         self.logger.debug(u"Stopping GhostXML device: {0}".format(dev.name))
 
         # =============================================================
-        # Added by DaveL17 17/09/28
+        # Added by DaveL17 2017-09-28
         #
         # Remove the device from the dict of managed devices and stop the
         # related thread when communication  with the device has been stopped.
         del self.managedDevices[dev.id]
 
-        # Added by DaveL17 17/12/14
+        # Added by DaveL17 2017-12-14
         # Timeout (0.5) to force join the thread if needed.
         self.managedThreads[dev.id].join(0.5)
 
@@ -203,12 +201,12 @@ class Plugin(indigo.PluginBase):
                 self.updater.checkVersionPoll()
 
                 # =============================================================
-                # Added by DaveL17 17/09/29
+                # Added by DaveL17 2017-09-29
 
                 for devId in self.managedDevices:
                     dev = self.managedDevices[devId].device
 
-                    # DaveL17 17/09/30 moved update test to its own method.
+                    # DaveL17 2017-09-30 moved update test to its own method.
                     if self.timeToUpdate(dev):
 
                         self.managedDevices[devId].queue.put(dev)
@@ -249,7 +247,7 @@ class Plugin(indigo.PluginBase):
     def validateDeviceConfigUi(self, valuesDict, typeID, devId):
 
         # =============================================================
-        # Device configuration validation Added DaveL17 17/12/19
+        # Device configuration validation Added DaveL17 2017-12-19
 
         error_msg_dict = indigo.Dict()
         url = valuesDict['sourceXML']
@@ -400,9 +398,6 @@ class Plugin(indigo.PluginBase):
 
                         task = device_queue.get()
 
-                        # TODO: I *think* I have found the problem.  I think we need to replicate the refresh cycle for each thread.
-                        # In other words, call the whole thing when the device thread is started. In that way, each thing runs within
-                        # its own thread.  Change the whole thing to its own class?
                         self.refreshDataForDev(task)
 
                     # Added by DaveL17 on 2018-05-25
@@ -456,7 +451,7 @@ class Plugin(indigo.PluginBase):
         :return state_list:
         """
 
-        if self.deviceNeedsUpdated and dev.enabled:  # Added dev.enabled test - DaveL17 17/09/18
+        if self.deviceNeedsUpdated and dev.enabled:  # Added dev.enabled test - DaveL17 2017-09-18
             # This statement goes out and gets the existing state list for dev.
             self.logger.debug(u"Pulling down existing state list.")
             state_list = indigo.PluginBase.getDeviceStateList(self, dev)
@@ -472,7 +467,7 @@ class Plugin(indigo.PluginBase):
                     state_list.append(dynamic_state)
 
             ###########################
-            # ADDED BY DaveL17 16/12/26
+            # ADDED BY DaveL17 2016-12-26
             # Inspect existing state list to new one to see if the state list
             # needs to be updated. If it doesn't, we can save some effort here.
             interim_state_list = [thing['Key'] for thing in state_list]
@@ -576,18 +571,18 @@ class Plugin(indigo.PluginBase):
             # to use Digest Auth or not add one normal call, one digest curl
             # call
             ###########################
-            # ADDED BY DaveL17 16/11/28
+            # ADDED BY DaveL17 2016-11-28
             # Revised GlennNZ's additions to account for props that may not yet
             # be added to some devices. Should now not require devices to be
             # edited and saved.
             ###########################
-            # ADDED BY DaveL17 17/12/25
+            # ADDED BY DaveL17 2017-12-25
             # Added basic authentication.
             username = dev.pluginProps.get('digestUser', '')
             password = dev.pluginProps.get('digestPass', '')
 
             ###########################
-            # ADDED BY DaveL17 18/03/26
+            # ADDED BY DaveL17 2018-03-26
             # Coerces 'useDigest' to boolean.
             use_auth = dev.pluginProps.get('useAuth', False)
 
@@ -625,7 +620,7 @@ class Plugin(indigo.PluginBase):
 
             return result
 
-        # IOError Added by DaveL17 17/12/20
+        # IOError Added by DaveL17 2017-12-20
         except IOError:
 
             self.logger.warning(u"{0} - IOError:  Skipping until next scheduled poll.".format(dev.name))
@@ -647,7 +642,7 @@ class Plugin(indigo.PluginBase):
 
         try:
             ###########################
-            # Added by DaveL17 on 16/11/25.
+            # Added by DaveL17 on 2016-11-25
             # Some characters need to be replaced with a valid replacement
             # value because simply deleting them could cause problems. Add
             # additional k/v pairs to chars_to_replace as needed.
@@ -674,7 +669,7 @@ class Plugin(indigo.PluginBase):
                 input_data[new_key] = input_data.pop(key)
 
             ###########################
-            # Added by DaveL17 on 16/11/28.
+            # Added by DaveL17 on 2016-11-28
             # Indigo will not accept device state names that begin with a
             # number, so inspect them and prepend any with the string "No_" to
             # force them to something that Indigo will accept.
@@ -738,7 +733,7 @@ class Plugin(indigo.PluginBase):
                 self.logger.debug(u"List Detected - Flattening to Dict")
 
                 # =============================================================
-                # Added by DaveL17 17/12/13
+                # Added by DaveL17 2017-12-13
                 # Updates to Unicode.
                 parsed_simplejson = dict((u"No_" + unicode(i), v) for (i, v) in enumerate(parsed_simplejson))
                 # =============================================================
@@ -820,7 +815,7 @@ class Plugin(indigo.PluginBase):
 
         try:
             # =============================================================
-            # Added by DaveL17 17/09/29
+            # Added by DaveL17 2017-09-29
             #
             # Remove the call to the server to iterate over plugin devices,
             # instead of using the dict of devices managed globally within the
@@ -871,7 +866,7 @@ class Plugin(indigo.PluginBase):
                     dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Processing")
 
                     # =============================================================
-                    # Moved here by DaveL17 17/12/15
+                    # Moved here by DaveL17 2017-12-15
                     #
                     # By setting the device last updated time at the outset of
                     # the refresh cycle, we can avoid the collisions that take
@@ -1018,7 +1013,7 @@ class Plugin(indigo.PluginBase):
         # We don't make a log entry when this method is called because it's called every 2 seconds.
 
         # If device has a deviceTimestamp key and is enabled.
-        if "deviceTimestamp" in dev.states.iterkeys() and dev.enabled:  # Added dev.enabled test - DaveL17 17/09/18
+        if "deviceTimestamp" in dev.states.iterkeys() and dev.enabled:  # Added dev.enabled test - DaveL17 2017-09-18
 
             # If the device timestamp is an empty string, set it to a valid value.
             if dev.states["deviceTimestamp"] == "":
@@ -1045,6 +1040,7 @@ class Plugin(indigo.PluginBase):
         else:
             return False
 
+
 class PluginDevice(object):
     """
     Create device object and corresponding queue
@@ -1059,4 +1055,6 @@ class PluginDevice(object):
     def __init__(self, device=None):
 
         self.device = device
-        self.queue = Queue()
+
+        # DaveL17 2018-05-28 Added maxsize arg
+        self.queue = Queue(maxsize=0)
