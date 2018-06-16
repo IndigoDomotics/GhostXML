@@ -138,6 +138,12 @@
                 <ControlPageLabel>Device Last Updated</ControlPageLabel>
             </State>
 
+            <State id="deviceTimestamp">
+                <ValueType>Integer</ValueType>
+                <TriggerLabel>Device Timestamp</TriggerLabel>
+                <ControlPageLabel>Device Timestamp</ControlPageLabel>
+            </State>
+
         </States>
 
         <UiDisplayStateId>deviceIsOnline</UiDisplayStateId>

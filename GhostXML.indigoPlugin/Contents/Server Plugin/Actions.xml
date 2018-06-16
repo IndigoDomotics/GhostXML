@@ -5,7 +5,7 @@
         <CallbackMethod>refreshDataAction</CallbackMethod>
     </Action>
 
-    <Action id="refreshDataForDev" deviceFilter="self" uiPath="DeviceActions">
+    <Action id="refresh_data_for_dev" deviceFilter="self" uiPath="DeviceActions">
         <Name>Refresh Data For Device</Name>
         <CallbackMethod>refreshDataForDevAction</CallbackMethod>
     </Action>

@@ -1,8 +1,12 @@
 ghostXML Change Log
 
-v0.4.02
+v0.4.03
+- Completely refactors threading.
+- Migrates plugin devices to their own class.
 - Updates docstrings to Sphinx standard.
+- Refines logging.
 - Fixes bug where changes to debug level not applied.
+- Fixes bug where curl reported error when completed successfully.
 
 v0.4.02
 - Migrates writing of device states to API 2.0 [ dev.updateStatesOnServer() ].
@@ -26,7 +30,7 @@ v0.3.16
 v0.3.15
 - Adds basic authentication.
 - Cosmetic changes to device config dialog.
-- Fixed bug in killAllComms
+- Fixed bug in commsKillAll
 - Fixed bug in call to manually refresh a device.
 
 v0.3.14
@@ -113,7 +117,7 @@ v0.2.06
   loop (ie 5 seconds)
 
 v0.2.05
-- Adds a method, cleanTheKeys() which removes certain characters from
+- Adds a method, clean_the_keys() which removes certain characters from
   dictionary key names that Indigo cannot use for device state names.
 
 v0.2.04
