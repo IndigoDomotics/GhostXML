@@ -9,15 +9,14 @@ This plugin provides an engine which parses tag/value pairs into
 transitive Indigo plugin device states.
 """
 
-# TODO: Add device name to logging entries so that we know what device is being updated. (Perhaps this should wait until update for Indigo 7?)
 # TODO: Potential bugs for keys with empty list values {'key': []} will not produce a custom state?
 # TODO: Recover gracefully when a user improperly selects digest auth (had a user try to use digest instead of basic).  Return code 401 "unauthorized"
 
-# TODO: Add thread name to any logging lines where appropriate.
+# TODO: check self.deviceNeedsUpdating, self.pluginIsShuttingDown, etc.
 
 
 # Stock imports
-import datetime
+# import datetime
 import logging
 from Queue import Queue
 import re
@@ -116,6 +115,8 @@ class Plugin(indigo.PluginBase):
 
     def closedPrefsConfigUi(self, valuesDict, userCancelled):
 
+        current_debug_level = {10: 'Debug', 20: 'Info', 30: 'Warning', 40: 'Error', 50: 'Critical'}
+
         if userCancelled:
             self.logger.debug(u"User prefs dialog cancelled.")
 
@@ -124,7 +125,7 @@ class Plugin(indigo.PluginBase):
             self.indigo_log_handler.setLevel(self.debugLevel)
             self.logger.debug(u"User prefs saved.")
 
-            indigo.server.log(u"Debugging on (Level: {0})".format(self.debugLevel))
+            indigo.server.log(u"Debugging on (Level: {0} ({1})".format(current_debug_level[self.debugLevel], self.debugLevel))
 
             if int(self.pluginPrefs['showDebugLevel']) == 10:
                 self.logger.debug(u"valuesDict: {0} ".format(valuesDict))
@@ -140,15 +141,16 @@ class Plugin(indigo.PluginBase):
         # Add device instance to dict of managed devices
         self.managedDevices[dev.id] = PluginDevice(self, dev)
 
-        self.logger.debug(u"Started: {0}".format(self.managedDevices[dev.id]))
-
         # Force refresh of device when comm started
-        # self.managedDevices[dev.id].queue.put(dev)
+        self.managedDevices[dev.id].queue.put(dev)
+
+        self.logger.debug(u"Started: {0}".format(self.managedDevices[dev.id]))
 
     def deviceStopComm(self, dev):
 
-        # Join the related thread
-        self.managedDevices[dev.id].dev_thread.join(0.5)
+        # Join the related thread. There must be a timeout set because the threads may
+        # never terminate on their own.
+        self.managedDevices[dev.id].dev_thread.join(0.25)
 
         # and delete the device from the list of managed devices.
         del self.managedDevices[dev.id]
@@ -179,7 +181,7 @@ class Plugin(indigo.PluginBase):
         """
 
         if dev.enabled:
-            self.logger.debug(u"Pulling down existing state list.")
+            # self.logger.debug(u"[{0}] Pulling down existing state list.".format(dev.id))
 
             # If there are no managed devices, returns the existing states
             if dev.id not in self.managedDevices.keys():
@@ -191,7 +193,7 @@ class Plugin(indigo.PluginBase):
             if state_list is not None:
 
                 # Iterate the tags in final_dict into device state keys.
-                self.logger.debug(u"  Writing dynamic states to device.")
+                # self.logger.debug(u"[{0}] Writing dynamic states to device.".format(dev.id))
 
                 # Example: dynamic_state = self.getDeviceStateDictForStringType(key, u'Trigger Test Label', u'State Label')
                 for key in self.managedDevices[dev.id].finalDict.keys():
@@ -206,12 +208,12 @@ class Plugin(indigo.PluginBase):
 
             # Compare existing states to new ones
             if not set(interim_state_list) == set(self.managedDevices[dev.id].finalDict.keys()):
-                self.logger.debug(u"New states found.")
-                self.logger.debug(u"Initial states: {0}".format(interim_state_list))  # existing states
-                self.logger.debug(u"New states: {0}".format(self.managedDevices[dev.id].finalDict.keys()))  # new states
-
-            else:
-                self.logger.debug(u"No new states found.")
+                self.logger.debug(u"[{0}] New states found.".format(dev.id))
+            #     self.logger.debug(u"[{0}] Initial states: {1}".format(dev.id, interim_state_list))  # existing states
+            #     self.logger.debug(u"[{0}] New states: {1}".format(dev.id, self.managedDevices[dev.id].finalDict.keys()))  # new states
+            #
+            # else:
+            #     self.logger.debug(u"[{0}] No new states found.".format(dev.id))
 
             # Resolves issue with deviceIsOnline and deviceLastUpdated states disappearing
             # if there's a fault in the JSON data we receive, as state_list MUST contain
@@ -226,12 +228,12 @@ class Plugin(indigo.PluginBase):
                 # Ignore this error as we expect it to happen when all is healthy
                 pass
 
-            self.logger.debug(u"Device needs update: {0}".format(self.managedDevices[dev.id].deviceNeedsUpdated))
+            # self.logger.debug(u"Device needs update: {0}".format(self.managedDevices[dev.id].deviceNeedsUpdated))
 
             return state_list
 
         else:
-            self.logger.debug(u"Device has been updated. Blow state list up to Trigger and Control Page labels.")
+            # self.logger.debug(u"[{0}] Device has been updated. Blow state list up to Trigger and Control Page labels.".format(dev.id))
             state_list = indigo.PluginBase.getDeviceStateList(self, dev)
 
             # Iterate the device states into trigger and control page labels when the
@@ -256,7 +258,7 @@ class Plugin(indigo.PluginBase):
         self.sleep(5)
 
         try:
-            while True:
+            while not self.pluginIsShuttingDown:
                 self.updater.checkVersionPoll()
 
                 for devId in self.managedDevices:
@@ -403,7 +405,7 @@ class Plugin(indigo.PluginBase):
             try:
                 indigo.device.enable(dev, value=False)
             except Exception as sub_error:
-                self.logger.critical(u"Exception when trying to unkill all comms. Error: {0} (Line {1})".format(sub_error, sys.exc_traceback.tb_lineno))
+                self.logger.critical(u"Exception when trying to kill all comms. Error: {0} (Line {1})".format(sub_error, sys.exc_traceback.tb_lineno))
 
         return True
 
@@ -425,7 +427,6 @@ class Plugin(indigo.PluginBase):
                 self.logger.critical(u"Exception when trying to unkill all comms. Error: {0} (Line {1})".format(sub_error, sys.exc_traceback.tb_lineno))
 
         return True
-
 
     def refreshDataAction(self, valuesDict):
         """
@@ -474,7 +475,7 @@ class Plugin(indigo.PluginBase):
 
     def refreshDataForDevAction(self, valuesDict):
         """
-        Initiate a device refresh baed on an Indigo Action call
+        Initiate a device refresh based on an Indigo Action call
 
         The refreshDataForDevAction() method refreshes data for a selected device
         based on a plugin action call.
@@ -533,8 +534,6 @@ class Plugin(indigo.PluginBase):
 
                 # If it's time for the device to be updated.
                 if int(t_since_upd) > int(dev.pluginProps.get("refreshFreq", 300)):
-
-                    self.logger.debug(u"Time since update ({0}) is greater than configured frequency ({1})".format(t_since_upd, dev.pluginProps["refreshFreq"]))
                     return True
 
                 # If it's not time for the device to be updated.
@@ -618,13 +617,13 @@ class PluginDevice(object):
             url = dev.pluginProps['sourceXML']
 
             if dev.pluginProps.get('doSubs', False):
-                self.host_plugin.logger.debug(u"Device & URL: {0} @ {1}  (before substitution)".format(dev.name, url))
+                self.host_plugin.logger.debug(u"[{0}] URL: {1}  (before substitution)".format(dev.id, url))
                 url = self.host_plugin.substitute(url.replace("[A]", "%%v:" + dev.pluginProps['subA'] + "%%"))
                 url = self.host_plugin.substitute(url.replace("[B]", "%%v:" + dev.pluginProps['subB'] + "%%"))
                 url = self.host_plugin.substitute(url.replace("[C]", "%%v:" + dev.pluginProps['subC'] + "%%"))
                 url = self.host_plugin.substitute(url.replace("[D]", "%%v:" + dev.pluginProps['subD'] + "%%"))
                 url = self.host_plugin.substitute(url.replace("[E]", "%%v:" + dev.pluginProps['subE'] + "%%"))
-                self.host_plugin.logger.debug(u"Device & URL: {0} @ {1}  (after substitution)".format(dev.name, url))
+                self.host_plugin.logger.debug(u"[{0}] URL: {1}  (after substitution)".format(dev.id, url))
 
             username = dev.pluginProps.get('digestUser', '')
             password = dev.pluginProps.get('digestPass', '')
@@ -651,14 +650,14 @@ class PluginDevice(object):
             (result, err) = proc.communicate()
 
             if int(proc.returncode) != 0:
-                self.host_plugin.logger.warning(u"curl error {0}.".format(err))
+                self.host_plugin.logger.warning(u"[{0}] curl error {1}.".format(dev.id, err))
 
             return result
 
         except IOError:
 
-            self.host_plugin.logger.warning(u"{0} - IOError:  Skipping until next scheduled poll.".format(dev.name))
-            self.host_plugin.logger.debug(u"Device is offline. No data to return. Returning dummy dict.")
+            self.host_plugin.logger.warning(u"[{0}] IOError:  Skipping until next scheduled poll.".format(dev.id))
+            self.host_plugin.logger.debug(u"[{0}] Device is offline. No data to return. Returning dummy dict.".format(dev.id))
             dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No comm")
             return '{"GhostXML": "IOError"}'
 
@@ -710,7 +709,7 @@ class PluginDevice(object):
 
             self.jsonRawData = input_data
 
-            self.host_plugin.logger.debug(u"Cleaned data: {0}".format(self.jsonRawData))
+            # self.host_plugin.logger.debug(u"Cleaned data: {0}".format(self.jsonRawData))
 
         except ValueError as sub_error:
             self.host_plugin.logger.critical(u'Error cleaning dictionary keys: {0}'.format(sub_error))
@@ -735,7 +734,7 @@ class PluginDevice(object):
         try:
             parsed_simplejson = simplejson.loads(root)
 
-            self.host_plugin.logger.debug(u"Initial data: {0}".format(parsed_simplejson))
+            # self.host_plugin.logger.debug(u"Initial data: {0}".format(parsed_simplejson))
 
             # if List flattens once - with addition of No_ to the beginning (Indigo appears
             # to not allow DeviceNames to start with Numbers) then flatDict runs - and
@@ -753,7 +752,7 @@ class PluginDevice(object):
             return self.jsonRawData
 
         except ValueError as sub_error:
-            self.host_plugin.logger.warning(dev.name + ": " + unicode(sub_error))
+            self.host_plugin.logger.warning(u"[{0}] Parse Error: {1}".format(dev.name, sub_error))
 
     def parse_state_values(self, dev):
         """
@@ -769,19 +768,17 @@ class PluginDevice(object):
 
         state_list = []
 
-        self.host_plugin.logger.debug(u"Writing device states:")
+        # self.host_plugin.logger.debug(u"[{0}] Writing device states".format(dev.id))
 
         sorted_list = sorted(self.finalDict.iterkeys())
 
         for key in sorted_list:
             try:
 
-                self.host_plugin.logger.debug(u"   {0} = {1}".format(key, self.finalDict[key]))
-
                 state_list.append({'key': unicode(key), 'value': unicode(self.finalDict[key])})
 
             except ValueError as sub_error:
-                self.host_plugin.logger.critical(u"Error parsing key/value pair: {0} = {1}. Reason: {2}".format(key, self.finalDict[key], sub_error))
+                self.host_plugin.logger.critical(u"[{0}] Error parsing key/value pair: {1} = {2}. Reason: {3}".format(dev.id, key, self.finalDict[key], sub_error))
                 dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
                 state_list.append({'key': 'deviceIsOnline', 'value': True, 'uiValue': "Error"})
 
@@ -801,7 +798,7 @@ class PluginDevice(object):
         if dev.configured and dev.enabled:
 
             # Get the data.
-            self.host_plugin.logger.debug(u"Refreshing device: {0}".format(dev.name))
+            # self.host_plugin.logger.debug(u"[{0}] Refreshing device".format(dev.id))
             self.rawData = self.get_the_data(dev)
 
             # Throw the data to the appropriate module to flatten it.
@@ -812,22 +809,22 @@ class PluginDevice(object):
             dev.updateStateOnServer('deviceTimestamp', value=t.time())
 
             if dev.pluginProps['feedType'] == "XML":
-                self.host_plugin.logger.debug(u"Source type: XML")
+                # self.host_plugin.logger.debug(u"[{0}] Source type: XML".format(dev.id))
                 self.rawData = self.strip_namespace(dev, self.rawData)
                 self.finalDict = iterateXML.iterateMain(self.rawData)
 
             elif dev.pluginProps['feedType'] == "JSON":
-                self.host_plugin.logger.debug(u"Source type: JSON")
+                # self.host_plugin.logger.debug(u"[{0}] Source type: JSON".format(dev.id))
                 self.finalDict = self.parse_the_json(dev, self.rawData)
                 self.clean_the_keys(self.finalDict)
 
             else:
-                self.host_plugin.logger.warning(u"{0}: The plugin only supports XML and JSON data sources.".format(dev.name))
+                self.host_plugin.logger.warning(u"{0}: The plugin only supports XML and JSON data sources.".format(dev.id))
 
             if self.finalDict is not None:
                 # Create the device states.
                 self.deviceNeedsUpdated = True
-                self.host_plugin.logger.debug(u"Device needs update: {0}".format(self.deviceNeedsUpdated))
+                # self.host_plugin.logger.debug(u"[{0}] Device needs update: {1}".format(dev.id, self.deviceNeedsUpdated))
                 dev.stateListOrDisplayStateIdChanged()
 
                 # Put the final values into the device states.
@@ -840,7 +837,7 @@ class PluginDevice(object):
                     dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Updated")
                     dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
                 dev.setErrorStateOnServer(None)
-                self.host_plugin.logger.debug(u"Device refreshed: {0}".format(dev.name))
+                self.host_plugin.logger.debug(u"[{0}] Device refreshed".format(dev.id))
 
             else:
                 # Set the Timestamp so that the seconds-since-update code doesn't keep checking
@@ -851,7 +848,7 @@ class PluginDevice(object):
                 dev.setErrorStateOnServer("Error")
 
         else:
-            self.host_plugin.logger.debug(u"Device not available for update: {0} [Enabled: {1}, Configured: {2}]".format(dev.name, dev.enabled, dev.configured))
+            self.host_plugin.logger.debug(u"[{0}] Device not available for update [Enabled: {1}, Configured: {2}]".format(dev.id, dev.enabled, dev.configured))
             dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
     def strip_namespace(self, dev, root):
@@ -880,12 +877,10 @@ class PluginDevice(object):
             self.rawData = re.sub(' xmlns:xsd="[^"]+"', '', self.rawData)
             self.rawData = re.sub(' xsi:noNamespaceSchemaLocation="[^"]+"', '', self.rawData)
 
-            self.host_plugin.logger.debug(self.rawData)
-
             return self.rawData
 
         except ValueError as sub_error:
-            self.host_plugin.logger.warning(u"{0} - Error parsing source data: {1}. Skipping until next scheduled poll.".format(dev.name, unicode(sub_error)))
+            self.host_plugin.logger.warning(u"[{0}] Error parsing source data: {1}. Skipping until next scheduled poll.".format(dev.id, unicode(sub_error)))
             self.rawData = '<?xml version="1.0" encoding="UTF-8"?><Emptydict><Response>No data to return.</Response></Emptydict>'
             dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No data")
             return self.rawData
