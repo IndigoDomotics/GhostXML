@@ -56,29 +56,35 @@
             <Field id="authSep" type="separator"/>
 
             <Field id="authLabel" type="label" fontSize="small">
-                <Label>If your source requires authentication, tick the Use Authentication box, select type of authentication used, and enter the username and password.</Label>
+                <Label>If your source requires authentication, tick the Use Authentication box, select type of authentication used, and enter the username, password or token URL as required.</Label>
             </Field>
 
-            <Field id="useAuth" type="checkbox" defaultValue="false">
-                <Label>Use Authentication?</Label>
-            </Field>
-
-            <Field id="useDigest" type="menu" defaultValue="false" tooltip="Select the appropriate authentication type for your data source.">
+            <!-- Note: although this field is called 'useDigest' it's value supports all
+            manner of authentication -->
+            <Field id="useDigest" type="menu" defaultValue="None" tooltip="Select the appropriate authentication type for your data source.">
                 <Label>Method:</Label>
                 <List>
-                    <Option value="false">Basic</Option>
-                    <Option value="true">Digest</Option>
+                    <Option value="None">None</Option>
+                    <Option value="Basic">Basic</Option>
+                    <Option value="Digest">Digest</Option>
+                    <Option value="Token">Token</Option>
                 </List>
             </Field>
 
-            <!-- Note: although the username and password fields are called
-                 digestUser and digestPass, these fields are now used for both
-                 digest and basic auth. -->
-            <Field id="digestUser" type="textfield" tooltip="Enter or paste a Username ID here.">
+            <!-- Note: although the username and password fields are called digestUser and
+            digestPass, these fields are now used for both digest and basic auth. -->
+            <Field id="tokenUrl" type="textfield" tooltip="Enter the URL for the Token server."
+                   visibleBindingId="useDigest" visibleBindingValue="Token">
+                <Label>Token URL:</Label>
+            </Field>
+
+            <Field id="digestUser" type="textfield" tooltip="Enter or paste a Username ID here."
+                visibleBindingId="useDigest" visibleBindingValue="Basic, Digest">
                 <Label>Username:</Label>
             </Field>
 
-            <Field id="digestPass" type="textfield" tooltip="Enter or paste a Password ID here.">
+            <Field id="digestPass" type="textfield" tooltip="Enter or paste a Password ID here."
+                visibleBindingId="useDigest" visibleBindingValue="Basic, Digest, Token">
                 <Label>Password:</Label>
             </Field>
 

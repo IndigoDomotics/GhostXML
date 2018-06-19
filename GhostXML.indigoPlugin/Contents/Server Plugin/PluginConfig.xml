@@ -54,31 +54,6 @@
 
     <Field id="space9" type="label"/>
 
-    <!--<Field id="space10" type="label" alignText="right">-->
-        <!--<Label>Debugging:</Label>-->
-    <!--</Field>-->
-
-    <!--<Field id="sep4" type="separator"/>-->
-
-    <!--<Field id="space11" type="label" fontSize="small">-->
-        <!--<Label>Turn on debugging only when needed. Be careful when posting the output to the forums or other public places as it could expose sensitive information.</Label>-->
-    <!--</Field>-->
-
-    <!--<Field id="showDebugInfo" type="checkbox" tooltip="Enabling will result in verbose logging.">-->
-        <!--<Label/>-->
-        <!--<Description>Enable/Disable</Description>-->
-    <!--</Field>-->
-
-    <!--<Field id="showDebugLevel" type="menu" defaultValue="1" tooltip="Controls the amount of debug information written to the log.">-->
-        <!--<Label>Debug level:</Label>-->
-        <!--<Description>Enable/Disable</Description>-->
-        <!--<List>-->
-            <!--<Option value="1">Low</Option>-->
-            <!--<Option value="2">Medium</Option>-->
-            <!--<Option value="3">High</Option>-->
-        <!--</List>-->
-    <!--</Field>-->
-
     <Field id="debugHeaderSpace" type="label" fontSize="mini"/>
 
     <Field id="debugLabel" type="label" fontColor="black" alignText="right">

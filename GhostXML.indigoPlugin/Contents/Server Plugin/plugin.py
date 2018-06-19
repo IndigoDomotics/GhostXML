@@ -12,7 +12,8 @@ transitive Indigo plugin device states.
 # TODO: Potential bugs for keys with empty list values {'key': []} will not produce a custom state?
 # TODO: Recover gracefully when a user improperly selects digest auth (had a user try to use digest instead of basic).  Return code 401 "unauthorized"
 
-# TODO: check self.deviceNeedsUpdating, self.pluginIsShuttingDown, etc.
+# TODO: Make a new testing device that requires token auth
+# TODO: Update wiki with any needed changes.
 
 
 # Stock imports
@@ -42,7 +43,7 @@ except ImportError:
 # Custom imports
 import iterateXML
 
-__author__    = u"DaveL17, GlennNZ, howartp"
+__author__    = u"berkinet, DaveL17, GlennNZ, howartp"
 __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
@@ -85,7 +86,6 @@ class Plugin(indigo.PluginBase):
         self.logger.info(u"{0:<30} {1}".format("Indigo version:", indigo.server.version))
         self.logger.info(u"{0:<30} {1}".format("Python version:", sys.version.replace('\n', '')))
         self.logger.info(u"{0:=^130}".format(""))
-
         self.indigo_log_handler.setLevel(self.debugLevel)
 
         self.prefServerTimeout    = int(self.pluginPrefs.get('configMenuServerTimeout', "15"))
@@ -134,15 +134,41 @@ class Plugin(indigo.PluginBase):
 
     def deviceStartComm(self, dev):
 
+        dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Starting")
+
+        # =============== Update legacy authentication settings ===============
+        new_props = dev.pluginProps
+        auth_type = new_props.get('useDigest', 'None')
+        use_auth  = new_props.get('useAuth', False)
+
+        # If 'useAuth' was 'false', set 'useDigest' to 'None'. If useAuth was 'true' we
+        # leave 'useDigest' alone.
+        if not use_auth:
+            new_props['useDigest'] = 'None'
+
+        if auth_type in ['False', 'false', False]:
+            new_props['useDigest'] = 'Basic'
+
+        elif auth_type in ['True', 'true', True]:
+            new_props['useDigest'] = 'Digest'
+
+        if new_props != dev.pluginProps:
+            dev.replacePluginPropsOnServer(new_props)
+            self.sleep(2)
+        # =====================================================================
+
         # Check for changes to the device's default states.
         dev.stateListOrDisplayStateIdChanged()
-        dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Starting")
 
         # Add device instance to dict of managed devices
         self.managedDevices[dev.id] = PluginDevice(self, dev)
 
         # Force refresh of device when comm started
-        self.managedDevices[dev.id].queue.put(dev)
+        if int(dev.pluginProps['refreshFreq']) == 0:
+            dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Manual")
+        else:
+            dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Started")
+            self.managedDevices[dev.id].queue.put(dev)
 
         self.logger.debug(u"Started: {0}".format(self.managedDevices[dev.id]))
 
@@ -152,12 +178,12 @@ class Plugin(indigo.PluginBase):
         # never terminate on their own.
         self.managedDevices[dev.id].dev_thread.join(0.25)
 
-        # and delete the device from the list of managed devices.
+        # Delete the device from the list of managed devices.
         del self.managedDevices[dev.id]
 
         dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="Disabled")
         dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
-        self.logger.debug(u"Stopped: {0}".format(dev.name))
+        self.logger.debug(u"Stopped: [{0:>11}]".format(dev.id))
 
     def getDeviceStateList(self, dev):
         """
@@ -181,7 +207,6 @@ class Plugin(indigo.PluginBase):
         """
 
         if dev.enabled:
-            # self.logger.debug(u"[{0}] Pulling down existing state list.".format(dev.id))
 
             # If there are no managed devices, returns the existing states
             if dev.id not in self.managedDevices.keys():
@@ -193,8 +218,6 @@ class Plugin(indigo.PluginBase):
             if state_list is not None:
 
                 # Iterate the tags in final_dict into device state keys.
-                # self.logger.debug(u"[{0}] Writing dynamic states to device.".format(dev.id))
-
                 # Example: dynamic_state = self.getDeviceStateDictForStringType(key, u'Trigger Test Label', u'State Label')
                 for key in self.managedDevices[dev.id].finalDict.keys():
                     dynamic_state = self.getDeviceStateDictForStringType(key, key, key)
@@ -206,14 +229,10 @@ class Plugin(indigo.PluginBase):
             for thing in [u'deviceIsOnline', u'deviceLastUpdated', ]:
                 interim_state_list.remove(thing)
 
+            # TODO: I'm suggesting that this logging be eliminated because the plugin will find new states every time.
             # Compare existing states to new ones
-            if not set(interim_state_list) == set(self.managedDevices[dev.id].finalDict.keys()):
-                self.logger.debug(u"[{0}] New states found.".format(dev.id))
-            #     self.logger.debug(u"[{0}] Initial states: {1}".format(dev.id, interim_state_list))  # existing states
-            #     self.logger.debug(u"[{0}] New states: {1}".format(dev.id, self.managedDevices[dev.id].finalDict.keys()))  # new states
-            #
-            # else:
-            #     self.logger.debug(u"[{0}] No new states found.".format(dev.id))
+            # if not set(interim_state_list) == set(self.managedDevices[dev.id].finalDict.keys()):
+            #     self.logger.debug(u"[{0}] New states found.".format(dev.id))
 
             # Resolves issue with deviceIsOnline and deviceLastUpdated states disappearing
             # if there's a fault in the JSON data we receive, as state_list MUST contain
@@ -228,12 +247,9 @@ class Plugin(indigo.PluginBase):
                 # Ignore this error as we expect it to happen when all is healthy
                 pass
 
-            # self.logger.debug(u"Device needs update: {0}".format(self.managedDevices[dev.id].deviceNeedsUpdated))
-
             return state_list
 
         else:
-            # self.logger.debug(u"[{0}] Device has been updated. Blow state list up to Trigger and Control Page labels.".format(dev.id))
             state_list = indigo.PluginBase.getDeviceStateList(self, dev)
 
             # Iterate the device states into trigger and control page labels when the
@@ -280,7 +296,6 @@ class Plugin(indigo.PluginBase):
 
         self.indigo_log_handler.setLevel(20)
         self.logger.info(u'Shutdown complete.')
-        self.indigo_log_handler.setLevel(self.debugLevel)
 
     def startup(self):
 
@@ -293,8 +308,7 @@ class Plugin(indigo.PluginBase):
                 dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Initialized")
             dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
-        # See if there is a plugin update and whether the user wants to be
-        # notified.
+        # See if there is a plugin update and whether the user wants to be notified.
         try:
             self.updater.checkVersionPoll()
         except Exception as sub_error:
@@ -312,8 +326,8 @@ class Plugin(indigo.PluginBase):
             error_msg_dict['showAlertText'] = u"URL/Path Error.\n\nA valid URL/Path starts with:\n'http://',\n'https://', or\n'file:///'."
             return False, valuesDict, error_msg_dict
 
-        # Test the variable substitution IDs and indexes. If substitutions
-        # aren't enabled, we can skip this bit.
+        # Test the variable substitution IDs and indexes. If substitutions aren't
+        # enabled, we can skip this bit.
         if valuesDict['doSubs']:
 
             sub_list = [('subA', '[A]'), ('subB', '[B]'), ('subC', '[C]'), ('subD', '[D]'), ('subE', '[E]')]
@@ -321,8 +335,8 @@ class Plugin(indigo.PluginBase):
 
             for sub in sub_list:
 
-                # Ensure that the values entered in the substitution fields are
-                # valid Indigo variable IDs.
+                # Ensure that the values entered in the substitution fields are valid Indigo
+                # variable IDs.
                 if valuesDict[sub[0]].isspace() or valuesDict[sub[0]] == "":
                     pass
                 elif int(valuesDict[sub[0]]) not in var_list:
@@ -330,8 +344,7 @@ class Plugin(indigo.PluginBase):
                     error_msg_dict['showAlertText'] = u"Variable {0} Error\n\nYou must supply a valid Indigo variable ID number to perform substitutions (or leave the field blank).".format(sub[0].replace('sub', ''))
                     return False, valuesDict, error_msg_dict
 
-                # Ensure that the proper substitution index is included in the
-                # source URL.
+                # Ensure that the proper substitution index is included in the source URL.
                 if valuesDict[sub[0]].strip() != "" and sub[1].strip() not in url:
                     error_msg_dict[sub[0]] = u"Please add a substitution index to the source URL for this variable ID."
                     error_msg_dict['showAlertText'] = u"Variable {0} Error\n\nYou must include a valid substitution index in your source URL for this variable.".format(sub[0].replace('sub', ''))
@@ -522,7 +535,7 @@ class Plugin(indigo.PluginBase):
         """
 
         # If device has a deviceTimestamp key and is enabled.
-        if "deviceTimestamp" in dev.states.iterkeys() and dev.enabled:  # Added dev.enabled test - DaveL17 2017-09-18
+        if "deviceTimestamp" in dev.states.iterkeys() and dev.enabled:
 
             # If the refresh frequency is zero, the device is a manual only refresh.
             if int(dev.pluginProps.get("refreshFreq", 300)) == 0:
@@ -562,7 +575,6 @@ class PluginDevice(object):
         self.device      = device
         self.host_plugin = plugin
 
-        self.deviceNeedsUpdated = ''
         self.finalDict          = {}
         self.jsonRawData        = ''
         self.rawData            = ''
@@ -575,7 +587,7 @@ class PluginDevice(object):
 
     def __str__(self):
 
-        return u"GhostXML Device: {0}, {1}, {2}".format(self.device.name, self.dev_thread, self.queue)
+        return u"[{0:>11}] {1:<46} {2:<40}".format(self.device.id, self.dev_thread, self.queue)
 
     def initiate_device_update(self, q):
         """
@@ -613,9 +625,12 @@ class PluginDevice(object):
         dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Download")
 
         try:
-            # Initiate curl call to data source.
-            url = dev.pluginProps['sourceXML']
+            url       = dev.pluginProps['sourceXML']
+            username  = dev.pluginProps.get('digestUser', '')
+            password  = dev.pluginProps.get('digestPass', '')
+            auth_type = dev.pluginProps.get('useDigest', 'None')
 
+            # Format any needed substitutions
             if dev.pluginProps.get('doSubs', False):
                 self.host_plugin.logger.debug(u"[{0}] URL: {1}  (before substitution)".format(dev.id, url))
                 url = self.host_plugin.substitute(url.replace("[A]", "%%v:" + dev.pluginProps['subA'] + "%%"))
@@ -625,23 +640,32 @@ class PluginDevice(object):
                 url = self.host_plugin.substitute(url.replace("[E]", "%%v:" + dev.pluginProps['subE'] + "%%"))
                 self.host_plugin.logger.debug(u"[{0}] URL: {1}  (after substitution)".format(dev.id, url))
 
-            username = dev.pluginProps.get('digestUser', '')
-            password = dev.pluginProps.get('digestPass', '')
-
-            use_auth = dev.pluginProps.get('useAuth', False)
-
-            if dev.pluginProps.get('useDigest', False) in ['true', 'True', True]:
-                use_digest = True
-            else:
-                use_digest = False
+            # Initiate curl call to data source.
 
             # Digest auth
-            if use_auth and use_digest:
+            if auth_type == 'Digest':
                 proc = subprocess.Popen(["curl", '-vs', '--digest', '-u', username + ':' + password, url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             # Basic auth
-            elif use_auth and not use_digest:
+            elif auth_type == 'Basic':
                 proc = subprocess.Popen(["curl", '-vs', '-u', username + ':' + password, url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+            # Token auth
+            # Added by berkinet and DaveL17 2018-06-18
+            elif auth_type == 'Token':
+                # We need to get a token to get started
+                a_url = dev.pluginProps['tokenUrl']
+                curl_arg = "/usr/bin/curl -vsk -H 'Content-Type: application/json' -X POST --data-binary '{ \"pwd\": \"" + password + "\", \"remember\": 1 }' '} ' " + a_url
+
+                proc = subprocess.Popen(curl_arg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+
+                reply_in = proc.communicate()
+                reply = simplejson.loads(reply_in[0])
+                token = (reply["access_token"])
+
+                # Now, add the token to the end of the url
+                url = url + "?access_token=" + token
+                proc = subprocess.Popen(["curl", '-vsk', url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             # No auth
             else:
@@ -709,8 +733,6 @@ class PluginDevice(object):
 
             self.jsonRawData = input_data
 
-            # self.host_plugin.logger.debug(u"Cleaned data: {0}".format(self.jsonRawData))
-
         except ValueError as sub_error:
             self.host_plugin.logger.critical(u'Error cleaning dictionary keys: {0}'.format(sub_error))
 
@@ -734,9 +756,7 @@ class PluginDevice(object):
         try:
             parsed_simplejson = simplejson.loads(root)
 
-            # self.host_plugin.logger.debug(u"Initial data: {0}".format(parsed_simplejson))
-
-            # if List flattens once - with addition of No_ to the beginning (Indigo appears
+            # If List flattens once - with addition of No_ to the beginning (Indigo appears
             # to not allow DeviceNames to start with Numbers) then flatDict runs - and
             # appears to run correctly (as no longer list - dict) if isinstance(list) then
             # will flatten list down to dict.
@@ -747,12 +767,12 @@ class PluginDevice(object):
 
             self.jsonRawData = flatdict.FlatDict(parsed_simplejson, delimiter='_ghostxml_')
 
-            # self.host_plugin.logger.debug(self.jsonRawData)
 
             return self.jsonRawData
 
         except ValueError as sub_error:
-            self.host_plugin.logger.warning(u"[{0}] Parse Error: {1}".format(dev.name, sub_error))
+            self.host_plugin.logger.warning(u"[{0}] Parse Error: {1}".format(dev.id, sub_error))
+            self.host_plugin.logger.debug(u"[{0}] jsonRawData {0}".format(dev.id, self.jsonRawData))
 
     def parse_state_values(self, dev):
         """
@@ -766,10 +786,7 @@ class PluginDevice(object):
         :param dev:
         """
 
-        state_list = []
-
-        # self.host_plugin.logger.debug(u"[{0}] Writing device states".format(dev.id))
-
+        state_list  = []
         sorted_list = sorted(self.finalDict.iterkeys())
 
         for key in sorted_list:
@@ -798,7 +815,6 @@ class PluginDevice(object):
         if dev.configured and dev.enabled:
 
             # Get the data.
-            # self.host_plugin.logger.debug(u"[{0}] Refreshing device".format(dev.id))
             self.rawData = self.get_the_data(dev)
 
             # Throw the data to the appropriate module to flatten it.
@@ -809,12 +825,10 @@ class PluginDevice(object):
             dev.updateStateOnServer('deviceTimestamp', value=t.time())
 
             if dev.pluginProps['feedType'] == "XML":
-                # self.host_plugin.logger.debug(u"[{0}] Source type: XML".format(dev.id))
                 self.rawData = self.strip_namespace(dev, self.rawData)
                 self.finalDict = iterateXML.iterateMain(self.rawData)
 
             elif dev.pluginProps['feedType'] == "JSON":
-                # self.host_plugin.logger.debug(u"[{0}] Source type: JSON".format(dev.id))
                 self.finalDict = self.parse_the_json(dev, self.rawData)
                 self.clean_the_keys(self.finalDict)
 
@@ -823,8 +837,6 @@ class PluginDevice(object):
 
             if self.finalDict is not None:
                 # Create the device states.
-                self.deviceNeedsUpdated = True
-                # self.host_plugin.logger.debug(u"[{0}] Device needs update: {1}".format(dev.id, self.deviceNeedsUpdated))
                 dev.stateListOrDisplayStateIdChanged()
 
                 # Put the final values into the device states.
@@ -837,7 +849,6 @@ class PluginDevice(object):
                     dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Updated")
                     dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
                 dev.setErrorStateOnServer(None)
-                self.host_plugin.logger.debug(u"[{0}] Device refreshed".format(dev.id))
 
             else:
                 # Set the Timestamp so that the seconds-since-update code doesn't keep checking

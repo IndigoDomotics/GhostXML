@@ -3,6 +3,7 @@ ghostXML Change Log
 v0.4.03
 - Completely refactors threading.
 - Migrates plugin devices to their own class.
+- Adds option for sites that require token authentication.
 - Updates docstrings to Sphinx standard.
 - Refines logging.
 - Fixes bug where changes to debug level not applied.
