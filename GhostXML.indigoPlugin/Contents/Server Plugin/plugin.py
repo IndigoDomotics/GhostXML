@@ -602,6 +602,7 @@ class PluginDevice(object):
         :return:
         """
         while True:
+            t.sleep(0.1)
             while not q.empty():
                 task = q.get()
                 self.refresh_data_for_dev(task)
