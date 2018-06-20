@@ -1,13 +1,18 @@
 ghostXML Change Log
 
-v0.4.03
+v0.4.04
+- Adds option for sites that require token authentication.
 - Completely refactors threading.
 - Migrates plugin devices to their own class.
-- Adds option for sites that require token authentication.
 - Updates docstrings to Sphinx standard.
 - Refines logging.
 - Fixes bug where changes to debug level not applied.
 - Fixes bug where curl reported error when completed successfully.
+
+flatdict.py
+- Adds trap for dict values that are empty lists or empty dicts. The trap
+  replaces the list or dict with 'None'. This allows the plugin to retain
+  and show the key as a device state.
 
 v0.4.02
 - Migrates writing of device states to API 2.0 [ dev.updateStatesOnServer() ].

@@ -9,14 +9,13 @@ This plugin provides an engine which parses tag/value pairs into
 transitive Indigo plugin device states.
 """
 
-# TODO: Potential bugs for keys with empty list values {'key': []} will not produce a custom state?
 # TODO: Recover gracefully when a user improperly selects digest auth (had a user try to use digest instead of basic).  Return code 401 "unauthorized"
-
 # TODO: Make a new testing device that requires token auth
 # TODO: Update wiki with any needed changes.
+# TODO: If parse error, device keeps trying at same interval. Should we limit the number of tries?  Seems harsh to take it offline without giving it a chance to come back.
 
 
-# Stock imports
+# ================================Stock Imports================================
 # import datetime
 import logging
 from Queue import Queue
@@ -27,20 +26,16 @@ import sys
 import threading
 import time as t
 
-# Third-party imports
+# =============================Third-party Imports=============================
 import flatdict  # https://github.com/gmr/flatdict
 import indigoPluginUpdateChecker
 try:
-    import indigo
-except ImportError:
-    pass
-
-try:
+    import indigo  # only needed for IDE syntax checking
     import pydevd
 except ImportError:
     pass
 
-# Custom imports
+# ===============================Custom Imports================================
 import iterateXML
 
 __author__    = u"berkinet, DaveL17, GlennNZ, howartp"
@@ -48,7 +43,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.03"
+__version__   = u"0.4.04"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -139,12 +134,15 @@ class Plugin(indigo.PluginBase):
         # =============== Update legacy authentication settings ===============
         new_props = dev.pluginProps
         auth_type = new_props.get('useDigest', 'None')
-        use_auth  = new_props.get('useAuth', False)
+        try:
+            use_auth = new_props.get('useAuth')
 
-        # If 'useAuth' was 'false', set 'useDigest' to 'None'. If useAuth was 'true' we
-        # leave 'useDigest' alone.
-        if not use_auth:
-            new_props['useDigest'] = 'None'
+            # If 'useAuth' was 'false', set 'useDigest' to 'None'. If useAuth was 'true' we
+            # leave 'useDigest' alone.
+            if not use_auth:
+                new_props['useDigest'] = 'None'
+        except:
+            pass
 
         if auth_type in ['False', 'false', False]:
             new_props['useDigest'] = 'Basic'
@@ -187,7 +185,7 @@ class Plugin(indigo.PluginBase):
 
     def getDeviceStateList(self, dev):
         """
-        Assign data keys to device state names
+        Assign data keys to device state names (Indigo)
 
         The getDeviceStateList() method pulls out all the keys in self.finalDict and
         assigns them to device states. It returns the modified stateList which is then
@@ -229,11 +227,6 @@ class Plugin(indigo.PluginBase):
             for thing in [u'deviceIsOnline', u'deviceLastUpdated', ]:
                 interim_state_list.remove(thing)
 
-            # TODO: I'm suggesting that this logging be eliminated because the plugin will find new states every time.
-            # Compare existing states to new ones
-            # if not set(interim_state_list) == set(self.managedDevices[dev.id].finalDict.keys()):
-            #     self.logger.debug(u"[{0}] New states found.".format(dev.id))
-
             # Resolves issue with deviceIsOnline and deviceLastUpdated states disappearing
             # if there's a fault in the JSON data we receive, as state_list MUST contain
             # all desired states when it returns
@@ -271,15 +264,25 @@ class Plugin(indigo.PluginBase):
 
     def runConcurrentThread(self):
 
+        # This sleep will execute only when the plugin is started/restarted. It allows
+        # the Indigo server a chance to catch up if it needs to. Five seconds may be
+        # overkill.
         self.sleep(5)
 
         try:
             while not self.pluginIsShuttingDown:
-                self.updater.checkVersionPoll()
 
+                # Check to see if there is an update to the plugin available.
+                try:
+                    self.updater.checkVersionPoll()
+                except Exception as sub_error:
+                    self.logger.warning(u"Update checker error: {0}".format(sub_error))
+
+                # Iterate devices to see if an update is required.
                 for devId in self.managedDevices:
                     dev = self.managedDevices[devId].device
 
+                    # If timeToUpdate returns True, add device to its queue.
                     if self.timeToUpdate(dev):
                         self.managedDevices[devId].queue.put(dev)
 
@@ -293,13 +296,13 @@ class Plugin(indigo.PluginBase):
     def shutdown(self):
 
         self.pluginIsShuttingDown = True
-
         self.indigo_log_handler.setLevel(20)
         self.logger.info(u'Shutdown complete.')
 
     def startup(self):
 
         # Initialize all plugin devices to ensure that they're in the proper state.
+        # We can't use managedDevices here because they may not yet have showed up.
         for dev in indigo.devices.itervalues("self"):
             if not dev.enabled:
                 dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="Disabled")
@@ -308,6 +311,7 @@ class Plugin(indigo.PluginBase):
                 dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Initialized")
             dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
+        # TODO: this may be redundant as the plugin will also check when runConcurrentThread is first run.
         # See if there is a plugin update and whether the user wants to be notified.
         try:
             self.updater.checkVersionPoll()
@@ -317,8 +321,8 @@ class Plugin(indigo.PluginBase):
     def validateDeviceConfigUi(self, valuesDict, typeID, devId):
 
         error_msg_dict = indigo.Dict()
-        url = valuesDict['sourceXML']
-        url_list = ('file:///', 'http://', 'https://')
+        url            = valuesDict['sourceXML']
+        url_list       = ('file:///', 'http://', 'https://')
 
         # Test the source URL/Path for proper prefix.
         if not url.startswith(url_list):
@@ -353,14 +357,6 @@ class Plugin(indigo.PluginBase):
         return True, valuesDict, error_msg_dict
 
     def validatePrefsConfigUi(self, valuesDict):
-        """
-        title placeholder
-
-        docstring placeholder
-
-        -----
-
-        """
 
         error_msg_dict = indigo.Dict()
         update_email   = valuesDict['updaterEmail']
@@ -471,15 +467,13 @@ class Plugin(indigo.PluginBase):
             self.logger.warning(u"No GhostXML devices have been created.")
             return True
 
+        # Iterate devices to see if an update is required.
         try:
             for devId in self.managedDevices:
-
                 dev = self.managedDevices[devId].device
                 self.managedDevices[devId].queue.put(dev)
 
             return True
-
-            # =============================================================
 
         except Exception as sub_error:
             self.logger.critical(u"Error refreshing devices. Please check settings.")
@@ -575,9 +569,9 @@ class PluginDevice(object):
         self.device      = device
         self.host_plugin = plugin
 
-        self.finalDict          = {}
-        self.jsonRawData        = ''
-        self.rawData            = ''
+        self.finalDict   = {}
+        self.jsonRawData = ''
+        self.rawData     = ''
 
         self.queue      = Queue(maxsize=0)
         self.dev_thread = threading.Thread(name=self.device.id, target=self.initiate_device_update, args=(self.queue,))
@@ -675,7 +669,7 @@ class PluginDevice(object):
             (result, err) = proc.communicate()
 
             if int(proc.returncode) != 0:
-                self.host_plugin.logger.warning(u"[{0}] curl error {1}.".format(dev.id, err))
+                self.host_plugin.logger.warning(u"[{0}] curl error {1}.".format(dev.id, err.replace('\n', ' ')))
 
             return result
 
@@ -705,7 +699,7 @@ class PluginDevice(object):
 
             chars_to_replace = {'_ghostxml_': '_', '+': '_plus_', '-': '_minus_', 'true': 'True', 'false': 'False', ' ': '_'}
             chars_to_replace = dict((re.escape(k), v) for k, v in chars_to_replace.iteritems())
-            pattern = re.compile("|".join(chars_to_replace.keys()))
+            pattern          = re.compile("|".join(chars_to_replace.keys()))
 
             for key in input_data.iterkeys():
                 new_key = pattern.sub(lambda m: chars_to_replace[re.escape(m.group(0))], key)
@@ -768,12 +762,17 @@ class PluginDevice(object):
 
             self.jsonRawData = flatdict.FlatDict(parsed_simplejson, delimiter='_ghostxml_')
 
-
             return self.jsonRawData
 
         except ValueError as sub_error:
-            self.host_plugin.logger.warning(u"[{0}] Parse Error: {1}".format(dev.id, sub_error))
+            self.host_plugin.logger.debug(u"[{0}] Parse Error: {1}".format(dev.id, sub_error))
             self.host_plugin.logger.debug(u"[{0}] jsonRawData {0}".format(dev.id, self.jsonRawData))
+
+            # If we let it, an exception here will kill the device's thread. Therefore, we
+            # have to return something that the device can use in order to keep the thread
+            # alive.
+            self.jsonRawData = {'parse_error': "There was a parse error. Will continue to poll."}
+            return self.jsonRawData
 
     def parse_state_values(self, dev):
         """
@@ -846,10 +845,13 @@ class PluginDevice(object):
                 if "GhostXML" in dev.states:
                     dev.updateStateOnServer('deviceIsOnline', value=False, uiValue=dev.states['GhostXML'])
                     dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
+                elif "parse_error" in dev.states:
+                    dev.updateStateOnServer('deviceIsOnline', value=False, uiValue='Error')
+                    dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
                 else:
                     dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Updated")
                     dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
-                dev.setErrorStateOnServer(None)
+                    dev.setErrorStateOnServer(None)
 
             else:
                 # Set the Timestamp so that the seconds-since-update code doesn't keep checking

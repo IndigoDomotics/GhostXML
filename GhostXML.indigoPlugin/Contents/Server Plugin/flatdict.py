@@ -30,6 +30,16 @@ class FlatDict(dict):
 
         if isinstance(value, dict):
             for key in value.keys():
+                # =============================
+                # Added by DaveL17 - 2018-06-20
+                # Note that flatdict will return an empty dict for empty lists and dicts --
+                # i.e, {} for any ( [], {} ) and, and this will result in no device state
+                # being created. By changing the value to 'None', we can coerce the state to
+                # exist in the device after parsing.
+
+                if value[key] in ([], {}):
+                    value[key] = None
+                # =============================
                 self.__setitem__(key, value[key])
 
     def __contains__(self, key):
