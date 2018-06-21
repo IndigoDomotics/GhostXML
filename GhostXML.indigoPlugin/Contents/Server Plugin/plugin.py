@@ -11,7 +11,6 @@ transitive Indigo plugin device states.
 
 # TODO: Recover gracefully when a user improperly selects digest auth (had a user try to use digest instead of basic).  Return code 401 "unauthorized"
 # TODO: Make a new testing device that requires token auth
-# TODO: Update wiki with any needed changes.
 # TODO: If parse error, device keeps trying at same interval. Should we limit the number of tries?  Seems harsh to take it offline without giving it a chance to come back.
 
 
@@ -141,7 +140,7 @@ class Plugin(indigo.PluginBase):
             # leave 'useDigest' alone.
             if not use_auth:
                 new_props['useDigest'] = 'None'
-        except:
+        except KeyError:
             pass
 
         if auth_type in ['False', 'false', False]:
