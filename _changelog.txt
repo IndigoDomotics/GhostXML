@@ -1,5 +1,9 @@
 ghostXML Change Log
 
+v0.4.05
+- Adds feature to automatically disable a device if it has failed to refresh
+  10 times.
+
 v0.4.04
 - Adds option for sites that require token authentication.
 - Completely refactors threading.

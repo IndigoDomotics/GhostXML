@@ -11,7 +11,6 @@ transitive Indigo plugin device states.
 
 # TODO: Recover gracefully when a user improperly selects digest auth (had a user try to use digest instead of basic).  Return code 401 "unauthorized"
 # TODO: Make a new testing device that requires token auth
-# TODO: If parse error, device keeps trying at same interval. Should we limit the number of tries?  Seems harsh to take it offline without giving it a chance to come back.
 
 
 # ================================Stock Imports================================
@@ -42,7 +41,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.04"
+__version__   = u"0.4.05"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -82,15 +81,14 @@ class Plugin(indigo.PluginBase):
         self.logger.info(u"{0:=^130}".format(""))
         self.indigo_log_handler.setLevel(self.debugLevel)
 
-        self.prefServerTimeout    = int(self.pluginPrefs.get('configMenuServerTimeout', "15"))
-
+        # ========================== Plugin Update Checker ============================
         self.updater              = indigoPluginUpdateChecker.updateChecker(self, "https://raw.githubusercontent.com/indigodomotics/GhostXML/master/ghostXML_version.html")
         self.updaterEmailsEnabled = self.pluginPrefs.get('updaterEmailsEnabled', False)
 
-        # A dict of plugin devices that will be used to hold a copy of each active
-        # plugin device and a queue for processing device updates. The dict will be
-        # (re)populated in self.deviceStartComm() method.
-        self.managedDevices = {}
+        # ================================== Other ====================================
+        # TODO: can we deprecate self.prefServerTimeout? It's not used anywhere. If yes, delete plugin pref.
+        # self.prefServerTimeout = int(self.pluginPrefs.get('configMenuServerTimeout', "15"))
+        self.managedDevices = {}  # Managed list of plugin devices
 
         # Adding support for remote debugging in PyCharm. Other remote debugging
         # facilities can be added, but only one can be run at a time.
@@ -130,11 +128,12 @@ class Plugin(indigo.PluginBase):
 
         dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Starting")
 
+        # TODO: Would it make better logical sense for this to be in the __init__ method of the PluginDevice object?
         # =============== Update legacy authentication settings ===============
         new_props = dev.pluginProps
         auth_type = new_props.get('useDigest', 'None')
         try:
-            use_auth = new_props.get('useAuth')
+            use_auth = new_props['useAuth']
 
             # If 'useAuth' was 'false', set 'useDigest' to 'None'. If useAuth was 'true' we
             # leave 'useDigest' alone.
@@ -281,9 +280,15 @@ class Plugin(indigo.PluginBase):
                 for devId in self.managedDevices:
                     dev = self.managedDevices[devId].device
 
+                    # If a device has failed X times, disable it and notify the user.
+                    if self.managedDevices[devId].bad_calls >= 10:
+                        indigo.device.enable(devId, value=False)
+                        self.logger.critical(u"[{0}] Disabling {1} because it has failed 10 times.".format(dev.id, dev.name))
+
                     # If timeToUpdate returns True, add device to its queue.
-                    if self.timeToUpdate(dev):
-                        self.managedDevices[devId].queue.put(dev)
+                    else:
+                        if self.timeToUpdate(dev):
+                            self.managedDevices[devId].queue.put(dev)
 
                 self.sleep(2)
 
@@ -568,6 +573,7 @@ class PluginDevice(object):
         self.device      = device
         self.host_plugin = plugin
 
+        self.bad_calls   = 0
         self.finalDict   = {}
         self.jsonRawData = ''
         self.rawData     = ''
@@ -658,7 +664,7 @@ class PluginDevice(object):
                 token = (reply["access_token"])
 
                 # Now, add the token to the end of the url
-                url = url + "?access_token=" + token
+                url = "{0}?access_token={1}".format(url, token)
                 proc = subprocess.Popen(["curl", '-vsk', url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             # No auth
@@ -844,13 +850,16 @@ class PluginDevice(object):
                 if "GhostXML" in dev.states:
                     dev.updateStateOnServer('deviceIsOnline', value=False, uiValue=dev.states['GhostXML'])
                     dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
+                    self.bad_calls += 1
                 elif "parse_error" in dev.states:
                     dev.updateStateOnServer('deviceIsOnline', value=False, uiValue='Error')
                     dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
+                    self.bad_calls += 1
                 else:
                     dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Updated")
                     dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
                     dev.setErrorStateOnServer(None)
+                    self.bad_calls = 0
 
             else:
                 # Set the Timestamp so that the seconds-since-update code doesn't keep checking
@@ -859,6 +868,7 @@ class PluginDevice(object):
                 # it last successfully updated.
                 dev.updateStateOnServer('deviceTimestamp', value=t.time())
                 dev.setErrorStateOnServer("Error")
+                self.bad_calls += 1
 
         else:
             self.host_plugin.logger.debug(u"[{0}] Device not available for update [Enabled: {1}, Configured: {2}]".format(dev.id, dev.enabled, dev.configured))
