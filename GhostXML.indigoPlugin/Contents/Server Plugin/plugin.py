@@ -9,9 +9,7 @@ This plugin provides an engine which parses tag/value pairs into
 transitive Indigo plugin device states.
 """
 
-# TODO: Recover gracefully when a user improperly selects digest auth (had a user try to use digest instead of basic).  Return code 401 "unauthorized"
 # TODO: Make a new testing device that requires token auth
-
 
 # ================================Stock Imports================================
 # import datetime
@@ -41,7 +39,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.05"
+__version__   = u"0.4.06"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -128,7 +126,6 @@ class Plugin(indigo.PluginBase):
 
         dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Starting")
 
-        # TODO: Would it make better logical sense for this to be in the __init__ method of the PluginDevice object?
         # =============== Update legacy authentication settings ===============
         new_props = dev.pluginProps
         auth_type = new_props.get('useDigest', 'None')
@@ -325,8 +322,12 @@ class Plugin(indigo.PluginBase):
     def validateDeviceConfigUi(self, valuesDict, typeID, devId):
 
         error_msg_dict = indigo.Dict()
+        sub_list       = [('subA', '[A]'), ('subB', '[B]'), ('subC', '[C]'), ('subD', '[D]'), ('subE', '[E]')]
+        token_url      = valuesDict['tokenUrl']
         url            = valuesDict['sourceXML']
         url_list       = ('file:///', 'http://', 'https://')
+        use_digest     = valuesDict['useDigest']
+        var_list       = [var.id for var in indigo.variables]
 
         # Test the source URL/Path for proper prefix.
         if not url.startswith(url_list):
@@ -334,12 +335,15 @@ class Plugin(indigo.PluginBase):
             error_msg_dict['showAlertText'] = u"URL/Path Error.\n\nA valid URL/Path starts with:\n'http://',\n'https://', or\n'file:///'."
             return False, valuesDict, error_msg_dict
 
+        # Test the token URL/Path for proper prefix.
+        if use_digest == 'Token' and not token_url.startswith(url_list):
+            error_msg_dict['sourceXML'] = u"You must supply a valid Token URL."
+            error_msg_dict['showAlertText'] = u"Token Error.\n\nA valid URL/Path starts with:\n'http://',\n'https://', or\n'file:///'."
+            return False, valuesDict, error_msg_dict
+
         # Test the variable substitution IDs and indexes. If substitutions aren't
         # enabled, we can skip this bit.
         if valuesDict['doSubs']:
-
-            sub_list = [('subA', '[A]'), ('subB', '[B]'), ('subC', '[C]'), ('subD', '[D]'), ('subE', '[E]')]
-            var_list = [var.id for var in indigo.variables]
 
             for sub in sub_list:
 
@@ -350,12 +354,6 @@ class Plugin(indigo.PluginBase):
                 elif int(valuesDict[sub[0]]) not in var_list:
                     error_msg_dict[sub[0]] = u"You must supply a valid variable ID."
                     error_msg_dict['showAlertText'] = u"Variable {0} Error\n\nYou must supply a valid Indigo variable ID number to perform substitutions (or leave the field blank).".format(sub[0].replace('sub', ''))
-                    return False, valuesDict, error_msg_dict
-
-                # Ensure that the proper substitution index is included in the source URL.
-                if valuesDict[sub[0]].strip() != "" and sub[1].strip() not in url:
-                    error_msg_dict[sub[0]] = u"Please add a substitution index to the source URL for this variable ID."
-                    error_msg_dict['showAlertText'] = u"Variable {0} Error\n\nYou must include a valid substitution index in your source URL for this variable.".format(sub[0].replace('sub', ''))
                     return False, valuesDict, error_msg_dict
 
         return True, valuesDict, error_msg_dict

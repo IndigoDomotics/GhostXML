@@ -1,5 +1,8 @@
 ghostXML Change Log
 
+v0.4.06
+- Improves device configuration validation and help bubble text.
+
 v0.4.05
 - Adds feature to automatically disable a device if it has failed to refresh
   10 times.

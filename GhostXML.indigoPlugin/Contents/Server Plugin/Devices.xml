@@ -39,7 +39,7 @@
 
             <!-- URL -->
 
-            <Field id="sourceXML" type="textfield" tooltip="Enter the path to your data source using the examples below as a guide.">
+            <Field id="sourceXML" type="textfield" tooltip="Enter the path to your data source using the examples below as a guide. If you use substitutions, be sure to include the proper variable index in the form of [A], [B], etc.">
                 <Label>URL/Path:</Label>
             </Field>
 
@@ -73,18 +73,15 @@
 
             <!-- Note: although the username and password fields are called digestUser and
             digestPass, these fields are now used for both digest and basic auth. -->
-            <Field id="tokenUrl" type="textfield" tooltip="Enter the URL for the Token server."
-                   visibleBindingId="useDigest" visibleBindingValue="Token">
+            <Field id="tokenUrl" type="textfield" tooltip="Enter the URL for the Token server." visibleBindingId="useDigest" visibleBindingValue="Token">
                 <Label>Token URL:</Label>
             </Field>
 
-            <Field id="digestUser" type="textfield" tooltip="Enter or paste a Username ID here."
-                visibleBindingId="useDigest" visibleBindingValue="Basic, Digest">
+            <Field id="digestUser" type="textfield" tooltip="Enter or paste a Username ID here." visibleBindingId="useDigest" visibleBindingValue="Basic, Digest">
                 <Label>Username:</Label>
             </Field>
 
-            <Field id="digestPass" type="textfield" tooltip="Enter or paste a Password ID here."
-                visibleBindingId="useDigest" visibleBindingValue="Basic, Digest, Token">
+            <Field id="digestPass" type="textfield" tooltip="Enter or paste a Password ID here." visibleBindingId="useDigest" visibleBindingValue="Basic, Digest, Token">
                 <Label>Password:</Label>
             </Field>
 
@@ -105,23 +102,23 @@
                 <!--<Description>Would you like to use variable substitutions in this feed's URL?</Description>-->
             </Field>
 
-            <Field id="subA" type="textfield" tooltip="Enter or paste a variable ID here.">
+            <Field id="subA" type="textfield" tooltip="Enter or paste a variable ID here (ID number only).">
                 <Label>Variable A:</Label>
             </Field>
 
-            <Field id="subB" type="textfield" tooltip="Enter or paste a variable ID here.">
+            <Field id="subB" type="textfield" tooltip="Enter or paste a variable ID here (ID number only).">
                 <Label>Variable B:</Label>
             </Field>
 
-            <Field id="subC" type="textfield" tooltip="Enter or paste a variable ID here.">
+            <Field id="subC" type="textfield" tooltip="Enter or paste a variable ID here (ID number only).">
                 <Label>Variable C:</Label>
             </Field>
 
-            <Field id="subD" type="textfield" tooltip="Enter or paste a variable ID here.">
+            <Field id="subD" type="textfield" tooltip="Enter or paste a variable ID here (ID number only).">
                 <Label>Variable D:</Label>
             </Field>
 
-            <Field id="subE" type="textfield" tooltip="Enter or paste a variable ID here.">
+            <Field id="subE" type="textfield" tooltip="Enter or paste a variable ID here (ID number only).">
                 <Label>Variable E:</Label>
             </Field>
 
