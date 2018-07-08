@@ -1,14 +1,5 @@
 <?xml version="1.0"?>
 <Actions>
-    <Action id="refreshData" uiPath="DeviceActions">
-        <Name>Refresh Data For All Devices</Name>
-        <CallbackMethod>refreshDataAction</CallbackMethod>
-    </Action>
-
-    <Action id="refresh_data_for_dev" deviceFilter="self" uiPath="DeviceActions">
-        <Name>Refresh Data For Device</Name>
-        <CallbackMethod>refreshDataForDevAction</CallbackMethod>
-    </Action>
 
     <Action id="adjust_refresh_time_for_dev" deviceFilter="self" uiPath="DeviceActions">
         <Name>Adjust Device Refresh Time</Name>
@@ -21,6 +12,16 @@
             </Field>
         </ConfigUI>
         <CallbackMethod>adjust_refresh_time</CallbackMethod>
+    </Action>
+
+    <Action id="refreshData" uiPath="DeviceActions">
+        <Name>Refresh Data For All Devices</Name>
+        <CallbackMethod>refreshDataAction</CallbackMethod>
+    </Action>
+
+    <Action id="refresh_data_for_dev" deviceFilter="self" uiPath="DeviceActions">
+        <Name>Refresh Data For Device</Name>
+        <CallbackMethod>refreshDataForDevAction</CallbackMethod>
     </Action>
 
 </Actions>
