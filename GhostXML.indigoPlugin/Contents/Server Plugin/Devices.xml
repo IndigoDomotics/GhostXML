@@ -22,7 +22,7 @@
             <!-- RefreshFrequency -->
 
             <Field id="refreshFreq" type="menu" defaultValue="300" tooltip="How often this feed should refresh.">
-                <Label>Refresh frequency:</Label>
+                <Label>Refresh Frequency:</Label>
                 <List>
                     <Option value="0">Manual refresh</Option>
                     <Option value="15">15 Seconds</Option>

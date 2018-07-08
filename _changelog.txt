@@ -1,6 +1,8 @@
 ghostXML Change Log
 
 v0.4.06
+- Adds new Action Item to adjust the refresh frequency of a specified GhostXML
+  device.
 - Improves device configuration validation and help bubble text.
 
 v0.4.05

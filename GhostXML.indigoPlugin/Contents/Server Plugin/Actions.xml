@@ -9,4 +9,18 @@
         <Name>Refresh Data For Device</Name>
         <CallbackMethod>refreshDataForDevAction</CallbackMethod>
     </Action>
+
+    <Action id="adjust_refresh_time_for_dev" deviceFilter="self" uiPath="DeviceActions">
+        <Name>Adjust Device Refresh Time</Name>
+        <ConfigUI>
+            <Field id="new_refresh_freq_label" type="label">
+                <Label>Enter the number of seconds to reflect the new refresh frequency of the target GhostXML device.</Label>
+            </Field>
+            <Field id="new_refresh_freq" type="textfield" tooltip="Enter the number of seconds to use as the new refresh interval for this device.">
+                <Label>Refresh Frequency:</Label>
+            </Field>
+        </ConfigUI>
+        <CallbackMethod>adjust_refresh_time</CallbackMethod>
+    </Action>
+
 </Actions>

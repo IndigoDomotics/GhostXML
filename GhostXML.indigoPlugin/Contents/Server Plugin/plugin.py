@@ -13,6 +13,7 @@ transitive Indigo plugin device states.
 
 # ================================Stock Imports================================
 # import datetime
+import xml.etree.ElementTree as Etree
 import logging
 from Queue import Queue
 import re
@@ -84,8 +85,6 @@ class Plugin(indigo.PluginBase):
         self.updaterEmailsEnabled = self.pluginPrefs.get('updaterEmailsEnabled', False)
 
         # ================================== Other ====================================
-        # TODO: can we deprecate self.prefServerTimeout? It's not used anywhere. If yes, delete plugin pref.
-        # self.prefServerTimeout = int(self.pluginPrefs.get('configMenuServerTimeout', "15"))
         self.managedDevices = {}  # Managed list of plugin devices
 
         # Adding support for remote debugging in PyCharm. Other remote debugging
@@ -177,6 +176,23 @@ class Plugin(indigo.PluginBase):
         dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="Disabled")
         dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
         self.logger.debug(u"Stopped: [{0:>11}]".format(dev.id))
+
+    def getDeviceConfigUiXml(self, typeId, devId):
+
+        current_refresh_freq = indigo.devices[devId].pluginProps['refreshFreq']
+        XML = self.devicesTypeDict[typeId]["ConfigUIRawXml"]
+        root = Etree.fromstring(XML)
+
+        if typeId == 'GhostXMLdevice':
+            if current_refresh_freq not in [0, 15, 30, 60, 120, 300, 900, 3600, 14400, 86400]:
+                for item in root.findall('Field'):
+                    if item.attrib['id'] == 'refreshFreq':
+                        for child in item.getchildren():
+                            if child.tag == 'List':
+                                option = Etree.fromstring('<Option value="{0}">Custom</Option>'.format(current_refresh_freq))
+                                child.append(option)
+
+            return Etree.tostring(root)
 
     def getDeviceStateList(self, dev):
         """
@@ -551,6 +567,30 @@ class Plugin(indigo.PluginBase):
         # If the device does not have a timestamp key and/or is disabled.
         else:
             return False
+
+    def adjust_refresh_time(self, valuesDict):
+        """
+        Programmatically Adjust the refresh time for an individual device
+
+        The adjust_refresh_time method is used to adjust the refresh frequency of an
+        individual GhostXML device by calling an Indigo Action. For example, user
+        creates an Indigo Trigger that fires--based on some criteria like the value
+        of a GhostXML state, which in turn calls an Indigo Action Item to adjust the
+        refresh frequency. In other words, the user can increase/decrease the frequency
+        based on some condition.
+
+        -----
+
+        :param indigo.Dict() valuesDict:
+        :return:
+        """
+        dev = self.managedDevices[valuesDict.deviceId].device
+
+        new_props = dev.pluginProps
+        new_props['refreshFreq'] = int(valuesDict.props['new_refresh_freq'])
+        dev.replacePluginPropsOnServer(new_props)
+
+        return True
 
 
 class PluginDevice(object):
