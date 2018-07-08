@@ -10,6 +10,7 @@ transitive Indigo plugin device states.
 """
 
 # TODO: Make a new testing device that requires token auth
+# TODO: Adjust all non-Indigo methods to be named_like_this().
 
 # ================================Stock Imports================================
 # import datetime
@@ -179,17 +180,28 @@ class Plugin(indigo.PluginBase):
 
     def getDeviceConfigUiXml(self, typeId, devId):
 
-        current_refresh_freq = indigo.devices[devId].pluginProps['refreshFreq']
-        XML = self.devicesTypeDict[typeId]["ConfigUIRawXml"]
-        root = Etree.fromstring(XML)
+        current_freq  = indigo.devices[devId].pluginProps['refreshFreq']
+        list_of_freqs = []
+        XML           = self.devicesTypeDict[typeId]["ConfigUIRawXml"]
+        root          = Etree.fromstring(XML)
 
         if typeId == 'GhostXMLdevice':
-            if current_refresh_freq not in [0, 15, 30, 60, 120, 300, 900, 3600, 14400, 86400]:
+
+            # Get current list of refresh frequencies from the XML file.
+            for item in root.findall('Field'):
+                if item.attrib['id'] == 'refreshFreq':
+                    for child in item.getchildren():
+                        list_of_freqs = [int(grandchild.attrib['value']) for grandchild in child.getchildren() if child.tag == 'List']
+
+            # If the current refresh frequency is different from the default, it has
+            # been set through a custom refresh frequency action. So we add a "Custom"
+            # option that will display when the dialog opens.
+            if current_freq not in list_of_freqs:
                 for item in root.findall('Field'):
                     if item.attrib['id'] == 'refreshFreq':
                         for child in item.getchildren():
                             if child.tag == 'List':
-                                option = Etree.fromstring('<Option value="{0}">Custom</Option>'.format(current_refresh_freq))
+                                option = Etree.fromstring('<Option value="{0}">Custom</Option>'.format(current_freq))
                                 child.append(option)
 
             return Etree.tostring(root)
