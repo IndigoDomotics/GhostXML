@@ -41,7 +41,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.06"
+__version__   = u"0.4.07"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -310,9 +310,9 @@ class Plugin(indigo.PluginBase):
                         indigo.device.enable(devId, value=False)
                         self.logger.critical(u"[{0}] Disabling {1} because it has failed 10 times.".format(dev.id, dev.name))
 
-                    # If timeToUpdate returns True, add device to its queue.
+                    # If time_to_update returns True, add device to its queue.
                     else:
-                        if self.timeToUpdate(dev):
+                        if self.time_to_update(dev):
                             self.managedDevices[devId].queue.put(dev)
 
                 self.sleep(2)
@@ -413,11 +413,11 @@ class Plugin(indigo.PluginBase):
 
     # =============================== Plugin Methods ===============================
 
-    def checkVersionNow(self):
+    def check_version_now(self):
         """
         Check to ensure that the plugin is the most current version
 
-        The checkVersionNow() method is called if user selects "Check For Plugin
+        The check_version_now() method is called if user selects "Check For Plugin
         Updates..." Indigo menu item. It is only called by user request.
 
         -----
@@ -429,11 +429,11 @@ class Plugin(indigo.PluginBase):
         except Exception as sub_error:
             self.logger.warning(u"Update checker error: {0}".format(sub_error))
 
-    def commsKillAll(self):
+    def comms_kill_all(self):
         """
         Disable communication of all plugin devices
 
-        commsKillAll() sets the enabled status of all plugin devices to false.
+        comms_kill_all() sets the enabled status of all plugin devices to false.
 
         -----
 
@@ -448,11 +448,11 @@ class Plugin(indigo.PluginBase):
 
         return True
 
-    def commsUnkillAll(self):
+    def comms_unkill_all(self):
         """
         Enable communication of all plugin devices
 
-        commsUnkillAll() sets the enabled status of all plugin devices to true.
+        comms_unkill_all() sets the enabled status of all plugin devices to true.
 
         -----
 
@@ -467,11 +467,11 @@ class Plugin(indigo.PluginBase):
 
         return True
 
-    def refreshDataAction(self, valuesDict):
+    def refresh_data_action(self, valuesDict):
         """
         Initiate data refresh based on menu call
 
-        The refreshDataAction() method refreshes data for all devices based on a plugin
+        The refresh_data_action() method refreshes data for all devices based on a plugin
         menu call.
 
         -----
@@ -479,12 +479,12 @@ class Plugin(indigo.PluginBase):
         :param valuesDict:
         """
 
-        self.refreshData()
+        self.refresh_data()
         return True
 
-    def refreshData(self):
+    def refresh_data(self):
         """
-        The refreshData() method controls the updating of all plugin devices
+        The refresh_data() method controls the updating of all plugin devices
 
         Initiate a data refresh based on a normal plugin cycle.
 
@@ -510,11 +510,11 @@ class Plugin(indigo.PluginBase):
             self.logger.critical(unicode(sub_error))
             return False
 
-    def refreshDataForDevAction(self, valuesDict):
+    def refresh_data_for_dev_action(self, valuesDict):
         """
         Initiate a device refresh based on an Indigo Action call
 
-        The refreshDataForDevAction() method refreshes data for a selected device
+        The refresh_data_for_dev_action() method refreshes data for a selected device
         based on a plugin action call.
 
         -----
@@ -527,11 +527,11 @@ class Plugin(indigo.PluginBase):
 
         return True
 
-    def stopSleep(self, start_sleep):
+    def stop_sleep(self, start_sleep):
         """
         Update device sleep value as warranted
 
-        The stopSleep() method accounts for changes to the user upload interval
+        The stop_sleep() method accounts for changes to the user upload interval
         preference. The plugin checks every 2 seconds to see if the sleep interval
         should be updated.
 
@@ -547,7 +547,7 @@ class Plugin(indigo.PluginBase):
 
         return False
 
-    def timeToUpdate(self, dev):
+    def time_to_update(self, dev):
         """
         Determine if a device is ready for a refresh
 

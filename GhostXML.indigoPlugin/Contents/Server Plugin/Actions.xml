@@ -14,14 +14,14 @@
         <CallbackMethod>adjust_refresh_time</CallbackMethod>
     </Action>
 
-    <Action id="refreshData" uiPath="DeviceActions">
+    <Action id="refresh_data" uiPath="DeviceActions">
         <Name>Refresh Data For All Devices</Name>
-        <CallbackMethod>refreshDataAction</CallbackMethod>
+        <CallbackMethod>refresh_data_action</CallbackMethod>
     </Action>
 
     <Action id="refresh_data_for_dev" deviceFilter="self" uiPath="DeviceActions">
         <Name>Refresh Data For Device</Name>
-        <CallbackMethod>refreshDataForDevAction</CallbackMethod>
+        <CallbackMethod>refresh_data_for_dev_action</CallbackMethod>
     </Action>
 
 </Actions>

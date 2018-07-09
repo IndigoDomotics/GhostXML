@@ -1,5 +1,9 @@
 ghostXML Change Log
 
+v0.4.07
+- Completes refactoring of plugin methods. Indigo methods remain camelCase,
+  plugin methods become 'refresh_data_for_dev_action'.
+
 v0.4.06
 - Adds new Action Item to adjust the refresh frequency of a specified GhostXML
   device.
@@ -45,7 +49,7 @@ v0.3.16
 v0.3.15
 - Adds basic authentication.
 - Cosmetic changes to device config dialog.
-- Fixed bug in commsKillAll
+- Fixed bug in comms_kill_all
 - Fixed bug in call to manually refresh a device.
 
 v0.3.14
