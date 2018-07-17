@@ -1,5 +1,8 @@
 ghostXML Change Log
 
+v0.4.08
+- Fixes bug in setting of debug level for new installs.
+
 v0.4.07
 - Completes refactoring of plugin methods. Indigo methods remain camelCase,
   plugin methods become 'refresh_data_for_dev_action'.

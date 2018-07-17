@@ -41,13 +41,13 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.07"
+__version__   = u"0.4.08"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
     u'configMenuServerTimeout': "15",  # Server timeout limit.
     u'showDebugInfo': False,           # Verbose debug logging?
-    u'showDebugLevel': "1",            # Low, Medium or High debug output.
+    u'showDebugLevel': "10",            # Low, Medium or High debug output.
     u'updaterEmail': "",               # Email to notify of plugin updates.
     u'updaterEmailsEnabled': False     # Notification of plugin updates wanted.
 }
@@ -61,9 +61,10 @@ class Plugin(indigo.PluginBase):
         self.pluginIsShuttingDown = False
 
         # ============================ Configure Logging ==============================
+        current_debug_level = int(self.pluginPrefs['showDebugLevel'])
         try:
-            if int(self.pluginPrefs.get('showDebugLevel', '30')) < 10:
-                self.pluginPrefs['showDebugLevel'] *= 10
+            if current_debug_level < 10:
+                self.pluginPrefs['showDebugLevel'] = current_debug_level * 10
         except ValueError:
             self.pluginPrefs['showDebugLevel'] = 30
 
