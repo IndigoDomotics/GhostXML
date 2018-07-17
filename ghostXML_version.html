@@ -1,48 +1,16 @@
-Version: 0.4.06
+Version: 0.4.08
 EmailSubject: GhostXML Indigo Plugin - Update Available
 EmailBody: The GhostXML Plugin you are using has been updated.
 
-This release combines all beta and other changes since the last stable release.
+GhostXML Plugin version v0.4.08 is now available.
 
-All users of the plugin can upgrade to this version (GhostXML now requires
-Indigo 7.x). The GhostXML plugin now uses considerably fewer system resources
-and all users running versions older than 0.4.04 are strongly encouraged to
-upgrade their plugins.
+Users who are experiencing no errors do not need to apply this update.
 
-Highlights:
+v0.4.08
+- Fixes bug in setting of debug level for new installs.
 
-v0.4.06
-- Adds new Action Item to adjust the refresh frequency of a specified GhostXML device.
-- Improves device configuration validation and help bubble text.
-
-v0.4.05
-- Adds feature to automatically disable a device if it has failed to refresh 10 times.
-
-v0.4.04
-- Adds option for sites that require token authentication.
-- Completely refactors threading.
-- Migrates plugin devices to their own class.
-- Updates docstrings to Sphinx standard.
-- Refines logging.
-- Fixes bug where changes to debug level not applied.
-- Fixes bug where curl reported error when completed successfully.
-
-flatdict.py
-- Adds trap for dict values that are empty lists or empty dicts. The trap replaces
-the list or dict with 'None'. This allows the plugin to retain and show the key as
-a device state.
-
-v0.4.02
-- Migrates writing of device states to API 2.0 [ dev.updateStatesOnServer() ].
-
-v0.4.01
-- Requires Indigo 7.0
-- Updates to Indigo API 2.0
-- Removes Toggle Debug from plugin menu.
-- As always, if something doesn't seem quite right, please let me know.
-
-The update can be downloaded at the following link:
-https://www.indigodomo.com/pluginstore/38/
+v0.4.07
+- Code refinements.
 
 Forum information on the plugin can be found here:
 http://forums.indigodomo.com/viewforum.php?f=249
