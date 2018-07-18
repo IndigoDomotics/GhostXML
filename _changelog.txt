@@ -1,4 +1,7 @@
-ghostXML Change Log
+GhostXML Change Log
+
+v0.4.09
+- Fixes new bug in setting of debug level for new installs.
 
 v0.4.08
 - Fixes bug in setting of debug level for new installs.
