@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.4.10
+- Adds timeout to proc.communicate()
+
 v0.4.09
 - Fixes new bug in setting of debug level for new installs.
 

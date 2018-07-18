@@ -41,7 +41,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.09"
+__version__   = u"0.4.10"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -721,10 +721,27 @@ class PluginDevice(object):
             else:
                 proc = subprocess.Popen(["curl", '-vs', url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-            (result, err) = proc.communicate()
+            # TODO: if timer works, okay to delete the following line.
+            # (result, err) = proc.communicate
+
+            # =============================================================================
+            # The following code adds a timeout function to the call.
+            # Developed by GlennNZ, added by DaveL17 2018-07-18
+            timer_kill = threading.Timer(5, proc.kill)
+            try:
+                timer_kill.start()
+                result, err = proc.communicate()
+
+                self.host_plugin.logger.debug(u'HTTPS CURL result:' + unicode(err))
+                self.host_plugin.logger.debug(u'ReturnCode:{0}'.format(unicode(proc.returncode)))
+                self.host_plugin.sleep(0.2)
+
+            finally:
+                timer_kill.cancel()
+            # =============================================================================
 
             if int(proc.returncode) != 0:
-                self.host_plugin.logger.warning(u"[{0}] curl error {1}.".format(dev.id, err.replace('\n', ' ')))
+                    self.host_plugin.logger.warning(u"[{0}] curl error {1}.".format(dev.id, err.replace('\n', ' ')))
 
             return result
 
