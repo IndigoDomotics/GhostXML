@@ -47,7 +47,7 @@ __version__   = u"0.4.08"
 kDefaultPluginPrefs = {
     u'configMenuServerTimeout': "15",  # Server timeout limit.
     u'showDebugInfo': False,           # Verbose debug logging?
-    u'showDebugLevel': "10",            # Low, Medium or High debug output.
+    u'showDebugLevel': "10",           # Low, Medium or High debug output.
     u'updaterEmail': "",               # Email to notify of plugin updates.
     u'updaterEmailsEnabled': False     # Notification of plugin updates wanted.
 }
@@ -61,14 +61,13 @@ class Plugin(indigo.PluginBase):
         self.pluginIsShuttingDown = False
 
         # ============================ Configure Logging ==============================
-        current_debug_level = int(self.pluginPrefs['showDebugLevel'])
+        self.debugLevel = int(self.pluginPrefs['showDebugLevel'])
         try:
-            if current_debug_level < 10:
-                self.pluginPrefs['showDebugLevel'] = current_debug_level * 10
+            if self.debugLevel < 10:
+                self.debugLevel *= 10
         except ValueError:
-            self.pluginPrefs['showDebugLevel'] = 30
+            self.debugLevel = 30
 
-        self.debugLevel = self.pluginPrefs['showDebugLevel']
         self.plugin_file_handler.setFormatter(logging.Formatter('%(asctime)s.%(msecs)03d\t%(levelname)-10s\t%(name)s.%(funcName)-28s %(msg)s', datefmt='%Y-%m-%d %H:%M:%S'))
 
         self.indigo_log_handler.setLevel(20)
