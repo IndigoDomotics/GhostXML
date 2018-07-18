@@ -37,6 +37,12 @@
                 </List>
             </Field>
 
+            <!-- Timeout -->
+
+            <Field id="timeout" type="textfield" defaultValue="5" tooltip="Enter the number of seconds that the plugin should continue to try this source before giving up.">
+                <Label>Timeout:</Label>
+            </Field>
+
             <!-- URL -->
 
             <Field id="sourceXML" type="textfield" tooltip="Enter the path to your data source using the examples below as a guide. If you use substitutions, be sure to include the proper variable index in the form of [A], [B], etc.">

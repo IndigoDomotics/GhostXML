@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.4.11
+- Adds timeout setting to device config.
+
 v0.4.10
 - Adds timeout to proc.communicate()
 
