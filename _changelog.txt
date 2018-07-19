@@ -1,5 +1,9 @@
 GhostXML Change Log
 
+v0.4.12
+- Fixes bug when new devices are created.
+- Changes default debugging level to informational messages.
+
 v0.4.11
 - Adds timeout setting to device config.
 

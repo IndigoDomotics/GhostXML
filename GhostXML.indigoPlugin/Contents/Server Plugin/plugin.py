@@ -41,13 +41,13 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.11"
+__version__   = u"0.4.12"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
     u'configMenuServerTimeout': "15",  # Server timeout limit.
     u'showDebugInfo': False,           # Verbose debug logging?
-    u'showDebugLevel': "10",           # Low, Medium or High debug output.
+    u'showDebugLevel': "20",           # Debugging level.
     u'updaterEmail': "",               # Email to notify of plugin updates.
     u'updaterEmailsEnabled': False     # Notification of plugin updates wanted.
 }
@@ -180,7 +180,7 @@ class Plugin(indigo.PluginBase):
 
     def getDeviceConfigUiXml(self, typeId, devId):
 
-        current_freq  = indigo.devices[devId].pluginProps['refreshFreq']
+        current_freq  = indigo.devices[devId].pluginProps.get('refreshFreq', '15')
         list_of_freqs = []
         XML           = self.devicesTypeDict[typeId]["ConfigUIRawXml"]
         root          = Etree.fromstring(XML)
