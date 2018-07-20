@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.4.13
+- Moves proc kill timer to function.
+
 v0.4.12
 - Fixes bug when new devices are created.
 - Changes default debugging level to informational messages.

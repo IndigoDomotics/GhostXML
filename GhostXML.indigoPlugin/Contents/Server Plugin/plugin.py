@@ -41,7 +41,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.12"
+__version__   = u"0.4.13"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -721,20 +721,18 @@ class PluginDevice(object):
             else:
                 proc = subprocess.Popen(["curl", '-vs', url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-            # TODO: if timer works, okay to delete the following line.
-            # (result, err) = proc.communicate
-
             # =============================================================================
             # The following code adds a timeout function to the call.
-            # Developed by GlennNZ and DaveL17 2018-07-18
+            # Added by GlennNZ and DaveL17 2018-07-18
+            cmd = ""
             duration = int(dev.pluginProps.get('timeout', '5'))
-            timer_kill = threading.Timer(duration, proc.kill)
+            timer_kill = threading.Timer(duration, self.kill_curl, [proc])
             try:
                 timer_kill.start()
                 result, err = proc.communicate()
 
-                self.host_plugin.logger.debug(u'HTTPS CURL result:' + unicode(err))
-                self.host_plugin.logger.debug(u'ReturnCode:{0}'.format(unicode(proc.returncode)))
+                self.host_plugin.logger.debug(u'HTTPS CURL result: {0}'.format(err))
+                self.host_plugin.logger.debug(u'ReturnCode: {0}'.format(proc.returncode))
 
             finally:
                 timer_kill.cancel()
@@ -802,6 +800,22 @@ class PluginDevice(object):
 
         except ValueError as sub_error:
             self.host_plugin.logger.critical(u'Error cleaning dictionary keys: {0}'.format(sub_error))
+
+    def kill_curl(self, proc):
+        """
+        Kill curl calls that have timed out
+
+        The kill_curl method will kill the passed curl call if it has timed out.
+        Added by GlennNZ and DaveL17 2018-07-19
+
+        -----
+
+        :param proc:
+        """
+
+        self.host_plugin.logger.debug(u'Timeout for Curl Subprocess. Killed by timer.')
+
+        proc.kill()
 
     def parse_the_json(self, dev, root):
         """
