@@ -1,5 +1,9 @@
 GhostXML Change Log
 
+v0.4.14
+- Fixes duplicate control page and trigger entries for 'deviceIsOnline',
+  'deviceLastUpdated', and 'deviceTimestamp'.
+
 v0.4.13
 - Moves proc kill timer to function.
 

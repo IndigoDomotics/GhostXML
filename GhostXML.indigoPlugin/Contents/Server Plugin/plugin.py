@@ -41,7 +41,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.13"
+__version__   = u"0.4.14"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -240,54 +240,73 @@ class Plugin(indigo.PluginBase):
 
                 # Iterate the tags in final_dict into device state keys.
                 # Example: dynamic_state = self.getDeviceStateDictForStringType(key, u'Trigger Test Label', u'State Label')
-                for key in self.managedDevices[dev.id].finalDict.keys():
-                    dynamic_state = self.getDeviceStateDictForStringType(key, key, key)
+                # ================================================================================================
+                # Added a sort so the keys show up in alpha order on lists elsewhere.  DaveL17 2018-07-23
+                # ================================================================================================
+                for key in sorted(self.managedDevices[dev.id].finalDict.keys()):
+                    dynamic_state = self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key))
                     state_list.append(dynamic_state)
 
-            # Inspect existing state list to new one to see if the state list needs to be
-            # updated. If it doesn't, we can save some effort here.
-            interim_state_list = [thing['Key'] for thing in state_list]
-            for thing in [u'deviceIsOnline', u'deviceLastUpdated', ]:
-                interim_state_list.remove(thing)
-
-            # Resolves issue with deviceIsOnline and deviceLastUpdated states disappearing
-            # if there's a fault in the JSON data we receive, as state_list MUST contain
-            # all desired states when it returns
-
-            try:
-                state_list.append(self.getDeviceStateDictForStringType('deviceIsOnline', 'deviceIsOnline', 'deviceIsOnline'))
-                state_list.append(self.getDeviceStateDictForStringType('deviceLastUpdated', 'deviceLastUpdated', 'deviceLastUpdated'))
-                state_list.append(self.getDeviceStateDictForStringType('deviceTimestamp', 'deviceTimestamp', 'deviceTimestamp'))
-
-            except KeyError:
-                # Ignore this error as we expect it to happen when all is healthy
-                pass
-
             return state_list
 
-        else:
-            state_list = indigo.PluginBase.getDeviceStateList(self, dev)
+# =============================================================================
+# I think all the blocked code below can go away.  DaveL17 2018-07-23
+#
+# Rationale: With the following code included, we wind up with the three 'hard-
+# coded" device states: (deviceIsOnline, deviceLastUpdated, deviceTimestamp)
+# appearing twice in trigger and control page lists. With the code excluded,
+# all my test devices still work as expected, but there's not longer a doubling
+# up on these states. I sent the plugin a JSON file with an error, and it
+# didn't seem to have any troubles.
+#
+# Also, the 'else' is only reached if the device is disabled. Do we need to do
+# anything if the device is disabled? Perhaps not.
 
-            # Iterate the device states into trigger and control page labels when the
-            # device is called.
-            for state in dev.states:
-                dynamic_state = self.getDeviceStateDictForStringType(state, state, state)
-                state_list.append(dynamic_state)
-
-            try:
-                state_list.append(self.getDeviceStateDictForStringType('deviceIsOnline', 'deviceIsOnline', 'deviceIsOnline'))
-                state_list.append(self.getDeviceStateDictForStringType('deviceLastUpdated', 'deviceLastUpdated', 'deviceLastUpdated'))
-                state_list.append(self.getDeviceStateDictForStringType('deviceTimestamp', 'deviceTimestamp', 'deviceTimestamp'))
-
-            except KeyError:
-                # Ignore this error as we expect it to happen when all is healthy
-                pass
-
-            return state_list
+        #     # Inspect existing state list to new one to see if the state list needs to be
+        #     # updated. If it doesn't, we can save some effort here.
+        #     interim_state_list = [thing['Key'] for thing in state_list]
+        #     for thing in [u'deviceIsOnline', u'deviceLastUpdated', ]:
+        #         interim_state_list.remove(thing)
+        #
+        #     # Resolves issue with deviceIsOnline and deviceLastUpdated states disappearing
+        #     # if there's a fault in the JSON data we receive, as state_list MUST contain
+        #     # all desired states when it returns
+        #
+        #     try:
+        #         state_list.append(self.getDeviceStateDictForStringType('deviceIsOnline', 'Device Online?', 'Device Online?'))
+        #         state_list.append(self.getDeviceStateDictForStringType('deviceLastUpdated', 'Device Last Updated', 'Device Last Updated'))
+        #         state_list.append(self.getDeviceStateDictForStringType('deviceTimestamp', 'Device Timestamp', 'Device Timestamp'))
+        #
+        #     except KeyError:
+        #         # Ignore this error as we expect it to happen when all is healthy
+        #         pass
+        #
+        #     return state_list
+        #
+        # else:
+        #     state_list = indigo.PluginBase.getDeviceStateList(self, dev)
+        #
+        #     # Iterate the device states into trigger and control page labels when the
+        #     # device is called.
+        #     for state in dev.states:
+        #         dynamic_state = self.getDeviceStateDictForStringType(state, state, state)
+        #         state_list.append(dynamic_state)
+        #
+        #     try:
+        #         state_list.append(self.getDeviceStateDictForStringType('deviceIsOnline', 'Device Online?', 'Device Online?'))
+        #         state_list.append(self.getDeviceStateDictForStringType('deviceLastUpdated', 'Device Last Updated', 'Device Last Updated'))
+        #         state_list.append(self.getDeviceStateDictForStringType('deviceTimestamp', 'Device Timestamp', 'Device Timestamp'))
+        #
+        #     except KeyError:
+        #         # Ignore this error as we expect it to happen when all is healthy
+        #         pass
+        #
+        #     return state_list
+# =============================================================================
 
     def runConcurrentThread(self):
 
-        # This sleep will execute only when the plugin is started/restarted. It allows
+        # This sleep will execute only when the plugin is started/restarted. It gives
         # the Indigo server a chance to catch up if it needs to. Five seconds may be
         # overkill.
         self.sleep(5)
@@ -305,7 +324,7 @@ class Plugin(indigo.PluginBase):
                 for devId in self.managedDevices:
                     dev = self.managedDevices[devId].device
 
-                    # If a device has failed X times, disable it and notify the user.
+                    # If a device has failed 10 times, disable it and notify the user.
                     if self.managedDevices[devId].bad_calls >= 10:
                         indigo.device.enable(devId, value=False)
                         self.logger.critical(u"[{0}] Disabling {1} because it has failed 10 times.".format(dev.id, dev.name))

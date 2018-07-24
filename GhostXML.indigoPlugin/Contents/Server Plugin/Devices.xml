@@ -137,8 +137,8 @@
         <States>
             <State id="deviceIsOnline">
                 <ValueType>Boolean</ValueType>
-                <TriggerLabel>Device online?</TriggerLabel>
-                <ControlPageLabel>Device online?</ControlPageLabel>
+                <TriggerLabel>Device Online?</TriggerLabel>
+                <ControlPageLabel>Device Online?</ControlPageLabel>
             </State>
 
             <State id="deviceLastUpdated">
