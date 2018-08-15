@@ -10,12 +10,12 @@ transitive Indigo plugin device states.
 """
 
 # TODO: Make a new testing device that requires token auth
-# TODO: Adjust all non-Indigo methods to be named_like_this().
 
 # ================================Stock Imports================================
 # import datetime
 import xml.etree.ElementTree as Etree
 import logging
+import os
 from Queue import Queue
 import re
 import simplejson
@@ -78,6 +78,7 @@ class Plugin(indigo.PluginBase):
         self.logger.info(u"{0:<30} {1}".format("Plugin ID:", pluginId))
         self.logger.info(u"{0:<30} {1}".format("Indigo version:", indigo.server.version))
         self.logger.info(u"{0:<30} {1}".format("Python version:", sys.version.replace('\n', '')))
+        self.logger.info(u"{0:<30} {1}".format("Process ID:", os.getpid()))
         self.logger.info(u"{0:=^130}".format(""))
         self.indigo_log_handler.setLevel(self.debugLevel)
 
@@ -201,7 +202,7 @@ class Plugin(indigo.PluginBase):
                     if item.attrib['id'] == 'refreshFreq':
                         for child in item.getchildren():
                             if child.tag == 'List':
-                                option = Etree.fromstring('<Option value="{0}">Custom</Option>'.format(current_freq))
+                                option = Etree.fromstring('<Option value="{0}">Custom ({0} seconds)</Option>'.format(current_freq))
                                 child.append(option)
 
             return Etree.tostring(root)
@@ -249,18 +250,18 @@ class Plugin(indigo.PluginBase):
 
             return state_list
 
-# =============================================================================
-# I think all the blocked code below can go away.  DaveL17 2018-07-23
-#
-# Rationale: With the following code included, we wind up with the three 'hard-
-# coded" device states: (deviceIsOnline, deviceLastUpdated, deviceTimestamp)
-# appearing twice in trigger and control page lists. With the code excluded,
-# all my test devices still work as expected, but there's not longer a doubling
-# up on these states. I sent the plugin a JSON file with an error, and it
-# didn't seem to have any troubles.
-#
-# Also, the 'else' is only reached if the device is disabled. Do we need to do
-# anything if the device is disabled? Perhaps not.
+        # =============================================================================
+        # I think all the blocked code below can go away.  DaveL17 2018-07-23
+        #
+        # Rationale: With the following code included, we wind up with the three 'hard-
+        # coded" device states: (deviceIsOnline, deviceLastUpdated, deviceTimestamp)
+        # appearing twice in trigger and control page lists. With the code excluded,
+        # all my test devices still work as expected, but there's not longer a doubling
+        # up on these states. I sent the plugin a JSON file with an error, and it
+        # didn't seem to have any troubles.
+        #
+        # Also, the 'else' is only reached if the device is disabled. Do we need to do
+        # anything if the device is disabled? Perhaps not.
 
         #     # Inspect existing state list to new one to see if the state list needs to be
         #     # updated. If it doesn't, we can save some effort here.
@@ -359,7 +360,6 @@ class Plugin(indigo.PluginBase):
                 dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Initialized")
             dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
-        # TODO: this may be redundant as the plugin will also check when runConcurrentThread is first run.
         # See if there is a plugin update and whether the user wants to be notified.
         try:
             self.updater.checkVersionPoll()
@@ -486,6 +486,33 @@ class Plugin(indigo.PluginBase):
 
         return True
 
+    def refreshDataAction(self, valuesDict):
+        """
+        Legacy callback to Refresh Data for All Devices
+
+        This method supports the old callback name.
+
+        -----
+
+        :return:
+        """
+        self.logger.warning(u"You are using an outdated plugin Action Item. Please update it.")
+        self.refresh_data_action(valuesDict)
+
+    def refreshDataForDevAction(self, valuesDict):
+        """
+        Legacy callback to Refresh Data for a Specified Device
+
+        This method supports the old callback name.
+
+
+        -----
+
+        :return:
+        """
+        self.logger.warning(u"You are using an outdated plugin Action Item. Please update it.")
+        self.refresh_data_for_dev_action(valuesDict)
+
     def refresh_data_action(self, valuesDict):
         """
         Initiate data refresh based on menu call
@@ -497,9 +524,8 @@ class Plugin(indigo.PluginBase):
 
         :param valuesDict:
         """
-
         self.refresh_data()
-        return True
+        return True, valuesDict
 
     def refresh_data(self):
         """
@@ -733,7 +759,7 @@ class PluginDevice(object):
                 token = (reply["access_token"])
 
                 # Now, add the token to the end of the url
-                url = "{0}?access_token={1}".format(url, token)
+                url  = "{0}?access_token={1}".format(url, token)
                 proc = subprocess.Popen(["curl", '-vsk', url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             # No auth
@@ -743,8 +769,8 @@ class PluginDevice(object):
             # =============================================================================
             # The following code adds a timeout function to the call.
             # Added by GlennNZ and DaveL17 2018-07-18
-            cmd = ""
-            duration = int(dev.pluginProps.get('timeout', '5'))
+            # cmd = ""
+            duration   = int(dev.pluginProps.get('timeout', '5'))
             timer_kill = threading.Timer(duration, self.kill_curl, [proc])
             try:
                 timer_kill.start()

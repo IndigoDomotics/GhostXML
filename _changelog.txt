@@ -1,8 +1,12 @@
 GhostXML Change Log
 
 v0.4.14
-- Fixes duplicate control page and trigger entries for 'deviceIsOnline',
-  'deviceLastUpdated', and 'deviceTimestamp'.
+- When device refresh frequency set to custom level (using GhostXML Action)
+  number of seconds is added to the refresh frequency menu in the device
+  configuration UI -- i.e., "Custom" becomes "Custom (123 seconds)"
+- Fixes bug that resulted in duplicate control page and trigger entries for
+  'deviceIsOnline', 'deviceLastUpdated', and 'deviceTimestamp'.
+- Adds process ID to initial logging when plugin enabled.
 
 v0.4.13
 - Moves proc kill timer to function.
