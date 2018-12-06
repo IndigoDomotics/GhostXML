@@ -53,6 +53,30 @@
                 <Label>Examples:&#xA;URL: http://www.ip_address.com/filename.xml&#xA;Local file: file:///folder_path/filename.json</Label>
             </Field>
 
+            <Field id="useRawCurl" type="checkbox" tooltip="Send raw array of curl commands" >
+                <Label>use Raw Curl (advanced):</Label>
+            </Field>
+            <Field id="curlArray" type="textfield" tooltip="Comma Separated array of curl commands, plus url above" visibleBindingId="useRawCurl" visibleBindingValue="true">
+                <Label>Curl Commands:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                </Label>
+            </Field>
+
+
             <!-- Authentication -->
 
             <Field id="authTitle" type="label" alignText="right">
