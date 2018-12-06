@@ -746,7 +746,7 @@ class PluginDevice(object):
             # if using raw Curl - don't worry about auth_Type or much else
             if useRawCurl:
 
-                proc = subprocess.Popen('/usr/bin/curl -vsk '+curlArray,
+                proc = subprocess.Popen('/usr/bin/curl -vsk '+curlArray+ ' '+url,
                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             # Digest auth
             elif auth_type == 'Digest':
