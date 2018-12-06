@@ -745,6 +745,7 @@ class PluginDevice(object):
 
             # if using raw Curl - don't worry about auth_Type or much else
             if useRawCurl:
+                self.host_plugin.logger.debug(u'/usr/bin/curl -vsk '+curlArray+' ' +url)
 
                 proc = subprocess.Popen('/usr/bin/curl -vsk '+curlArray+ ' '+url,
                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
