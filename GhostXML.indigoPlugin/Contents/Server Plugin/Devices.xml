@@ -53,19 +53,24 @@
                 <Label>Examples:&#xA;URL: http://www.ip_address.com/filename.xml&#xA;Local file: file:///folder_path/filename.json</Label>
             </Field>
 
-            <Field id="useRawCurl" type="checkbox" tooltip="Send raw array of curl commands" >
-                <Label>use Raw Curl (advanced):</Label>
+            <!-- Raw Curl -->
+
+            <Field id="rawCurlTitle" type="label" alignText="right">
+                <Label>Raw Curl</Label>
             </Field>
-            <Field id="curlArray" type="textfield" tooltip="Comma Separated array of curl commands, plus url above" visibleBindingId="useRawCurl" visibleBindingValue="true">
+
+            <Field id="rawCurlSep" type="separator"/>
+
+            <Field id="rawCurlLabel" type="label" fontSize="small">
+                <Label>If your source requires the use of raw curl commands, tick the box, and enter the raw curl commands as a comma separated array of commands.</Label>
+            </Field>
+
+            <Field id="useRawCurl" type="checkbox" tooltip="Send raw array of curl commands." >
+                <Label>Use Raw Curl?</Label>
+            </Field>
+
+            <Field id="curlArray" type="textfield" tooltip="Comma Separated array of curl commands, plus url above." visibleBindingId="useRawCurl" visibleBindingValue="true">
                 <Label>Curl Commands:
-
-
-
-
-
-
-
-
 
 
 
@@ -76,7 +81,6 @@
                 </Label>
             </Field>
 
-
             <!-- Authentication -->
 
             <Field id="authTitle" type="label" alignText="right">
@@ -86,7 +90,7 @@
             <Field id="authSep" type="separator"/>
 
             <Field id="authLabel" type="label" fontSize="small">
-                <Label>If your source requires authentication, tick the Use Authentication box, select type of authentication used, and enter the username, password or token URL as required.</Label>
+                <Label>If your source requires authentication, select type of authentication used, and enter the username, password or token URL as required.</Label>
             </Field>
 
             <!-- Note: although this field is called 'useDigest' it's value supports all
@@ -132,27 +136,27 @@
                 <!--<Description>Would you like to use variable substitutions in this feed's URL?</Description>-->
             </Field>
 
-            <Field id="subA" type="textfield" tooltip="Enter or paste a variable ID here (ID number only).">
+            <Field id="subA" type="textfield" tooltip="Enter or paste a variable ID here (ID number only)." visibleBindingId="doSubs" visibleBindingValue="true">
                 <Label>Variable A:</Label>
             </Field>
 
-            <Field id="subB" type="textfield" tooltip="Enter or paste a variable ID here (ID number only).">
+            <Field id="subB" type="textfield" tooltip="Enter or paste a variable ID here (ID number only)." visibleBindingId="doSubs" visibleBindingValue="true">
                 <Label>Variable B:</Label>
             </Field>
 
-            <Field id="subC" type="textfield" tooltip="Enter or paste a variable ID here (ID number only).">
+            <Field id="subC" type="textfield" tooltip="Enter or paste a variable ID here (ID number only)." visibleBindingId="doSubs" visibleBindingValue="true">
                 <Label>Variable C:</Label>
             </Field>
 
-            <Field id="subD" type="textfield" tooltip="Enter or paste a variable ID here (ID number only).">
+            <Field id="subD" type="textfield" tooltip="Enter or paste a variable ID here (ID number only)." visibleBindingId="doSubs" visibleBindingValue="true">
                 <Label>Variable D:</Label>
             </Field>
 
-            <Field id="subE" type="textfield" tooltip="Enter or paste a variable ID here (ID number only).">
+            <Field id="subE" type="textfield" tooltip="Enter or paste a variable ID here (ID number only)." visibleBindingId="doSubs" visibleBindingValue="true">
                 <Label>Variable E:</Label>
             </Field>
 
-            <Field id="subExample" type="label" fontSize="small" alignWithControl="true">
+            <Field id="subExample" type="label" fontSize="small" alignWithControl="true" visibleBindingId="doSubs" visibleBindingValue="true">
                 <Label>Examples:&#xA;URL: http://www.ip_address.com/[A].xml&#xA;Local file: file:///[A]/[B].json</Label>
             </Field>
 

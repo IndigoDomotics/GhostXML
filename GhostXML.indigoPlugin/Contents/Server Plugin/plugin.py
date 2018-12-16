@@ -43,7 +43,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.16"
+__version__   = u"0.4.17"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -688,10 +688,12 @@ class PluginDevice(object):
         dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Download")
 
         try:
-            url       = dev.pluginProps['sourceXML']
-            username  = dev.pluginProps.get('digestUser', '')
-            password  = dev.pluginProps.get('digestPass', '')
-            auth_type = dev.pluginProps.get('useDigest', 'None')
+            curlArray  = dev.pluginProps.get('curlArray', '')
+            useRawCurl = dev.pluginProps.get('useRawCurl', False)
+            url        = dev.pluginProps['sourceXML']
+            username   = dev.pluginProps.get('digestUser', '')
+            password   = dev.pluginProps.get('digestPass', '')
+            auth_type  = dev.pluginProps.get('useDigest', 'None')
 
             # Format any needed substitutions
             if dev.pluginProps.get('doSubs', False):
@@ -705,8 +707,13 @@ class PluginDevice(object):
 
             # Initiate curl call to data source.
 
+            # if using raw Curl - don't worry about auth_Type or much else
+            if useRawCurl:
+                self.host_plugin.logger.debug(u'/usr/bin/curl -vsk ' + curlArray + ' ' + url)
+                proc = subprocess.Popen('/usr/bin/curl -vsk ' + curlArray + ' ' + url, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+
             # Digest auth
-            if auth_type == 'Digest':
+            elif auth_type == 'Digest':
                 proc = subprocess.Popen(["curl", '-vs', '--digest', '-u', username + ':' + password, url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             # Basic auth
@@ -763,6 +770,10 @@ class PluginDevice(object):
             dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No comm")
             return '{"GhostXML": "IOError"}'
 
+        except:
+
+            # Add wider exception testing to test errors
+            self.host_plugin.logger.exception(u'curl array related error')
     # =============================================================================
     def clean_the_keys(self, input_data):
         """
