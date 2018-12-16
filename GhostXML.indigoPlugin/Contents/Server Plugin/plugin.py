@@ -722,6 +722,12 @@ class PluginDevice(object):
         try:
             url       = dev.pluginProps['sourceXML']
             username  = dev.pluginProps.get('digestUser', '')
+
+            # Add capacity to run very raw curl command
+            useRawCurl    = dev.pluginProps.get('useRawCurl',False)
+            curlArray   = dev.pluginProps.get('curlArray','')
+            # Curl data to pass - space seperated
+
             password  = dev.pluginProps.get('digestPass', '')
             auth_type = dev.pluginProps.get('useDigest', 'None')
 
@@ -737,8 +743,14 @@ class PluginDevice(object):
 
             # Initiate curl call to data source.
 
+            # if using raw Curl - don't worry about auth_Type or much else
+            if useRawCurl:
+                self.host_plugin.logger.debug(u'/usr/bin/curl -vsk '+curlArray+' ' +url)
+
+                proc = subprocess.Popen('/usr/bin/curl -vsk '+curlArray+ ' '+url,
+                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             # Digest auth
-            if auth_type == 'Digest':
+            elif auth_type == 'Digest':
                 proc = subprocess.Popen(["curl", '-vs', '--digest', '-u', username + ':' + password, url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             # Basic auth
@@ -794,6 +806,11 @@ class PluginDevice(object):
             self.host_plugin.logger.debug(u"[{0}] Device is offline. No data to return. Returning dummy dict.".format(dev.id))
             dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No comm")
             return '{"GhostXML": "IOError"}'
+
+        except:
+            # Add wider exception testing to test errors
+            self.host_plugin.logger.exception(u'curl array related error')
+
 
     def clean_the_keys(self, input_data):
         """
