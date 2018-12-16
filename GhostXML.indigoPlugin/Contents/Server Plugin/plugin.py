@@ -706,10 +706,13 @@ class PluginDevice(object):
 
             # Initiate curl call to data source.
 
+            # =============================================================================
+            # Added by GlennNZ - 2018 12 06
             # if using raw Curl - don't worry about auth_Type or much else
             if auth_type == "Raw":
-                self.host_plugin.logger.debug(u'/usr/bin/curl -vsk ' + curlArray + ' ' + url)
+                self.host_plugin.logger.debug(u'/usr/bin/curl -vsk {0} {1}'.format(curlArray, url))
                 proc = subprocess.Popen('/usr/bin/curl -vsk ' + curlArray + ' ' + url, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+            # =============================================================================
 
             # Digest auth
             elif auth_type == 'Digest':
@@ -723,14 +726,14 @@ class PluginDevice(object):
             # Added by berkinet and DaveL17 2018-06-18
             elif auth_type == 'Token':
                 # We need to get a token to get started
-                a_url = dev.pluginProps['tokenUrl']
+                a_url    = dev.pluginProps['tokenUrl']
                 curl_arg = "/usr/bin/curl -vsk -H 'Content-Type: application/json' -X POST --data-binary '{ \"pwd\": \"" + password + "\", \"remember\": 1 }' '} ' " + a_url
 
                 proc = subprocess.Popen(curl_arg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 
                 reply_in = proc.communicate()
-                reply = simplejson.loads(reply_in[0])
-                token = (reply["access_token"])
+                reply    = simplejson.loads(reply_in[0])
+                token    = (reply["access_token"])
 
                 # Now, add the token to the end of the url
                 url  = "{0}?access_token={1}".format(url, token)
