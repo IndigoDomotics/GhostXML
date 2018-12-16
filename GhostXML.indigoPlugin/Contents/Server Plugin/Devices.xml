@@ -53,34 +53,6 @@
                 <Label>Examples:&#xA;URL: http://www.ip_address.com/filename.xml&#xA;Local file: file:///folder_path/filename.json</Label>
             </Field>
 
-            <!-- Raw Curl -->
-
-            <Field id="rawCurlTitle" type="label" alignText="right">
-                <Label>Raw Curl</Label>
-            </Field>
-
-            <Field id="rawCurlSep" type="separator"/>
-
-            <Field id="rawCurlLabel" type="label" fontSize="small">
-                <Label>If your source requires the use of raw curl commands, tick the box, and enter the raw curl commands as a comma separated array of commands.</Label>
-            </Field>
-
-            <Field id="useRawCurl" type="checkbox" tooltip="Send raw array of curl commands." >
-                <Label>Use Raw Curl?</Label>
-            </Field>
-
-            <Field id="curlArray" type="textfield" tooltip="Comma Separated array of curl commands, plus url above." visibleBindingId="useRawCurl" visibleBindingValue="true">
-                <Label>Curl Commands:
-
-
-
-
-
-
-
-                </Label>
-            </Field>
-
             <!-- Authentication -->
 
             <Field id="authTitle" type="label" alignText="right">
@@ -101,6 +73,7 @@
                     <Option value="None">None</Option>
                     <Option value="Basic">Basic</Option>
                     <Option value="Digest">Digest</Option>
+                    <Option value="Raw">Raw Curl (Advanced)</Option>
                     <Option value="Token">Token</Option>
                 </List>
             </Field>
@@ -117,6 +90,24 @@
 
             <Field id="digestPass" type="textfield" tooltip="Enter or paste a Password ID here." visibleBindingId="useDigest" visibleBindingValue="Basic, Digest, Token">
                 <Label>Password:</Label>
+            </Field>
+
+            <!-- Raw Curl -->
+
+            <Field id="rawCurlLabel" type="label" fontSize="small" visibleBindingId="useDigest" visibleBindingValue="Raw">
+                <Label>Enter the raw curl commands as a comma separated array of commands.</Label>
+            </Field>
+
+            <Field id="curlArray" type="textfield" tooltip="Comma Separated array of curl commands, plus url above." visibleBindingId="useDigest" visibleBindingValue="Raw">
+                <Label>Curl Commands:
+
+
+
+
+
+
+
+                </Label>
             </Field>
 
             <!-- Substitutions -->

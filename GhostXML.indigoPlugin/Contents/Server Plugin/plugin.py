@@ -689,7 +689,6 @@ class PluginDevice(object):
 
         try:
             curlArray  = dev.pluginProps.get('curlArray', '')
-            useRawCurl = dev.pluginProps.get('useRawCurl', False)
             url        = dev.pluginProps['sourceXML']
             username   = dev.pluginProps.get('digestUser', '')
             password   = dev.pluginProps.get('digestPass', '')
@@ -708,7 +707,7 @@ class PluginDevice(object):
             # Initiate curl call to data source.
 
             # if using raw Curl - don't worry about auth_Type or much else
-            if useRawCurl:
+            if auth_type == "Raw":
                 self.host_plugin.logger.debug(u'/usr/bin/curl -vsk ' + curlArray + ' ' + url)
                 proc = subprocess.Popen('/usr/bin/curl -vsk ' + curlArray + ' ' + url, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 
