@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.4.16
+- Adds raw curl support.
+
 v0.4.14
 - When device refresh frequency set to custom level (using GhostXML Action)
   number of seconds is added to the refresh frequency menu in the device

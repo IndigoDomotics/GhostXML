@@ -9,7 +9,9 @@ This plugin provides an engine which parses tag/value pairs into
 transitive Indigo plugin device states.
 """
 
+# TODO: Additional auth types: Oauth2, WSSE
 # TODO: Make a new testing device that requires token auth
+# TODO: Find a way to synchronize managed devices with the server (i.e., dev.lastChanged).
 
 # ================================Stock Imports================================
 # import datetime
@@ -41,7 +43,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.14"
+__version__   = u"0.4.16"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -102,8 +104,9 @@ class Plugin(indigo.PluginBase):
 
         indigo.PluginBase.__del__(self)
 
+    # =============================================================================
     # =============================== Indigo Methods ===============================
-
+    # =============================================================================
     def closedPrefsConfigUi(self, valuesDict, userCancelled):
 
         current_debug_level = {10: 'Debug', 20: 'Info', 30: 'Warning', 40: 'Error', 50: 'Critical'}
@@ -123,6 +126,7 @@ class Plugin(indigo.PluginBase):
 
         return True
 
+    # =============================================================================
     def deviceStartComm(self, dev):
 
         dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Starting")
@@ -149,7 +153,6 @@ class Plugin(indigo.PluginBase):
         if new_props != dev.pluginProps:
             dev.replacePluginPropsOnServer(new_props)
             self.sleep(2)
-        # =====================================================================
 
         # Check for changes to the device's default states.
         dev.stateListOrDisplayStateIdChanged()
@@ -166,6 +169,7 @@ class Plugin(indigo.PluginBase):
 
         self.logger.debug(u"Started: {0}".format(self.managedDevices[dev.id]))
 
+    # =============================================================================
     def deviceStopComm(self, dev):
 
         # Join the related thread. There must be a timeout set because the threads may
@@ -179,6 +183,7 @@ class Plugin(indigo.PluginBase):
         dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
         self.logger.debug(u"Stopped: [{0:>11}]".format(dev.id))
 
+    # =============================================================================
     def getDeviceConfigUiXml(self, typeId, devId):
 
         current_freq  = indigo.devices[devId].pluginProps.get('refreshFreq', '15')
@@ -207,6 +212,7 @@ class Plugin(indigo.PluginBase):
 
             return Etree.tostring(root)
 
+    # =============================================================================
     def getDeviceStateList(self, dev):
         """
         Assign data keys to device state names (Indigo)
@@ -250,61 +256,7 @@ class Plugin(indigo.PluginBase):
 
             return state_list
 
-        # =============================================================================
-        # I think all the blocked code below can go away.  DaveL17 2018-07-23
-        #
-        # Rationale: With the following code included, we wind up with the three 'hard-
-        # coded" device states: (deviceIsOnline, deviceLastUpdated, deviceTimestamp)
-        # appearing twice in trigger and control page lists. With the code excluded,
-        # all my test devices still work as expected, but there's not longer a doubling
-        # up on these states. I sent the plugin a JSON file with an error, and it
-        # didn't seem to have any troubles.
-        #
-        # Also, the 'else' is only reached if the device is disabled. Do we need to do
-        # anything if the device is disabled? Perhaps not.
-
-        #     # Inspect existing state list to new one to see if the state list needs to be
-        #     # updated. If it doesn't, we can save some effort here.
-        #     interim_state_list = [thing['Key'] for thing in state_list]
-        #     for thing in [u'deviceIsOnline', u'deviceLastUpdated', ]:
-        #         interim_state_list.remove(thing)
-        #
-        #     # Resolves issue with deviceIsOnline and deviceLastUpdated states disappearing
-        #     # if there's a fault in the JSON data we receive, as state_list MUST contain
-        #     # all desired states when it returns
-        #
-        #     try:
-        #         state_list.append(self.getDeviceStateDictForStringType('deviceIsOnline', 'Device Online?', 'Device Online?'))
-        #         state_list.append(self.getDeviceStateDictForStringType('deviceLastUpdated', 'Device Last Updated', 'Device Last Updated'))
-        #         state_list.append(self.getDeviceStateDictForStringType('deviceTimestamp', 'Device Timestamp', 'Device Timestamp'))
-        #
-        #     except KeyError:
-        #         # Ignore this error as we expect it to happen when all is healthy
-        #         pass
-        #
-        #     return state_list
-        #
-        # else:
-        #     state_list = indigo.PluginBase.getDeviceStateList(self, dev)
-        #
-        #     # Iterate the device states into trigger and control page labels when the
-        #     # device is called.
-        #     for state in dev.states:
-        #         dynamic_state = self.getDeviceStateDictForStringType(state, state, state)
-        #         state_list.append(dynamic_state)
-        #
-        #     try:
-        #         state_list.append(self.getDeviceStateDictForStringType('deviceIsOnline', 'Device Online?', 'Device Online?'))
-        #         state_list.append(self.getDeviceStateDictForStringType('deviceLastUpdated', 'Device Last Updated', 'Device Last Updated'))
-        #         state_list.append(self.getDeviceStateDictForStringType('deviceTimestamp', 'Device Timestamp', 'Device Timestamp'))
-        #
-        #     except KeyError:
-        #         # Ignore this error as we expect it to happen when all is healthy
-        #         pass
-        #
-        #     return state_list
 # =============================================================================
-
     def runConcurrentThread(self):
 
         # This sleep will execute only when the plugin is started/restarted. It gives
@@ -342,12 +294,14 @@ class Plugin(indigo.PluginBase):
             self.logger.info(u'Stopping main thread.')
             self.indigo_log_handler.setLevel(self.debugLevel)
 
+    # =============================================================================
     def shutdown(self):
 
         self.pluginIsShuttingDown = True
         self.indigo_log_handler.setLevel(20)
         self.logger.info(u'Shutdown complete.')
 
+    # =============================================================================
     def startup(self):
 
         # Initialize all plugin devices to ensure that they're in the proper state.
@@ -366,6 +320,7 @@ class Plugin(indigo.PluginBase):
         except Exception as sub_error:
             self.logger.warning(u"Update checker error: {0}".format(sub_error))
 
+    # =============================================================================
     def validateDeviceConfigUi(self, valuesDict, typeID, devId):
 
         error_msg_dict = indigo.Dict()
@@ -405,6 +360,7 @@ class Plugin(indigo.PluginBase):
 
         return True, valuesDict, error_msg_dict
 
+    # =============================================================================
     def validatePrefsConfigUi(self, valuesDict):
 
         error_msg_dict = indigo.Dict()
@@ -430,8 +386,9 @@ class Plugin(indigo.PluginBase):
 
         return True, valuesDict
 
+    # =============================================================================
     # =============================== Plugin Methods ===============================
-
+    # =============================================================================
     def check_version_now(self):
         """
         Check to ensure that the plugin is the most current version
@@ -448,6 +405,7 @@ class Plugin(indigo.PluginBase):
         except Exception as sub_error:
             self.logger.warning(u"Update checker error: {0}".format(sub_error))
 
+    # =============================================================================
     def comms_kill_all(self):
         """
         Disable communication of all plugin devices
@@ -467,6 +425,7 @@ class Plugin(indigo.PluginBase):
 
         return True
 
+    # =============================================================================
     def comms_unkill_all(self):
         """
         Enable communication of all plugin devices
@@ -486,6 +445,7 @@ class Plugin(indigo.PluginBase):
 
         return True
 
+    # =============================================================================
     def refreshDataAction(self, valuesDict):
         """
         Legacy callback to Refresh Data for All Devices
@@ -499,6 +459,7 @@ class Plugin(indigo.PluginBase):
         self.logger.warning(u"You are using an outdated plugin Action Item. Please update it.")
         self.refresh_data_action(valuesDict)
 
+    # =============================================================================
     def refreshDataForDevAction(self, valuesDict):
         """
         Legacy callback to Refresh Data for a Specified Device
@@ -513,6 +474,7 @@ class Plugin(indigo.PluginBase):
         self.logger.warning(u"You are using an outdated plugin Action Item. Please update it.")
         self.refresh_data_for_dev_action(valuesDict)
 
+    # =============================================================================
     def refresh_data_action(self, valuesDict):
         """
         Initiate data refresh based on menu call
@@ -527,6 +489,7 @@ class Plugin(indigo.PluginBase):
         self.refresh_data()
         return True, valuesDict
 
+    # =============================================================================
     def refresh_data(self):
         """
         The refresh_data() method controls the updating of all plugin devices
@@ -555,6 +518,7 @@ class Plugin(indigo.PluginBase):
             self.logger.critical(unicode(sub_error))
             return False
 
+    # =============================================================================
     def refresh_data_for_dev_action(self, valuesDict):
         """
         Initiate a device refresh based on an Indigo Action call
@@ -572,6 +536,7 @@ class Plugin(indigo.PluginBase):
 
         return True
 
+    # =============================================================================
     def stop_sleep(self, start_sleep):
         """
         Update device sleep value as warranted
@@ -592,6 +557,7 @@ class Plugin(indigo.PluginBase):
 
         return False
 
+    # =============================================================================
     def time_to_update(self, dev):
         """
         Determine if a device is ready for a refresh
@@ -602,7 +568,6 @@ class Plugin(indigo.PluginBase):
 
         :param dev:
         """
-
         # If device has a deviceTimestamp key and is enabled.
         if "deviceTimestamp" in dev.states.iterkeys() and dev.enabled:
 
@@ -625,6 +590,7 @@ class Plugin(indigo.PluginBase):
         else:
             return False
 
+    # =============================================================================
     def adjust_refresh_time(self, valuesDict):
         """
         Programmatically Adjust the refresh time for an individual device
@@ -657,10 +623,9 @@ class PluginDevice(object):
     The PluginDevice class is used to create an object to store data related to each
     enabled plugin device. The object contains an instance of the Indigo device and a
     command queue.
-
-    -----
-
     """
+
+    # =============================================================================
     def __init__(self, plugin, device):
 
         self.pluginDeviceIsInitializing = True
@@ -679,10 +644,12 @@ class PluginDevice(object):
 
         self.pluginDeviceIsInitializing = False
 
+    # =============================================================================
     def __str__(self):
 
         return u"[{0:>11}] {1:<46} {2:<40}".format(self.device.id, self.dev_thread, self.queue)
 
+    # =============================================================================
     def initiate_device_update(self, q):
         """
         Initiate an update of the device
@@ -696,11 +663,12 @@ class PluginDevice(object):
         :return:
         """
         while True:
-            t.sleep(0.1)
+            t.sleep(1)
             while not q.empty():
                 task = q.get()
                 self.refresh_data_for_dev(task)
 
+    # =============================================================================
     def get_the_data(self, dev):
         """
         The get_the_data() method is used to retrieve target data files.
@@ -722,12 +690,6 @@ class PluginDevice(object):
         try:
             url       = dev.pluginProps['sourceXML']
             username  = dev.pluginProps.get('digestUser', '')
-
-            # Add capacity to run very raw curl command
-            useRawCurl    = dev.pluginProps.get('useRawCurl',False)
-            curlArray   = dev.pluginProps.get('curlArray','')
-            # Curl data to pass - space seperated
-
             password  = dev.pluginProps.get('digestPass', '')
             auth_type = dev.pluginProps.get('useDigest', 'None')
 
@@ -743,14 +705,8 @@ class PluginDevice(object):
 
             # Initiate curl call to data source.
 
-            # if using raw Curl - don't worry about auth_Type or much else
-            if useRawCurl:
-                self.host_plugin.logger.debug(u'/usr/bin/curl -vsk '+curlArray+' ' +url)
-
-                proc = subprocess.Popen('/usr/bin/curl -vsk '+curlArray+ ' '+url,
-                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             # Digest auth
-            elif auth_type == 'Digest':
+            if auth_type == 'Digest':
                 proc = subprocess.Popen(["curl", '-vs', '--digest', '-u', username + ':' + password, url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             # Basic auth
@@ -807,11 +763,7 @@ class PluginDevice(object):
             dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No comm")
             return '{"GhostXML": "IOError"}'
 
-        except:
-            # Add wider exception testing to test errors
-            self.host_plugin.logger.exception(u'curl array related error')
-
-
+    # =============================================================================
     def clean_the_keys(self, input_data):
         """
         Ensure that state names are valid for Indigo
@@ -863,6 +815,7 @@ class PluginDevice(object):
         except ValueError as sub_error:
             self.host_plugin.logger.critical(u'Error cleaning dictionary keys: {0}'.format(sub_error))
 
+    # =============================================================================
     def kill_curl(self, proc):
         """
         Kill curl calls that have timed out
@@ -879,6 +832,7 @@ class PluginDevice(object):
 
         proc.kill()
 
+    # =============================================================================
     def parse_the_json(self, dev, root):
         """
         Parse JSON data
@@ -922,6 +876,7 @@ class PluginDevice(object):
             self.jsonRawData = {'parse_error': "There was a parse error. Will continue to poll."}
             return self.jsonRawData
 
+    # =============================================================================
     def parse_state_values(self, dev):
         """
         Parse data values to device states
@@ -949,6 +904,7 @@ class PluginDevice(object):
 
         dev.updateStatesOnServer(state_list)
 
+    # =============================================================================
     def refresh_data_for_dev(self, dev):
         """
         Initiate refresh of device as required
@@ -1017,6 +973,7 @@ class PluginDevice(object):
             self.host_plugin.logger.debug(u"[{0}] Device not available for update [Enabled: {1}, Configured: {2}]".format(dev.id, dev.enabled, dev.configured))
             dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
+    # =============================================================================
     def strip_namespace(self, dev, root):
         """
         Strip XML namespace from payload
@@ -1050,3 +1007,4 @@ class PluginDevice(object):
             self.rawData = '<?xml version="1.0" encoding="UTF-8"?><Emptydict><Response>No data to return.</Response></Emptydict>'
             dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No data")
             return self.rawData
+    # =============================================================================
