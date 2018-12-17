@@ -94,7 +94,7 @@
 
             <!-- Raw Curl -->
 
-            <Field id="curlArray" type="textfield" tooltip="Comma Separated array of curl commands, plus url above." visibleBindingId="useDigest" visibleBindingValue="Raw">
+            <Field id="curlArray" type="textfield" tooltip="Please enter your curl commands, which will be appended to the url above." visibleBindingId="useDigest" visibleBindingValue="Raw">
                 <Label>Curl Commands:
 
 
@@ -107,7 +107,7 @@
             </Field>
 
             <Field id="rawCurlLabel" type="label" fontSize="small" alignWithControl="true" visibleBindingId="useDigest" visibleBindingValue="Raw">
-                <Label>Enter the raw curl commands as either a continuous string (no quotes) or line-separated with a backslash to escape each linebreak. Use OPTION/Return to move to the next line.</Label>
+                <Label>Enter the raw curl commands as either a continuous string (no quotes) or line-separated with a space and a backslash to escape each linebreak. Use OPTION/Return to move to the next line.</Label>
             </Field>
 
             <!-- Substitutions -->
