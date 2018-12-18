@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.4.17
+- Finalizes raw curl feature.
+
 v0.4.16
 - Consolidates pulls and other changes.
 
