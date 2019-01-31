@@ -93,7 +93,6 @@
             </Field>
 
             <!-- Raw Curl -->
-
             <Field id="curlArray" type="textfield" tooltip="Please enter your curl commands, which will be appended to the url above." visibleBindingId="useDigest" visibleBindingValue="Raw">
                 <Label>Curl Commands:
 

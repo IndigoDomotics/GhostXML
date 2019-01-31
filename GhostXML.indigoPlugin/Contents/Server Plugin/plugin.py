@@ -43,7 +43,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.17"
+__version__   = u"0.4.19"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -144,10 +144,10 @@ class Plugin(indigo.PluginBase):
         except KeyError:
             pass
 
-        if auth_type in ['False', 'false', False]:
+        if auth_type in ('False', 'false', False):
             new_props['useDigest'] = 'Basic'
 
-        elif auth_type in ['True', 'true', True]:
+        elif auth_type in ('True', 'true', True):
             new_props['useDigest'] = 'Digest'
 
         if new_props != dev.pluginProps:
@@ -324,7 +324,7 @@ class Plugin(indigo.PluginBase):
     def validateDeviceConfigUi(self, valuesDict, typeID, devId):
 
         error_msg_dict = indigo.Dict()
-        sub_list       = [('subA', '[A]'), ('subB', '[B]'), ('subC', '[C]'), ('subD', '[D]'), ('subE', '[E]')]
+        sub_list       = (('subA', '[A]'), ('subB', '[B]'), ('subC', '[C]'), ('subD', '[D]'), ('subE', '[E]'))
         token_url      = valuesDict['tokenUrl']
         url            = valuesDict['sourceXML']
         url_list       = ('file:///', 'http://', 'https://')
@@ -776,6 +776,7 @@ class PluginDevice(object):
 
             # Add wider exception testing to test errors
             self.host_plugin.logger.exception(u'curl array related error')
+
     # =============================================================================
     def clean_the_keys(self, input_data):
         """

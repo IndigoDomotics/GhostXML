@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.4.19
+- Changes Python lists to tuples where possible to improve performance.
+
 v0.4.17
 - Finalizes raw curl feature.
 
