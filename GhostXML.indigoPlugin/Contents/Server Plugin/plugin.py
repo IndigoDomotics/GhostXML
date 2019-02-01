@@ -28,7 +28,6 @@ import time as t
 
 # =============================Third-party Imports=============================
 import flatdict  # https://github.com/gmr/flatdict
-import indigoPluginUpdateChecker
 try:
     import indigo  # only needed for IDE syntax checking
     import pydevd
@@ -43,15 +42,13 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.19"
+__version__   = u"0.4.21"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
     u'configMenuServerTimeout': "15",  # Server timeout limit.
     u'showDebugInfo': False,           # Verbose debug logging?
     u'showDebugLevel': "20",           # Debugging level.
-    u'updaterEmail': "",               # Email to notify of plugin updates.
-    u'updaterEmailsEnabled': False     # Notification of plugin updates wanted.
 }
 
 
@@ -83,10 +80,6 @@ class Plugin(indigo.PluginBase):
         self.logger.info(u"{0:<30} {1}".format("Process ID:", os.getpid()))
         self.logger.info(u"{0:=^130}".format(""))
         self.indigo_log_handler.setLevel(self.debugLevel)
-
-        # ========================== Plugin Update Checker ============================
-        self.updater              = indigoPluginUpdateChecker.updateChecker(self, "https://raw.githubusercontent.com/indigodomotics/GhostXML/master/ghostXML_version.html")
-        self.updaterEmailsEnabled = self.pluginPrefs.get('updaterEmailsEnabled', False)
 
         # ================================== Other ====================================
         self.managedDevices = {}  # Managed list of plugin devices
@@ -267,12 +260,6 @@ class Plugin(indigo.PluginBase):
         try:
             while not self.pluginIsShuttingDown:
 
-                # Check to see if there is an update to the plugin available.
-                try:
-                    self.updater.checkVersionPoll()
-                except Exception as sub_error:
-                    self.logger.warning(u"Update checker error: {0}".format(sub_error))
-
                 # Iterate devices to see if an update is required.
                 for devId in self.managedDevices:
                     dev = self.managedDevices[devId].device
@@ -313,12 +300,6 @@ class Plugin(indigo.PluginBase):
             else:
                 dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Initialized")
             dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
-
-        # See if there is a plugin update and whether the user wants to be notified.
-        try:
-            self.updater.checkVersionPoll()
-        except Exception as sub_error:
-            self.logger.warning(u"Update checker error: {0}".format(sub_error))
 
     # =============================================================================
     def validateDeviceConfigUi(self, valuesDict, typeID, devId):
@@ -388,23 +369,6 @@ class Plugin(indigo.PluginBase):
 
     # =============================================================================
     # =============================== Plugin Methods ===============================
-    # =============================================================================
-    def check_version_now(self):
-        """
-        Check to ensure that the plugin is the most current version
-
-        The check_version_now() method is called if user selects "Check For Plugin
-        Updates..." Indigo menu item. It is only called by user request.
-
-        -----
-
-        """
-
-        try:
-            self.updater.checkVersionNow()
-        except Exception as sub_error:
-            self.logger.warning(u"Update checker error: {0}".format(sub_error))
-
     # =============================================================================
     def comms_kill_all(self):
         """

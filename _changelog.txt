@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.4.21
+- Removes plugin update checker.
+
 v0.4.20
 - Changes "En/Disable All Devices" to "En/Disable all Plugin Devices".
 

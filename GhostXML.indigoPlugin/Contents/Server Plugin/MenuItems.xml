@@ -23,10 +23,4 @@
         <CallbackMethod>refresh_data</CallbackMethod>
     </MenuItem>
 
-    <!--TODO: Can safely delete this block if migration to Indigo 7 is successful. -->
-    <!--<MenuItem id="toggleDebug">-->
-        <!--<Name>Toggle Debugging</Name>-->
-        <!--<CallbackMethod>toggleDebugEnabled</CallbackMethod>-->
-    <!--</MenuItem>-->
-
 </MenuItems>
