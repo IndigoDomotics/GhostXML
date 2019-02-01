@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.4.22
+- Audits kDefaultPluginPrefs.
+
 v0.4.21
 - Removes plugin update checker.
 

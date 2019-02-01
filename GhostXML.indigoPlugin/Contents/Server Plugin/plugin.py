@@ -42,11 +42,12 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.21"
+__version__   = u"0.4.22"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
     u'configMenuServerTimeout': "15",  # Server timeout limit.
+    u'oldDebugLevel': "20",            # Supports legacy debugging levels.
     u'showDebugInfo': False,           # Verbose debug logging?
     u'showDebugLevel': "20",           # Debugging level.
 }
