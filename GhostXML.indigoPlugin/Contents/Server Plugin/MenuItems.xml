@@ -2,12 +2,12 @@
 <MenuItems>
 
     <MenuItem id="comms_kill_all">
-        <Name>Disable All Devices</Name>
+        <Name>Disable All Plugin Devices</Name>
         <CallbackMethod>comms_kill_all</CallbackMethod>
     </MenuItem>
 
     <MenuItem id="comms_unkill_all">
-        <Name>Enable All Devices</Name>
+        <Name>Enable All Plugin Devices</Name>
         <CallbackMethod>comms_unkill_all</CallbackMethod>
     </MenuItem>
 
