@@ -42,7 +42,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.22"
+__version__   = u"0.4.23"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -105,18 +105,24 @@ class Plugin(indigo.PluginBase):
 
         current_debug_level = {10: 'Debug', 20: 'Info', 30: 'Warning', 40: 'Error', 50: 'Critical'}
 
-        if userCancelled:
-            self.logger.debug(u"User prefs dialog cancelled.")
-
         if not userCancelled:
+
+            # Ensure that self.pluginPrefs includes any recent changes.
+            for k in valuesDict:
+                self.pluginPrefs[k] = valuesDict[k]
+
             self.debugLevel = int(valuesDict.get('showDebugLevel', "30"))
             self.indigo_log_handler.setLevel(self.debugLevel)
-            self.logger.debug(u"User prefs saved.")
 
             indigo.server.log(u"Debugging on (Level: {0} ({1})".format(current_debug_level[self.debugLevel], self.debugLevel))
 
-            if int(self.pluginPrefs['showDebugLevel']) == 10:
+            if self.debugLevel == 10:
                 self.logger.debug(u"valuesDict: {0} ".format(valuesDict))
+
+            self.logger.debug(u"User prefs saved.")
+
+        else:
+            self.logger.debug(u"User prefs dialog cancelled.")
 
         return True
 
