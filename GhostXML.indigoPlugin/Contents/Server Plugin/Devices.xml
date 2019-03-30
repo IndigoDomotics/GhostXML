@@ -153,6 +153,7 @@
         </ConfigUI>
 
         <States>
+
             <State id="deviceIsOnline">
                 <ValueType>Boolean</ValueType>
                 <TriggerLabel>Device Online?</TriggerLabel>

@@ -351,28 +351,33 @@ class Plugin(indigo.PluginBase):
     # =============================================================================
     def validatePrefsConfigUi(self, valuesDict):
 
-        error_msg_dict = indigo.Dict()
-        update_email   = valuesDict['updaterEmail']
-        update_wanted  = valuesDict['updaterEmailsEnabled']
+        pass
 
-        # Test plugin update notification settings.
-        try:
-            if update_wanted and not update_email:
-                error_msg_dict['updaterEmail'] = u"If you want to be notified of updates, you must supply an email address."
-                error_msg_dict['showAlertText'] = u"Updater Email Error:\n\nThe plugin requires a valid email address in order to notify of plugin updates."
-                return False, valuesDict, error_msg_dict
+        # local plugin update notification removed, but this deprecated code left
+        # if place for the next time a validation routine is needed for reference.
 
-            elif update_wanted and "@" not in update_email:
-                error_msg_dict['updaterEmail'] = u"Valid email addresses have at least one @ symbol in them (initiate_device_update@bar.com)."
-                error_msg_dict['showAlertText'] = u"Updater Email Error:\n\nThe plugin requires a valid email address in order to notify of plugin updates (email address must " \
-                                                  u"contain an '@' sign."
-
-                return False, valuesDict, error_msg_dict
-
-        except Exception as sub_error:
-            self.logger.warning(u"Plugin configuration error: {0}".format(sub_error))
-
-        return True, valuesDict
+        # error_msg_dict = indigo.Dict()
+        # update_email   = valuesDict['updaterEmail']
+        # update_wanted  = valuesDict['updaterEmailsEnabled']
+        #
+        # # Test plugin update notification settings.
+        # try:
+        #     if update_wanted and not update_email:
+        #         error_msg_dict['updaterEmail'] = u"If you want to be notified of updates, you must supply an email address."
+        #         error_msg_dict['showAlertText'] = u"Updater Email Error:\n\nThe plugin requires a valid email address in order to notify of plugin updates."
+        #         return False, valuesDict, error_msg_dict
+        #
+        #     elif update_wanted and "@" not in update_email:
+        #         error_msg_dict['updaterEmail'] = u"Valid email addresses have at least one @ symbol in them (initiate_device_update@bar.com)."
+        #         error_msg_dict['showAlertText'] = u"Updater Email Error:\n\nThe plugin requires a valid email address in order to notify of plugin updates (email address must " \
+        #                                           u"contain an '@' sign."
+        #
+        #         return False, valuesDict, error_msg_dict
+        #
+        # except Exception as sub_error:
+        #     self.logger.warning(u"Plugin configuration error: {0}".format(sub_error))
+        #
+        # return True, valuesDict
 
     # =============================================================================
     # =============================== Plugin Methods ===============================
