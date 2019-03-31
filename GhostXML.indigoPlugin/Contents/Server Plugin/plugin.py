@@ -42,7 +42,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.23"
+__version__   = u"0.4.25"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -72,14 +72,14 @@ class Plugin(indigo.PluginBase):
 
         self.indigo_log_handler.setLevel(20)
         self.logger.info(u"")
-        self.logger.info(u"{0:=^130}".format(" Initializing New Plugin Session "))
+        self.logger.info(u"{0:{1}^130}".format(" Initializing New Plugin Session ", "="))
         self.logger.info(u"{0:<30} {1}".format("Plugin name:", pluginDisplayName))
         self.logger.info(u"{0:<30} {1}".format("Plugin version:", pluginVersion))
         self.logger.info(u"{0:<30} {1}".format("Plugin ID:", pluginId))
         self.logger.info(u"{0:<30} {1}".format("Indigo version:", indigo.server.version))
         self.logger.info(u"{0:<30} {1}".format("Python version:", sys.version.replace('\n', '')))
         self.logger.info(u"{0:<30} {1}".format("Process ID:", os.getpid()))
-        self.logger.info(u"{0:=^130}".format(""))
+        self.logger.info(u"{0:{1}^130}".format("", "="))
         self.indigo_log_handler.setLevel(self.debugLevel)
 
         # ================================== Other ====================================
@@ -349,35 +349,33 @@ class Plugin(indigo.PluginBase):
         return True, valuesDict, error_msg_dict
 
     # =============================================================================
-    def validatePrefsConfigUi(self, valuesDict):
-
-        pass
-
-        # local plugin update notification removed, but this deprecated code left
-        # if place for the next time a validation routine is needed for reference.
-
-        # error_msg_dict = indigo.Dict()
-        # update_email   = valuesDict['updaterEmail']
-        # update_wanted  = valuesDict['updaterEmailsEnabled']
-        #
-        # # Test plugin update notification settings.
-        # try:
-        #     if update_wanted and not update_email:
-        #         error_msg_dict['updaterEmail'] = u"If you want to be notified of updates, you must supply an email address."
-        #         error_msg_dict['showAlertText'] = u"Updater Email Error:\n\nThe plugin requires a valid email address in order to notify of plugin updates."
-        #         return False, valuesDict, error_msg_dict
-        #
-        #     elif update_wanted and "@" not in update_email:
-        #         error_msg_dict['updaterEmail'] = u"Valid email addresses have at least one @ symbol in them (initiate_device_update@bar.com)."
-        #         error_msg_dict['showAlertText'] = u"Updater Email Error:\n\nThe plugin requires a valid email address in order to notify of plugin updates (email address must " \
-        #                                           u"contain an '@' sign."
-        #
-        #         return False, valuesDict, error_msg_dict
-        #
-        # except Exception as sub_error:
-        #     self.logger.warning(u"Plugin configuration error: {0}".format(sub_error))
-        #
-        # return True, valuesDict
+    # def validatePrefsConfigUi(self, valuesDict):
+    #
+    #     local plugin update notification removed, but this deprecated code left
+    #     if place for the next time a validation routine is needed for reference.
+    #
+    #     error_msg_dict = indigo.Dict()
+    #     update_email   = valuesDict['updaterEmail']
+    #     update_wanted  = valuesDict['updaterEmailsEnabled']
+    #
+    #     # Test plugin update notification settings.
+    #     try:
+    #         if update_wanted and not update_email:
+    #             error_msg_dict['updaterEmail'] = u"If you want to be notified of updates, you must supply an email address."
+    #             error_msg_dict['showAlertText'] = u"Updater Email Error:\n\nThe plugin requires a valid email address in order to notify of plugin updates."
+    #             return False, valuesDict, error_msg_dict
+    #
+    #         elif update_wanted and "@" not in update_email:
+    #             error_msg_dict['updaterEmail'] = u"Valid email addresses have at least one @ symbol in them (initiate_device_update@bar.com)."
+    #             error_msg_dict['showAlertText'] = u"Updater Email Error:\n\nThe plugin requires a valid email address in order to notify of plugin updates (email address must " \
+    #                                               u"contain an '@' sign."
+    #
+    #             return False, valuesDict, error_msg_dict
+    #
+    #     except Exception as sub_error:
+    #         self.logger.warning(u"Plugin configuration error: {0}".format(sub_error))
+    #
+    #     return True, valuesDict
 
     # =============================================================================
     # =============================== Plugin Methods ===============================

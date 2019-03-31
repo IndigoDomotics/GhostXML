@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.4.25
+- Fixes plugin configuration validation bug.
+
 v0.4.24
 - Fixes KeyError: key updaterEmail not found in dict error.
 
