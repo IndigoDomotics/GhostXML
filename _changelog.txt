@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.4.28
+- Moves None option to bottom of dropdown lists per Indigo convention.
+
 v0.4.27
 - Standardizes SupportURL behavior across all plugin functions.
 

@@ -71,11 +71,12 @@
             <Field id="useDigest" type="menu" defaultValue="None" tooltip="Select the appropriate authentication type for your data source.">
                 <Label>Method:</Label>
                 <List>
-                    <Option value="None">None</Option>
                     <Option value="Basic">Basic</Option>
                     <Option value="Digest">Digest</Option>
                     <Option value="Raw">Raw Curl (Advanced)</Option>
                     <Option value="Token">Token</Option>
+                    <Option value="-1">%%separator%%</Option>
+                    <Option value="None">None</Option>
                 </List>
             </Field>
 
