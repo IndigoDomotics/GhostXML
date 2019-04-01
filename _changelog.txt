@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.4.26
+- Ensures plugins is compatible with the Indigo server version.
+
 v0.4.25
 - Fixes plugin configuration validation bug.
 

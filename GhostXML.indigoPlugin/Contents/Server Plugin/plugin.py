@@ -12,6 +12,7 @@ transitive Indigo plugin device states.
 # TODO: Additional auth types: Oauth2, WSSE
 # TODO: Make a new testing device that requires token auth
 # TODO: Find a way to synchronize managed devices with the server (i.e., dev.lastChanged).
+# TODL: validate URLs with quotes around them.
 
 # ================================Stock Imports================================
 # import datetime
@@ -42,7 +43,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.25"
+__version__   = u"0.4.26"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -297,6 +298,12 @@ class Plugin(indigo.PluginBase):
 
     # =============================================================================
     def startup(self):
+
+        # =========================== Audit Indigo Version ============================
+        min_ver = 7
+        ver     = self.versStrToTuple(indigo.server.version)
+        if ver[0] < min_ver:
+            self.stopPlugin(u"The Matplotlib plugin requires Indigo version {0} or above.".format(min_ver), isError=True)
 
         # Initialize all plugin devices to ensure that they're in the proper state.
         # We can't use managedDevices here because they may not yet have showed up.
