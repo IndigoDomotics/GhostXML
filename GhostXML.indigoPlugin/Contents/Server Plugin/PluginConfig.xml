@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <PluginConfig>
-
+    <SupportURL>https://github.com/IndigoDomotics/GhostXML/wiki/configuration</SupportURL>
     <Field id="infoLabel0" type="label" fontColor="black">
         <Label>GhostXML Plugin</Label>
     </Field>

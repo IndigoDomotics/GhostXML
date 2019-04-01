@@ -4,6 +4,7 @@
     <Action id="adjust_refresh_time_for_dev" deviceFilter="self" uiPath="DeviceActions">
         <Name>Adjust Device Refresh Time</Name>
         <ConfigUI>
+            <SupportURL>https://github.com/IndigoDomotics/GhostXML/wiki/actions</SupportURL>
             <Field id="new_refresh_freq_label" type="label">
                 <Label>Enter the number of seconds to reflect the new refresh frequency of the target GhostXML device.</Label>
             </Field>

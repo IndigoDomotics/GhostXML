@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.4.27
+- Standardizes SupportURL behavior across all plugin functions.
+
 v0.4.26
 - Ensures plugins is compatible with the Indigo server version.
 

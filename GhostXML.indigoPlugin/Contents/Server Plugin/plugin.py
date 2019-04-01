@@ -12,7 +12,7 @@ transitive Indigo plugin device states.
 # TODO: Additional auth types: Oauth2, WSSE
 # TODO: Make a new testing device that requires token auth
 # TODO: Find a way to synchronize managed devices with the server (i.e., dev.lastChanged).
-# TODL: validate URLs with quotes around them.
+# TODO: validate URLs with quotes around them.
 
 # ================================Stock Imports================================
 # import datetime
@@ -43,7 +43,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.26"
+__version__   = u"0.4.27"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {

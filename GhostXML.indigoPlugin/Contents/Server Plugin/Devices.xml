@@ -5,6 +5,7 @@
         <Name>GhostXML Device</Name>
 
         <ConfigUI>
+            <SupportURL>https://github.com/IndigoDomotics/GhostXML/wiki/devices</SupportURL>
             <!-- FeedType -->
 
             <Field id="settingsLabel" type="label" fontSize="small">
