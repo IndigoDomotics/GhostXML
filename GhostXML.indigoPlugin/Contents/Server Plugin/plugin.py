@@ -43,7 +43,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.28"
+__version__   = u"0.4.29"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -168,7 +168,7 @@ class Plugin(indigo.PluginBase):
             dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Started")
             self.managedDevices[dev.id].queue.put(dev)
 
-        self.logger.debug(u"Started: {0}".format(self.managedDevices[dev.id]))
+        self.logger.debug(u"[{0}] Communication started.".format(dev.name))
 
     # =============================================================================
     def deviceStopComm(self, dev):
@@ -182,7 +182,7 @@ class Plugin(indigo.PluginBase):
 
         dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="Disabled")
         dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
-        self.logger.debug(u"Stopped: [{0:>11}]".format(dev.id))
+        self.logger.debug(u"[{0}] Communication stopped.".format(dev.name))
 
     # =============================================================================
     def getDeviceConfigUiXml(self, typeId, devId):
@@ -677,13 +677,13 @@ class PluginDevice(object):
 
             # Format any needed substitutions
             if dev.pluginProps.get('doSubs', False):
-                self.host_plugin.logger.debug(u"[{0}] URL: {1}  (before substitution)".format(dev.id, url))
+                self.host_plugin.logger.debug(u"[{0}] URL: {1}  (before substitution)".format(dev.name, url))
                 url = self.host_plugin.substitute(url.replace("[A]", "%%v:" + dev.pluginProps['subA'] + "%%"))
                 url = self.host_plugin.substitute(url.replace("[B]", "%%v:" + dev.pluginProps['subB'] + "%%"))
                 url = self.host_plugin.substitute(url.replace("[C]", "%%v:" + dev.pluginProps['subC'] + "%%"))
                 url = self.host_plugin.substitute(url.replace("[D]", "%%v:" + dev.pluginProps['subD'] + "%%"))
                 url = self.host_plugin.substitute(url.replace("[E]", "%%v:" + dev.pluginProps['subE'] + "%%"))
-                self.host_plugin.logger.debug(u"[{0}] URL: {1}  (after substitution)".format(dev.id, url))
+                self.host_plugin.logger.debug(u"[{0}] URL: {1}  (after substitution)".format(dev.name, url))
 
             # Initiate curl call to data source.
 
@@ -742,14 +742,14 @@ class PluginDevice(object):
             # =============================================================================
 
             if int(proc.returncode) != 0:
-                self.host_plugin.logger.warning(u"[{0}] curl error {1}.".format(dev.id, err.replace('\n', ' ')))
+                self.host_plugin.logger.warning(u"[{0}] curl error {1}.".format(dev.name, err.replace('\n', ' ')))
 
             return result
 
         except IOError:
 
-            self.host_plugin.logger.warning(u"[{0}] IOError:  Skipping until next scheduled poll.".format(dev.id))
-            self.host_plugin.logger.debug(u"[{0}] Device is offline. No data to return. Returning dummy dict.".format(dev.id))
+            self.host_plugin.logger.warning(u"[{0}] IOError:  Skipping until next scheduled poll.".format(dev.name))
+            self.host_plugin.logger.debug(u"[{0}] Device is offline. No data to return. Returning dummy dict.".format(dev.name))
             dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No comm")
             return '{"GhostXML": "IOError"}'
 
@@ -862,8 +862,8 @@ class PluginDevice(object):
             return self.jsonRawData
 
         except ValueError as sub_error:
-            self.host_plugin.logger.debug(u"[{0}] Parse Error: {1}".format(dev.id, sub_error))
-            self.host_plugin.logger.debug(u"[{0}] jsonRawData {0}".format(dev.id, self.jsonRawData))
+            self.host_plugin.logger.debug(u"[{0}] Parse Error: {1}".format(dev.name, sub_error))
+            self.host_plugin.logger.debug(u"[{0}] jsonRawData {0}".format(dev.name, self.jsonRawData))
 
             # If we let it, an exception here will kill the device's thread. Therefore, we
             # have to return something that the device can use in order to keep the thread
@@ -893,7 +893,7 @@ class PluginDevice(object):
                 state_list.append({'key': unicode(key), 'value': unicode(self.finalDict[key])})
 
             except ValueError as sub_error:
-                self.host_plugin.logger.critical(u"[{0}] Error parsing key/value pair: {1} = {2}. Reason: {3}".format(dev.id, key, self.finalDict[key], sub_error))
+                self.host_plugin.logger.critical(u"[{0}] Error parsing key/value pair: {1} = {2}. Reason: {3}".format(dev.name, key, self.finalDict[key], sub_error))
                 dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
                 state_list.append({'key': 'deviceIsOnline', 'value': True, 'uiValue': "Error"})
 
@@ -932,7 +932,7 @@ class PluginDevice(object):
                 self.clean_the_keys(self.finalDict)
 
             else:
-                self.host_plugin.logger.warning(u"{0}: The plugin only supports XML and JSON data sources.".format(dev.id))
+                self.host_plugin.logger.warning(u"{0}: The plugin only supports XML and JSON data sources.".format(dev.name))
 
             if self.finalDict is not None:
                 # Create the device states.
@@ -965,7 +965,7 @@ class PluginDevice(object):
                 self.bad_calls += 1
 
         else:
-            self.host_plugin.logger.debug(u"[{0}] Device not available for update [Enabled: {1}, Configured: {2}]".format(dev.id, dev.enabled, dev.configured))
+            self.host_plugin.logger.debug(u"[{0}] Device not available for update [Enabled: {1}, Configured: {2}]".format(dev.name, dev.enabled, dev.configured))
             dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
     # =============================================================================
@@ -998,7 +998,7 @@ class PluginDevice(object):
             return self.rawData
 
         except ValueError as sub_error:
-            self.host_plugin.logger.warning(u"[{0}] Error parsing source data: {1}. Skipping until next scheduled poll.".format(dev.id, unicode(sub_error)))
+            self.host_plugin.logger.warning(u"[{0}] Error parsing source data: {1}. Skipping until next scheduled poll.".format(dev.name, unicode(sub_error)))
             self.rawData = '<?xml version="1.0" encoding="UTF-8"?><Emptydict><Response>No data to return.</Response></Emptydict>'
             dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No data")
             return self.rawData

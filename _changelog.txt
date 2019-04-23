@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.4.29
+- Changes logging messages to report device names instead of device ids.
+
 v0.4.28
 - Moves None option to bottom of dropdown lists per Indigo convention.
 
