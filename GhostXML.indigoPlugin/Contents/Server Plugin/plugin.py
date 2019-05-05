@@ -43,7 +43,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.29"
+__version__   = u"0.4.30"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -288,6 +288,12 @@ class Plugin(indigo.PluginBase):
             self.indigo_log_handler.setLevel(20)
             self.logger.info(u'Stopping main thread.')
             self.indigo_log_handler.setLevel(self.debugLevel)
+
+    # =============================================================================
+    def sendDevicePing(self, dev_id=0, suppress_logging=False):
+
+        indigo.server.log(u"GhostXML Plugin devices do not support the ping function.")
+        return {'result': 'Failure'}
 
     # =============================================================================
     def shutdown(self):

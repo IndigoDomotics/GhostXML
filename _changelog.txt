@@ -1,7 +1,10 @@
 GhostXML Change Log
 
+v0.4.30
+- Adds sendDevicePing() trap.
+
 v0.4.29
-- Changes logging messages to report device names instead of device ids.
+- Changes logging messages to report device names instead of device IDs.
 
 v0.4.28
 - Moves None option to bottom of dropdown lists per Indigo convention.
