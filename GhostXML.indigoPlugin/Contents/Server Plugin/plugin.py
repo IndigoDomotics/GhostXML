@@ -13,6 +13,8 @@ transitive Indigo plugin device states.
 # TODO: Make a new testing device that requires token auth
 # TODO: Find a way to synchronize managed devices with the server (i.e., dev.lastChanged).
 # TODO: validate URLs with quotes around them.
+# TODO: when a user retrieves an XML payload but has selected JSON, do they get an error to the log?
+# TODO: does the plugin work properly with URLs that include parameters?  (https://foo.com/bar/1234?user=***&pwd=***)
 
 # ================================Stock Imports================================
 # import datetime
