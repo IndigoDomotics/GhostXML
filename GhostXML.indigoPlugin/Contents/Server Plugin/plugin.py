@@ -45,7 +45,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.30"
+__version__   = u"0.4.31"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -749,8 +749,11 @@ class PluginDevice(object):
                 timer_kill.cancel()
             # =============================================================================
 
+            # TODO: Get more specific on what the proc.returncode is.  For example, this error:
+            #  2019-05-28 22:59:02.650	GhostXML Warning	[607047935] curl error *   Trying 162.58.33.179... * TCP_NODELAY set .
+            #  doesn't give the user much information on why the call was unsuccessful.
             if int(proc.returncode) != 0:
-                self.host_plugin.logger.warning(u"[{0}] curl error {1}.".format(dev.name, err.replace('\n', ' ')))
+                self.host_plugin.logger.warning(u"[{0}] curl error {1}. [Return code: {2}".format(dev.name, err.replace('\n', ' '), proc.returncode))
 
             return result
 

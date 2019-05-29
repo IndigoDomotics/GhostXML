@@ -1,0 +1,11 @@
+===============================================================================
+GhostXML Plugin Feature Requests
+===============================================================================
+
+===============================================================================
+2019-05-24  Multiple Users
+===============================================================================
+Present custom states as their "inherent" type.
+
+DaveL17 - Consider howartp's suggestion to present this as a second device
+type (i.e., original string states and another literal states).

@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.4.31
+-
+
 v0.4.30
 - Adds sendDevicePing() trap.
 
