@@ -1,7 +1,7 @@
 GhostXML Change Log
 
 v0.4.31
--
+- Adds user-configurable setting for device auto-disable feature.
 
 v0.4.30
 - Adds sendDevicePing() trap.
@@ -16,7 +16,7 @@ v0.4.27
 - Standardizes SupportURL behavior across all plugin functions.
 
 v0.4.26
-- Ensures plugins is compatible with the Indigo server version.
+- Ensures plugin is compatible with the Indigo server version.
 
 v0.4.25
 - Fixes plugin configuration validation bug.

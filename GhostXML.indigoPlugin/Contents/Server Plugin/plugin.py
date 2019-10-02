@@ -16,6 +16,8 @@ transitive Indigo plugin device states.
 # TODO: when a user retrieves an XML payload but has selected JSON, do they get an error to the log?
 # TODO: does the plugin work properly with URLs that include parameters?  (https://foo.com/bar/1234?user=***&pwd=***)
 
+# TODO: Move bad connection messages to the plugin private log and change the Indigo log message to be "Unable to connect - will keep trying" or something like that.
+
 # ================================Stock Imports================================
 # import datetime
 import xml.etree.ElementTree as Etree
@@ -275,7 +277,8 @@ class Plugin(indigo.PluginBase):
                     dev = self.managedDevices[devId].device
 
                     # If a device has failed 10 times, disable it and notify the user.
-                    if self.managedDevices[devId].bad_calls >= 10:
+                    retries = int(dev.pluginProps.get('maxRetries', 10))
+                    if self.managedDevices[devId].bad_calls >= retries:
                         indigo.device.enable(devId, value=False)
                         self.logger.critical(u"[{0}] Disabling {1} because it has failed 10 times.".format(dev.id, dev.name))
 
@@ -333,6 +336,13 @@ class Plugin(indigo.PluginBase):
         url_list       = ('file:///', 'http://', 'https://')
         use_digest     = valuesDict['useDigest']
         var_list       = [var.id for var in indigo.variables]
+
+        try:
+            _ = int(valuesDict['maxRetries'])
+        except ValueError:
+            error_msg_dict['maxRetries'] = u"You must enter an integer."
+            error_msg_dict['showAlertText'] = u"Max Retries Error.\n\nThe value must be an integer."
+            return False, valuesDict, error_msg_dict
 
         # Test the source URL/Path for proper prefix.
         if not url.startswith(url_list):
