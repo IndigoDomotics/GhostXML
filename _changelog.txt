@@ -1,5 +1,9 @@
 GhostXML Change Log
 
+v0.4.32
+- Revises device initialization code to allow existing device states to persist
+  when plugin is restarted.
+
 v0.4.31
 - Adds user-configurable setting for device auto-disable feature.
 

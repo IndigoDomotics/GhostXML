@@ -47,7 +47,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.31"
+__version__   = u"0.4.32"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -159,8 +159,12 @@ class Plugin(indigo.PluginBase):
             dev.replacePluginPropsOnServer(new_props)
             self.sleep(2)
 
+        # 2019-10-29 DaveL17 ==================================================
+        # Removed the following to allow device states to persist when plugin
+        # is restarted.
         # Check for changes to the device's default states.
-        dev.stateListOrDisplayStateIdChanged()
+        # dev.stateListOrDisplayStateIdChanged()
+        # =====================================================================
 
         # Add device instance to dict of managed devices
         self.managedDevices[dev.id] = PluginDevice(self, dev)
@@ -890,6 +894,7 @@ class PluginDevice(object):
             # have to return something that the device can use in order to keep the thread
             # alive.
             self.jsonRawData = {'parse_error': "There was a parse error. Will continue to poll."}
+            self.host_plugin.logger.warning("There was a parse error. Will continue to poll.")
             return self.jsonRawData
 
     # =============================================================================
@@ -937,13 +942,13 @@ class PluginDevice(object):
             # Get the data.
             self.rawData = self.get_the_data(dev)
 
-            # Throw the data to the appropriate module to flatten it.
             dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Processing")
 
             update_time = t.strftime("%m/%d/%Y at %H:%M")
             dev.updateStateOnServer('deviceLastUpdated', value=update_time)
             dev.updateStateOnServer('deviceTimestamp', value=t.time())
 
+            # Throw the data to the appropriate module to flatten it.
             if dev.pluginProps['feedType'] == "XML":
                 self.rawData = self.strip_namespace(dev, self.rawData)
                 self.finalDict = iterateXML.iterateMain(self.rawData)
