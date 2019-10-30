@@ -179,6 +179,12 @@
                 <ControlPageLabel>Device Timestamp</ControlPageLabel>
             </State>
 
+            <State id="parse_error">
+                <ValueType>Boolean</ValueType>
+                <TriggerLabel>Parse Error</TriggerLabel>
+                <ControlPageLabel>Parse Error</ControlPageLabel>
+            </State>
+
         </States>
 
         <UiDisplayStateId>deviceIsOnline</UiDisplayStateId>

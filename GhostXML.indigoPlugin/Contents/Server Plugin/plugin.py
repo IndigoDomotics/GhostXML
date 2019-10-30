@@ -47,7 +47,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.32"
+__version__   = u"0.4.33"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -92,10 +92,10 @@ class Plugin(indigo.PluginBase):
 
         # Adding support for remote debugging in PyCharm. Other remote debugging
         # facilities can be added, but only one can be run at a time.
-        # try:
-        #     pydevd.settrace('localhost', port=5678, stdoutToServer=True, stderrToServer=True, suspend=False)
-        # except:
-        #     pass
+        try:
+            pydevd.settrace('localhost', port=5678, stdoutToServer=True, stderrToServer=True, suspend=False)
+        except:
+            pass
 
         self.pluginIsInitializing = False
 
@@ -280,11 +280,11 @@ class Plugin(indigo.PluginBase):
                 for devId in self.managedDevices:
                     dev = self.managedDevices[devId].device
 
-                    # If a device has failed 10 times, disable it and notify the user.
+                    # If a device has failed multiple times, disable it and notify the user.
                     retries = int(dev.pluginProps.get('maxRetries', 10))
                     if self.managedDevices[devId].bad_calls >= retries:
                         indigo.device.enable(devId, value=False)
-                        self.logger.critical(u"[{0}] Disabling {1} because it has failed 10 times.".format(dev.id, dev.name))
+                        self.logger.critical(u"[{0}] Disabling {1} because it has failed {2}} times.".format(dev.id, dev.name, retries))
 
                     # If time_to_update returns True, add device to its queue.
                     else:
@@ -636,10 +636,11 @@ class PluginDevice(object):
         self.device      = device
         self.host_plugin = plugin
 
-        self.bad_calls   = 0
-        self.finalDict   = {}
-        self.jsonRawData = ''
-        self.rawData     = ''
+        self.bad_calls         = 0
+        self.finalDict         = {}
+        self.jsonRawData       = ''
+        self.rawData           = ''
+        self.old_device_states = {}
 
         self.queue      = Queue(maxsize=0)
         self.dev_thread = threading.Thread(name=self.device.id, target=self.initiate_device_update, args=(self.queue,))
@@ -870,6 +871,8 @@ class PluginDevice(object):
         :return self.jsonRawData:
         """
 
+        self.old_device_states = dict(dev.states)
+
         try:
             parsed_simplejson = simplejson.loads(root)
 
@@ -888,14 +891,14 @@ class PluginDevice(object):
 
         except ValueError as sub_error:
             self.host_plugin.logger.debug(u"[{0}] Parse Error: {1}".format(dev.name, sub_error))
-            self.host_plugin.logger.debug(u"[{0}] jsonRawData {0}".format(dev.name, self.jsonRawData))
+            self.host_plugin.logger.debug(u"[{0}] jsonRawData {1}".format(dev.name, self.jsonRawData))
 
             # If we let it, an exception here will kill the device's thread. Therefore, we
             # have to return something that the device can use in order to keep the thread
             # alive.
-            self.jsonRawData = {'parse_error': "There was a parse error. Will continue to poll."}
             self.host_plugin.logger.warning("There was a parse error. Will continue to poll.")
-            return self.jsonRawData
+            self.old_device_states['parse_error'] = True
+            return self.old_device_states
 
     # =============================================================================
     def parse_state_values(self, dev):
@@ -916,7 +919,7 @@ class PluginDevice(object):
         for key in sorted_list:
             try:
 
-                state_list.append({'key': unicode(key), 'value': unicode(self.finalDict[key])})
+                state_list.append({'key': unicode(key), 'value': unicode(self.finalDict[key]), 'uiValue': unicode(self.finalDict[key])})
 
             except ValueError as sub_error:
                 self.host_plugin.logger.critical(u"[{0}] Error parsing key/value pair: {1} = {2}. Reason: {3}".format(dev.name, key, self.finalDict[key], sub_error))
@@ -947,6 +950,7 @@ class PluginDevice(object):
             update_time = t.strftime("%m/%d/%Y at %H:%M")
             dev.updateStateOnServer('deviceLastUpdated', value=update_time)
             dev.updateStateOnServer('deviceTimestamp', value=t.time())
+            dev.updateStateOnServer('parse_error', value=False)
 
             # Throw the data to the appropriate module to flatten it.
             if dev.pluginProps['feedType'] == "XML":
@@ -971,7 +975,8 @@ class PluginDevice(object):
                     dev.updateStateOnServer('deviceIsOnline', value=False, uiValue=dev.states['GhostXML'])
                     dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
                     self.bad_calls += 1
-                elif "parse_error" in dev.states:
+                # elif "parse_error" in dev.states:
+                elif dev.states["parse_error"]:
                     dev.updateStateOnServer('deviceIsOnline', value=False, uiValue='Error')
                     dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
                     self.bad_calls += 1

@@ -1,5 +1,10 @@
 GhostXML Change Log
 
+v0.4.33
+- Fixes key 'deviceIsOnline.ui' does not exist bug.
+- Makes device state 'parse-error' a permanent state (rather than dynamically
+  generated).
+
 v0.4.32
 - Revises device initialization code to allow existing device states to persist
   when plugin is restarted.
