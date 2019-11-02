@@ -16,8 +16,6 @@ transitive Indigo plugin device states.
 # TODO: when a user retrieves an XML payload but has selected JSON, do they get an error to the log?
 # TODO: does the plugin work properly with URLs that include parameters?  (https://foo.com/bar/1234?user=***&pwd=***)
 
-# TODO: Move bad connection messages to the plugin private log and change the Indigo log message to be "Unable to connect - will keep trying" or something like that.
-
 # ================================Stock Imports================================
 # import datetime
 import xml.etree.ElementTree as Etree
@@ -47,7 +45,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.33"
+__version__   = u"0.4.34"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -134,7 +132,7 @@ class Plugin(indigo.PluginBase):
     # =============================================================================
     def deviceStartComm(self, dev):
 
-        dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Starting")
+        dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Starting")
 
         # =============== Update legacy authentication settings ===============
         new_props = dev.pluginProps
@@ -171,9 +169,9 @@ class Plugin(indigo.PluginBase):
 
         # Force refresh of device when comm started
         if int(dev.pluginProps['refreshFreq']) == 0:
-            dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Manual")
+            dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Manual")
         else:
-            dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Started")
+            dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Started")
             self.managedDevices[dev.id].queue.put(dev)
 
         self.logger.debug(u"[{0}] Communication started.".format(dev.name))
@@ -188,7 +186,6 @@ class Plugin(indigo.PluginBase):
         # Delete the device from the list of managed devices.
         del self.managedDevices[dev.id]
 
-        dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="Disabled")
         dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
         self.logger.debug(u"[{0}] Communication stopped.".format(dev.name))
 
@@ -243,27 +240,24 @@ class Plugin(indigo.PluginBase):
         :return state_list:
         """
 
-        if dev.enabled:
+        # This statement goes out and gets the existing state list for dev from Devices.xml.
+        state_list = indigo.PluginBase.getDeviceStateList(self, dev)
 
-            # If there are no managed devices, returns the existing states
-            if dev.id not in self.managedDevices.keys():
-                return indigo.PluginBase.getDeviceStateList(self, dev)
-
-            # This statement goes out and gets the existing state list for dev.
-            state_list = indigo.PluginBase.getDeviceStateList(self, dev)
-
-            if state_list is not None:
-
-                # Iterate the tags in final_dict into device state keys.
-                # Example: dynamic_state = self.getDeviceStateDictForStringType(key, u'Trigger Test Label', u'State Label')
-                # ================================================================================================
-                # Added a sort so the keys show up in alpha order on lists elsewhere.  DaveL17 2018-07-23
-                # ================================================================================================
-                for key in sorted(self.managedDevices[dev.id].finalDict.keys()):
-                    dynamic_state = self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key))
-                    state_list.append(dynamic_state)
+        # If there are no managed devices, return the existing static states.
+        if dev.id not in self.managedDevices.keys():
+            for key in dev.states:
+                dynamic_state = self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key))
+                state_list.append(dynamic_state)
 
             return state_list
+
+        # Iterate the tags in final_dict into device state keys.
+        else:
+            for key in sorted(self.managedDevices[dev.id].finalDict.keys()):
+                dynamic_state = self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key))
+                state_list.append(dynamic_state)
+
+        return state_list
 
 # =============================================================================
     def runConcurrentThread(self):
@@ -284,7 +278,7 @@ class Plugin(indigo.PluginBase):
                     retries = int(dev.pluginProps.get('maxRetries', 10))
                     if self.managedDevices[devId].bad_calls >= retries:
                         indigo.device.enable(devId, value=False)
-                        self.logger.critical(u"[{0}] Disabling {1} because it has failed {2}} times.".format(dev.id, dev.name, retries))
+                        self.logger.critical(u"[{0}] Disabling {1} because it has failed {2} times.".format(dev.id, dev.name, retries))
 
                     # If time_to_update returns True, add device to its queue.
                     else:
@@ -325,9 +319,9 @@ class Plugin(indigo.PluginBase):
         for dev in indigo.devices.itervalues("self"):
             if not dev.enabled:
                 dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="Disabled")
-
             else:
-                dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Initialized")
+                dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Initialized")
+
             dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
     # =============================================================================
@@ -689,8 +683,6 @@ class PluginDevice(object):
         :return result:
         """
 
-        dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Download")
-
         try:
             curlArray  = dev.pluginProps.get('curlArray', '')
             url        = dev.pluginProps['sourceXML']
@@ -924,7 +916,7 @@ class PluginDevice(object):
             except ValueError as sub_error:
                 self.host_plugin.logger.critical(u"[{0}] Error parsing key/value pair: {1} = {2}. Reason: {3}".format(dev.name, key, self.finalDict[key], sub_error))
                 dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
-                state_list.append({'key': 'deviceIsOnline', 'value': True, 'uiValue': "Error"})
+                state_list.append({'key': 'deviceIsOnline', 'value': False, 'uiValue': "Error"})
 
         dev.updateStatesOnServer(state_list)
 
@@ -945,12 +937,11 @@ class PluginDevice(object):
             # Get the data.
             self.rawData = self.get_the_data(dev)
 
-            dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Processing")
+            dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Processing")
 
             update_time = t.strftime("%m/%d/%Y at %H:%M")
             dev.updateStateOnServer('deviceLastUpdated', value=update_time)
             dev.updateStateOnServer('deviceTimestamp', value=t.time())
-            dev.updateStateOnServer('parse_error', value=False)
 
             # Throw the data to the appropriate module to flatten it.
             if dev.pluginProps['feedType'] == "XML":
@@ -975,8 +966,7 @@ class PluginDevice(object):
                     dev.updateStateOnServer('deviceIsOnline', value=False, uiValue=dev.states['GhostXML'])
                     dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
                     self.bad_calls += 1
-                # elif "parse_error" in dev.states:
-                elif dev.states["parse_error"]:
+                elif dev.states.get("parse_error", False):
                     dev.updateStateOnServer('deviceIsOnline', value=False, uiValue='Error')
                     dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
                     self.bad_calls += 1

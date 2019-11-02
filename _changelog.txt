@@ -1,5 +1,9 @@
 GhostXML Change Log
 
+v0.4.34
+- Improves setting of device online status in Indigo UI.
+- Bug fix (syntax error)
+
 v0.4.33
 - Fixes key 'deviceIsOnline.ui' does not exist bug.
 - Makes device state 'parse-error' a permanent state (rather than dynamically
