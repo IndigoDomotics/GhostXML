@@ -1,6 +1,9 @@
 GhostXML Change Log
 
 v0.4.34
+- Bug fixes.
+
+v0.4.34
 - Improves setting of device online status in Indigo UI.
 - Bug fix (syntax error)
 

@@ -45,7 +45,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.34"
+__version__   = u"0.4.35"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -157,12 +157,8 @@ class Plugin(indigo.PluginBase):
             dev.replacePluginPropsOnServer(new_props)
             self.sleep(2)
 
-        # 2019-10-29 DaveL17 ==================================================
-        # Removed the following to allow device states to persist when plugin
-        # is restarted.
         # Check for changes to the device's default states.
-        # dev.stateListOrDisplayStateIdChanged()
-        # =====================================================================
+        dev.stateListOrDisplayStateIdChanged()
 
         # Add device instance to dict of managed devices
         self.managedDevices[dev.id] = PluginDevice(self, dev)
@@ -243,7 +239,7 @@ class Plugin(indigo.PluginBase):
         # This statement goes out and gets the existing state list for dev from Devices.xml.
         state_list = indigo.PluginBase.getDeviceStateList(self, dev)
 
-        # If there are no managed devices, return the existing static states.
+        # If there are no managed devices, return the existing states.
         if dev.id not in self.managedDevices.keys():
             for key in dev.states:
                 dynamic_state = self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key))
@@ -251,7 +247,7 @@ class Plugin(indigo.PluginBase):
 
             return state_list
 
-        # Iterate the tags in final_dict into device state keys.
+        # If there are managed devices, return the keys that are in finalDict.
         else:
             for key in sorted(self.managedDevices[dev.id].finalDict.keys()):
                 dynamic_state = self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key))
@@ -278,6 +274,7 @@ class Plugin(indigo.PluginBase):
                     retries = int(dev.pluginProps.get('maxRetries', 10))
                     if self.managedDevices[devId].bad_calls >= retries:
                         indigo.device.enable(devId, value=False)
+                        dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
                         self.logger.critical(u"[{0}] Disabling {1} because it has failed {2} times.".format(dev.id, dev.name, retries))
 
                     # If time_to_update returns True, add device to its queue.
@@ -318,7 +315,7 @@ class Plugin(indigo.PluginBase):
         # We can't use managedDevices here because they may not yet have showed up.
         for dev in indigo.devices.itervalues("self"):
             if not dev.enabled:
-                dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="Disabled")
+                dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Disabled")
             else:
                 dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Initialized")
 
@@ -878,6 +875,8 @@ class PluginDevice(object):
                 parsed_simplejson = dict((u"No_" + unicode(i), v) for (i, v) in enumerate(parsed_simplejson))
 
             self.jsonRawData = flatdict.FlatDict(parsed_simplejson, delimiter='_ghostxml_')
+
+            dev.updateStateOnServer('parse_error', value=False)
 
             return self.jsonRawData
 
