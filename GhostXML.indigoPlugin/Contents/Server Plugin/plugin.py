@@ -15,6 +15,7 @@ transitive Indigo plugin device states.
 # TODO: validate URLs with quotes around them.
 # TODO: when a user retrieves an XML payload but has selected JSON, do they get an error to the log?
 # TODO: does the plugin work properly with URLs that include parameters?  (https://foo.com/bar/1234?user=***&pwd=***)
+# TODO: add a trigger that fires when communication for a device is disabled (dev.enabled == False)
 
 # ================================Stock Imports================================
 # import datetime
@@ -62,6 +63,7 @@ class Plugin(indigo.PluginBase):
 
         self.pluginIsInitializing = True
         self.pluginIsShuttingDown = False
+        self.master_trigger_dict  = {'disabled': Queue()}
 
         # ============================ Configure Logging ==============================
         self.debugLevel = int(self.pluginPrefs['showDebugLevel'])
@@ -273,14 +275,18 @@ class Plugin(indigo.PluginBase):
                     # If a device has failed multiple times, disable it and notify the user.
                     retries = int(dev.pluginProps.get('maxRetries', 10))
                     if self.managedDevices[devId].bad_calls >= retries:
-                        indigo.device.enable(devId, value=False)
-                        dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
-                        self.logger.critical(u"[{0}] Disabling {1} because it has failed {2} times.".format(dev.id, dev.name, retries))
+                        if dev.enabled:
+                            self.master_trigger_dict['disabled'].put(dev.id)
+                            self.logger.critical(u"[{0}] Disabling {1} device because it has failed {2} times.".format(dev.id, dev.name, retries))
+                            indigo.device.enable(devId, value=False)
+                            dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
 
                     # If time_to_update returns True, add device to its queue.
                     else:
                         if self.time_to_update(dev):
                             self.managedDevices[devId].queue.put(dev)
+
+                self.process_triggers()
 
                 self.sleep(2)
 
@@ -440,6 +446,11 @@ class Plugin(indigo.PluginBase):
         return True
 
     # =============================================================================
+    def getDeviceList(self, filter="", typeId=0, valuesDict=None, targetId=0):
+
+        return [(dev.id, dev.name) for dev in indigo.devices.itervalues(filter="self")]
+
+    # =============================================================================
     def refreshDataAction(self, valuesDict):
         """
         Legacy callback to Refresh Data for All Devices
@@ -583,6 +594,34 @@ class Plugin(indigo.PluginBase):
         # If the device does not have a timestamp key and/or is disabled.
         else:
             return False
+
+    # =============================================================================
+    def triggerStartProcessing(self, trigger):
+
+        self.master_trigger_dict[trigger.pluginProps['disabledDevice']] = trigger.id
+
+    # =============================================================================
+    def triggerStopProcessing(self, trigger):
+
+        pass
+
+    def process_triggers(self):
+
+        try:
+            q = self.master_trigger_dict['disabled']
+            while not q.empty():
+                dev_id  = q.get()
+                dev     = indigo.devices[dev_id]
+                retries = dev.pluginProps['maxRetries']
+
+                if str(dev_id) in self.master_trigger_dict.keys():
+                    trigger_id = self.master_trigger_dict[str(dev_id)]
+
+                    if indigo.triggers[trigger_id].enabled:
+                        indigo.trigger.execute(trigger_id)
+
+        except KeyError:
+            pass
 
     # =============================================================================
     def adjust_refresh_time(self, valuesDict):
