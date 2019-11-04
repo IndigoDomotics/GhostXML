@@ -14,7 +14,7 @@
 
                 <Field id="disabledDevice" type="menu">
                     <Label>Device:</Label>
-                    <List class="self" filter="" method="getDeviceList"/>
+                    <List class="self" filter="" method="get_device_list"/>
                 </Field>
 
             </ConfigUI>

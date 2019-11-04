@@ -15,7 +15,7 @@ transitive Indigo plugin device states.
 # TODO: validate URLs with quotes around them.
 # TODO: when a user retrieves an XML payload but has selected JSON, do they get an error to the log?
 # TODO: does the plugin work properly with URLs that include parameters?  (https://foo.com/bar/1234?user=***&pwd=***)
-# TODO: add a trigger that fires when communication for a device is disabled (dev.enabled == False)
+# TODO: if a device is enabled right before the runConcurrentThread sleep runs out, the device will update in comm start and immediately again in runConcurrentThread.
 
 # ================================Stock Imports================================
 # import datetime
@@ -272,12 +272,16 @@ class Plugin(indigo.PluginBase):
                 for devId in self.managedDevices:
                     dev = self.managedDevices[devId].device
 
+                    # TODO: Move this to a method.
                     # If a device has failed multiple times, disable it and notify the user.
                     retries = int(dev.pluginProps.get('maxRetries', 10))
                     if self.managedDevices[devId].bad_calls >= retries:
                         if dev.enabled:
+
+                            # Add the disabled device to the trigger queue and disable the device.
                             self.master_trigger_dict['disabled'].put(dev.id)
-                            self.logger.critical(u"[{0}] Disabling {1} device because it has failed {2} times.".format(dev.id, dev.name, retries))
+
+                            self.logger.critical(u"Disabling device: [{0}] {1} because it has failed {2} times.".format(dev.id, dev.name, retries))
                             indigo.device.enable(devId, value=False)
                             dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
 
@@ -328,6 +332,16 @@ class Plugin(indigo.PluginBase):
             dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
     # =============================================================================
+    def triggerStartProcessing(self, trigger):
+
+        self.master_trigger_dict[trigger.pluginProps['disabledDevice']] = trigger.id
+
+    # =============================================================================
+    def triggerStopProcessing(self, trigger):
+
+        pass
+
+    # =============================================================================
     def validateDeviceConfigUi(self, valuesDict, typeID, devId):
 
         error_msg_dict = indigo.Dict()
@@ -369,42 +383,39 @@ class Plugin(indigo.PluginBase):
                     pass
                 elif int(valuesDict[sub[0]]) not in var_list:
                     error_msg_dict[sub[0]] = u"You must supply a valid variable ID."
-                    error_msg_dict['showAlertText'] = u"Variable {0} Error\n\nYou must supply a valid Indigo variable ID number to perform substitutions (or leave the field blank).".format(sub[0].replace('sub', ''))
+                    error_msg_dict['showAlertText'] = u"Variable {0} Error\n\nYou must supply a valid Indigo variable ID number to perform substitutions (or leave the field " \
+                                                      u"blank).".format(sub[0].replace('sub', ''))
                     return False, valuesDict, error_msg_dict
 
         return True, valuesDict, error_msg_dict
 
     # =============================================================================
-    # def validatePrefsConfigUi(self, valuesDict):
-    #
-    #     local plugin update notification removed, but this deprecated code left
-    #     if place for the next time a validation routine is needed for reference.
-    #
-    #     error_msg_dict = indigo.Dict()
-    #     update_email   = valuesDict['updaterEmail']
-    #     update_wanted  = valuesDict['updaterEmailsEnabled']
-    #
-    #     # Test plugin update notification settings.
-    #     try:
-    #         if update_wanted and not update_email:
-    #             error_msg_dict['updaterEmail'] = u"If you want to be notified of updates, you must supply an email address."
-    #             error_msg_dict['showAlertText'] = u"Updater Email Error:\n\nThe plugin requires a valid email address in order to notify of plugin updates."
-    #             return False, valuesDict, error_msg_dict
-    #
-    #         elif update_wanted and "@" not in update_email:
-    #             error_msg_dict['updaterEmail'] = u"Valid email addresses have at least one @ symbol in them (initiate_device_update@bar.com)."
-    #             error_msg_dict['showAlertText'] = u"Updater Email Error:\n\nThe plugin requires a valid email address in order to notify of plugin updates (email address must " \
-    #                                               u"contain an '@' sign."
-    #
-    #             return False, valuesDict, error_msg_dict
-    #
-    #     except Exception as sub_error:
-    #         self.logger.warning(u"Plugin configuration error: {0}".format(sub_error))
-    #
-    #     return True, valuesDict
-
-    # =============================================================================
     # =============================== Plugin Methods ===============================
+    # =============================================================================
+    def adjust_refresh_time(self, valuesDict):
+        """
+        Programmatically Adjust the refresh time for an individual device
+
+        The adjust_refresh_time method is used to adjust the refresh frequency of an
+        individual GhostXML device by calling an Indigo Action. For example, user
+        creates an Indigo Trigger that fires--based on some criteria like the value
+        of a GhostXML state, which in turn calls an Indigo Action Item to adjust the
+        refresh frequency. In other words, the user can increase/decrease the frequency
+        based on some condition.
+
+        -----
+
+        :param indigo.Dict() valuesDict:
+        :return:
+        """
+        dev = self.managedDevices[valuesDict.deviceId].device
+
+        new_props = dev.pluginProps
+        new_props['refreshFreq'] = int(valuesDict.props['new_refresh_freq'])
+        dev.replacePluginPropsOnServer(new_props)
+
+        return True
+
     # =============================================================================
     def comms_kill_all(self):
         """
@@ -446,9 +457,32 @@ class Plugin(indigo.PluginBase):
         return True
 
     # =============================================================================
-    def getDeviceList(self, filter="", typeId=0, valuesDict=None, targetId=0):
+    def get_device_list(self, filter="", typeId=0, valuesDict=None, targetId=0):
 
         return [(dev.id, dev.name) for dev in indigo.devices.itervalues(filter="self")]
+
+    # =============================================================================
+    def process_triggers(self):
+        """
+        Process plugin triggers
+
+        -----
+
+        :return:
+        """
+        try:
+            disabled_devices_queue = self.master_trigger_dict['disabled']
+
+            # Process any device IDs in the disable devices queue.
+            while not disabled_devices_queue.empty():
+                dev_id     = disabled_devices_queue.get()
+                trigger_id = self.master_trigger_dict[str(dev_id)]
+
+                if indigo.triggers[trigger_id].enabled:
+                    indigo.trigger.execute(trigger_id)
+
+        except KeyError:
+            pass
 
     # =============================================================================
     def refreshDataAction(self, valuesDict):
@@ -541,6 +575,7 @@ class Plugin(indigo.PluginBase):
 
         return True
 
+    # TODO: It appears this method is no longer used.
     # =============================================================================
     def stop_sleep(self, start_sleep):
         """
@@ -594,59 +629,6 @@ class Plugin(indigo.PluginBase):
         # If the device does not have a timestamp key and/or is disabled.
         else:
             return False
-
-    # =============================================================================
-    def triggerStartProcessing(self, trigger):
-
-        self.master_trigger_dict[trigger.pluginProps['disabledDevice']] = trigger.id
-
-    # =============================================================================
-    def triggerStopProcessing(self, trigger):
-
-        pass
-
-    def process_triggers(self):
-
-        try:
-            q = self.master_trigger_dict['disabled']
-            while not q.empty():
-                dev_id  = q.get()
-                dev     = indigo.devices[dev_id]
-                retries = dev.pluginProps['maxRetries']
-
-                if str(dev_id) in self.master_trigger_dict.keys():
-                    trigger_id = self.master_trigger_dict[str(dev_id)]
-
-                    if indigo.triggers[trigger_id].enabled:
-                        indigo.trigger.execute(trigger_id)
-
-        except KeyError:
-            pass
-
-    # =============================================================================
-    def adjust_refresh_time(self, valuesDict):
-        """
-        Programmatically Adjust the refresh time for an individual device
-
-        The adjust_refresh_time method is used to adjust the refresh frequency of an
-        individual GhostXML device by calling an Indigo Action. For example, user
-        creates an Indigo Trigger that fires--based on some criteria like the value
-        of a GhostXML state, which in turn calls an Indigo Action Item to adjust the
-        refresh frequency. In other words, the user can increase/decrease the frequency
-        based on some condition.
-
-        -----
-
-        :param indigo.Dict() valuesDict:
-        :return:
-        """
-        dev = self.managedDevices[valuesDict.deviceId].device
-
-        new_props = dev.pluginProps
-        new_props['refreshFreq'] = int(valuesDict.props['new_refresh_freq'])
-        dev.replacePluginPropsOnServer(new_props)
-
-        return True
 
 
 class PluginDevice(object):
