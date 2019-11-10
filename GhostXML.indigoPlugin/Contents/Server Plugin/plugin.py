@@ -46,7 +46,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.35"
+__version__   = u"0.4.36"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -92,10 +92,10 @@ class Plugin(indigo.PluginBase):
 
         # Adding support for remote debugging in PyCharm. Other remote debugging
         # facilities can be added, but only one can be run at a time.
-        try:
-            pydevd.settrace('localhost', port=5678, stdoutToServer=True, stderrToServer=True, suspend=False)
-        except:
-            pass
+        # try:
+        #     pydevd.settrace('localhost', port=5678, stdoutToServer=True, stderrToServer=True, suspend=False)
+        # except ImportError:
+        #     pass
 
         self.pluginIsInitializing = False
 
@@ -170,7 +170,10 @@ class Plugin(indigo.PluginBase):
             dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Manual")
         else:
             dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Started")
-            self.managedDevices[dev.id].queue.put(dev)
+            # DaveL17 - removed next line because devices could be refreshed twice in the
+            # first 2 seconds upon plugin (or device) restart. It doesn't appear to be
+            # necessary as a device will check within 2 seconds of deviceStartComm.
+            # self.managedDevices[dev.id].queue.put(dev)
 
         self.logger.debug(u"[{0}] Communication started.".format(dev.name))
 
@@ -192,8 +195,8 @@ class Plugin(indigo.PluginBase):
 
         current_freq  = indigo.devices[devId].pluginProps.get('refreshFreq', '15')
         list_of_freqs = []
-        XML           = self.devicesTypeDict[typeId]["ConfigUIRawXml"]
-        root          = Etree.fromstring(XML)
+        xml           = self.devicesTypeDict[typeId]["ConfigUIRawXml"]
+        root          = Etree.fromstring(xml)
 
         if typeId == 'GhostXMLdevice':
 
@@ -390,7 +393,7 @@ class Plugin(indigo.PluginBase):
         return True, valuesDict, error_msg_dict
 
     # =============================================================================
-    # =============================== Plugin Methods ===============================
+    # =============================== Plugin Methods ==============================
     # =============================================================================
     def adjust_refresh_time(self, valuesDict):
         """
@@ -702,7 +705,7 @@ class PluginDevice(object):
         """
 
         try:
-            curlArray  = dev.pluginProps.get('curlArray', '')
+            curl_array  = dev.pluginProps.get('curlArray', '')
             url        = dev.pluginProps['sourceXML']
             username   = dev.pluginProps.get('digestUser', '')
             password   = dev.pluginProps.get('digestPass', '')
@@ -724,8 +727,8 @@ class PluginDevice(object):
             # Added by GlennNZ - 2018 12 06
             # if using raw Curl - don't worry about auth_Type or much else
             if auth_type == "Raw":
-                self.host_plugin.logger.debug(u'/usr/bin/curl -vsk {0} {1}'.format(curlArray, url))
-                proc = subprocess.Popen('/usr/bin/curl -vsk ' + curlArray + ' ' + url, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+                self.host_plugin.logger.debug(u'/usr/bin/curl -vsk {0} {1}'.format(curl_array, url))
+                proc = subprocess.Popen('/usr/bin/curl -vsk ' + curl_array + ' ' + url, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             # =============================================================================
 
             # Digest auth

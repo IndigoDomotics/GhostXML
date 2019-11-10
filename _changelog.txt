@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.4.36
+- Increases compliance with PEP 8.
+
 v0.4.35
 - Adds trigger that fires when a device has been automatically disabled by the
   plugin due to failed attempts.
