@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.4.37
+- Removes all references to legacy version checking.
+
 v0.4.36
 - Increases compliance with PEP 8.
 
