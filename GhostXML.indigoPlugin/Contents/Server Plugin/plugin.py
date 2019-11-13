@@ -10,12 +10,6 @@ transitive Indigo plugin device states.
 """
 
 # TODO: Additional auth types: Oauth2, WSSE
-# TODO: Make a new testing device that requires token auth
-# TODO: Find a way to synchronize managed devices with the server (i.e., dev.lastChanged).
-# TODO: validate URLs with quotes around them.
-# TODO: when a user retrieves an XML payload but has selected JSON, do they get an error to the log?
-# TODO: does the plugin work properly with URLs that include parameters?  (https://foo.com/bar/1234?user=***&pwd=***)
-# TODO: if a device is enabled right before the runConcurrentThread sleep runs out, the device will update in comm start and immediately again in runConcurrentThread.
 
 # ================================Stock Imports================================
 # import datetime
@@ -46,7 +40,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.36"
+__version__   = u"0.4.38"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -275,18 +269,10 @@ class Plugin(indigo.PluginBase):
                 for devId in self.managedDevices:
                     dev = self.managedDevices[devId].device
 
-                    # TODO: Move this to a method.
-                    # If a device has failed multiple times, disable it and notify the user.
+                    # If a device has failed too many times, disable it and notify the user.
                     retries = int(dev.pluginProps.get('maxRetries', 10))
                     if self.managedDevices[devId].bad_calls >= retries:
-                        if dev.enabled:
-
-                            # Add the disabled device to the trigger queue and disable the device.
-                            self.master_trigger_dict['disabled'].put(dev.id)
-
-                            self.logger.critical(u"Disabling device: [{0}] {1} because it has failed {2} times.".format(dev.id, dev.name, retries))
-                            indigo.device.enable(devId, value=False)
-                            dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
+                        self.process_bad_calls(dev, retries)
 
                     # If time_to_update returns True, add device to its queue.
                     else:
@@ -294,7 +280,6 @@ class Plugin(indigo.PluginBase):
                             self.managedDevices[devId].queue.put(dev)
 
                 self.process_triggers()
-
                 self.sleep(2)
 
         except self.StopThread:
@@ -353,6 +338,7 @@ class Plugin(indigo.PluginBase):
         url            = valuesDict['sourceXML']
         url_list       = ('file:///', 'http://', 'https://')
         use_digest     = valuesDict['useDigest']
+        valid_chars    = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;="
         var_list       = [var.id for var in indigo.variables]
 
         try:
@@ -463,6 +449,23 @@ class Plugin(indigo.PluginBase):
     def get_device_list(self, filter="", typeId=0, valuesDict=None, targetId=0):
 
         return [(dev.id, dev.name) for dev in indigo.devices.itervalues(filter="self")]
+
+    # =============================================================================
+    def process_bad_calls(self, dev, retries):
+        """
+        If a device has made too many unsuccessful attempts
+
+        -----
+
+        :return:
+        """
+        if dev.enabled:
+            # Add the device to the trigger queue and disable it.
+            self.master_trigger_dict['disabled'].put(dev.id)
+
+            self.logger.critical(u"Disabling device: [{0}] {1} because it has failed {2} times.".format(dev.id, dev.name, retries))
+            indigo.device.enable(dev.id, value=False)
+            dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
 
     # =============================================================================
     def process_triggers(self):
