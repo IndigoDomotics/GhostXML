@@ -40,7 +40,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.38"
+__version__   = u"0.4.39"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -581,27 +581,29 @@ class Plugin(indigo.PluginBase):
 
         return True
 
-    # TODO: It appears this method is no longer used.
+    # 2019-11-13 DaveL17 - I ran grep against the plugin folder and plugin.py is
+    # the only hit.  This method is the only spot in plugin.py where it's called.
+    # Earmarked for removal.
     # =============================================================================
-    def stop_sleep(self, start_sleep):
-        """
-        Update device sleep value as warranted
-
-        The stop_sleep() method accounts for changes to the user upload interval
-        preference. The plugin checks every 2 seconds to see if the sleep interval
-        should be updated.
-
-        -----
-
-        :param start_sleep:
-        """
-
-        total_sleep = float(self.pluginPrefs.get('configMenuUploadInterval', 300))
-
-        if t.time() - start_sleep > total_sleep:
-            return True
-
-        return False
+    # def stop_sleep(self, start_sleep):
+    #     """
+    #     Update device sleep value as warranted
+    #
+    #     The stop_sleep() method accounts for changes to the user upload interval
+    #     preference. The plugin checks every 2 seconds to see if the sleep interval
+    #     should be updated.
+    #
+    #     -----
+    #
+    #     :param start_sleep:
+    #     """
+    #
+    #     total_sleep = float(self.pluginPrefs.get('configMenuUploadInterval', 300))
+    #
+    #     if t.time() - start_sleep > total_sleep:
+    #         return True
+    #
+    #     return False
 
     # =============================================================================
     def time_to_update(self, dev):
@@ -778,11 +780,12 @@ class PluginDevice(object):
 
             finally:
                 timer_kill.cancel()
-            # =============================================================================
 
-            # TODO: Get more specific on what the proc.returncode is.  For example, this error:
-            #  2019-05-28 22:59:02.650	GhostXML Warning	[607047935] curl error *   Trying 162.58.33.179... * TCP_NODELAY set .
-            #  doesn't give the user much information on why the call was unsuccessful.
+            # =============================================================================
+            # 2019-11-13 DaveL17: Did a little digging on exit codes to see about being
+            # more specific on the result.  However, it appears that exit codes are site
+            # dependent and (according to brief research) generally underdeveloped. Looks
+            # like there's not much more that can be provided to the user.
             if int(proc.returncode) != 0:
                 self.host_plugin.logger.warning(u"[{0}] curl error {1}. [Return code: {2}".format(dev.name, err.replace('\n', ' '), proc.returncode))
 

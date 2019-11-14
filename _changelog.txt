@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.4.39
+- Initial deprecation of the stop_sleep() method (unused).
+
 v0.4.38
 - Moved max retries code to its own method.
 
