@@ -10,6 +10,8 @@ transitive Indigo plugin device states.
 """
 
 # TODO: Additional auth types: Oauth2, WSSE
+# TODO: when device name is changed, it doesn't get updated in the plugin.
+# TODO: phony IP device doesn't show offline in UI.  Look at "no data to return" in code. Note that this was not tested on LAN.
 
 # ================================Stock Imports================================
 # import datetime
@@ -40,7 +42,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.39"
+__version__   = u"0.4.40"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -254,7 +256,7 @@ class Plugin(indigo.PluginBase):
 
         return state_list
 
-# =============================================================================
+    # =============================================================================
     def runConcurrentThread(self):
 
         # This sleep will execute only when the plugin is started/restarted. It gives
@@ -338,7 +340,6 @@ class Plugin(indigo.PluginBase):
         url            = valuesDict['sourceXML']
         url_list       = ('file:///', 'http://', 'https://')
         use_digest     = valuesDict['useDigest']
-        valid_chars    = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;="
         var_list       = [var.id for var in indigo.variables]
 
         try:
@@ -821,7 +822,7 @@ class PluginDevice(object):
             # simply deleting them could cause problems. Add additional k/v pairs to
             # chars_to_replace as needed.
 
-            chars_to_replace = {'_ghostxml_': '_', '+': '_plus_', '-': '_minus_', 'true': 'True', 'false': 'False', ' ': '_'}
+            chars_to_replace = {'_ghostxml_': '_', '+': '_plus_', '-': '_minus_', 'true': 'True', 'false': 'False', ' ': '_', ':': '_colon_', '.': '_dot_'}
             chars_to_replace = dict((re.escape(k), v) for k, v in chars_to_replace.iteritems())
             pattern          = re.compile("|".join(chars_to_replace.keys()))
 
@@ -963,6 +964,8 @@ class PluginDevice(object):
 
         if dev.configured and dev.enabled:
 
+            self.host_plugin.logger.info(u"{0}".format(dev.name))
+
             # Get the data.
             self.rawData = self.get_the_data(dev)
 
@@ -996,6 +999,11 @@ class PluginDevice(object):
                     dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
                     self.bad_calls += 1
                 elif dev.states.get("parse_error", False):
+                    dev.updateStateOnServer('deviceIsOnline', value=False, uiValue='Error')
+                    dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
+                    self.bad_calls += 1
+                # 2019-11-23 DaveL17 Added additional condition where device should be marked as offline.
+                elif dev.states.get("Response", "") == "No data to return.":
                     dev.updateStateOnServer('deviceIsOnline', value=False, uiValue='Error')
                     dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
                     self.bad_calls += 1

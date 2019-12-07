@@ -1,5 +1,9 @@
 GhostXML Change Log
 
+v0.4.40
+- Widens coverage to include additional API constructions.
+- Code cleanup.
+
 v0.4.39
 - Initial deprecation of the stop_sleep() method (unused).
 
