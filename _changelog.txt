@@ -1,5 +1,9 @@
 GhostXML Change Log
 
+v0.4.41
+- Improvements to device configuration validation.
+- Code refinements.
+
 v0.4.40
 - Widens coverage to include additional API constructions.
 - Code cleanup.

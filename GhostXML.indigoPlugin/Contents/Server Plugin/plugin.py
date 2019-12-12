@@ -42,7 +42,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.40"
+__version__   = u"0.4.41"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -102,23 +102,23 @@ class Plugin(indigo.PluginBase):
     # =============================================================================
     # =============================== Indigo Methods ===============================
     # =============================================================================
-    def closedPrefsConfigUi(self, valuesDict, userCancelled):
+    def closedPrefsConfigUi(self, values_dict, user_cancelled):
 
         current_debug_level = {10: 'Debug', 20: 'Info', 30: 'Warning', 40: 'Error', 50: 'Critical'}
 
-        if not userCancelled:
+        if not user_cancelled:
 
             # Ensure that self.pluginPrefs includes any recent changes.
-            for k in valuesDict:
-                self.pluginPrefs[k] = valuesDict[k]
+            for k in values_dict:
+                self.pluginPrefs[k] = values_dict[k]
 
-            self.debugLevel = int(valuesDict.get('showDebugLevel', "30"))
+            self.debugLevel = int(values_dict.get('showDebugLevel', "30"))
             self.indigo_log_handler.setLevel(self.debugLevel)
 
             indigo.server.log(u"Debugging on (Level: {0} ({1})".format(current_debug_level[self.debugLevel], self.debugLevel))
 
             if self.debugLevel == 10:
-                self.logger.debug(u"valuesDict: {0} ".format(valuesDict))
+                self.logger.debug(u"values_dict: {0} ".format(values_dict))
 
             self.logger.debug(u"User prefs saved.")
 
@@ -187,14 +187,14 @@ class Plugin(indigo.PluginBase):
         self.logger.debug(u"[{0}] Communication stopped.".format(dev.name))
 
     # =============================================================================
-    def getDeviceConfigUiXml(self, typeId, devId):
+    def getDeviceConfigUiXml(self, type_id, dev_id):
 
-        current_freq  = indigo.devices[devId].pluginProps.get('refreshFreq', '15')
+        current_freq  = indigo.devices[dev_id].pluginProps.get('refreshFreq', '15')
         list_of_freqs = []
-        xml           = self.devicesTypeDict[typeId]["ConfigUIRawXml"]
+        xml           = self.devicesTypeDict[type_id]["ConfigUIRawXml"]
         root          = Etree.fromstring(xml)
 
-        if typeId == 'GhostXMLdevice':
+        if type_id == 'GhostXMLdevice':
 
             # Get current list of refresh frequencies from the XML file.
             for item in root.findall('Field'):
@@ -332,57 +332,62 @@ class Plugin(indigo.PluginBase):
         pass
 
     # =============================================================================
-    def validateDeviceConfigUi(self, valuesDict, typeID, devId):
+    def validateDeviceConfigUi(self, values_dict, type_id, dev_id):
+
+        class DeviceValidationError(Exception):
+            def __init__(self, key=(), alert_text=None, message=u'Error!'):
+                self.key = key
+                self.alert_text = alert_text
+                self.message = message
 
         error_msg_dict = indigo.Dict()
         sub_list       = (('subA', '[A]'), ('subB', '[B]'), ('subC', '[C]'), ('subD', '[D]'), ('subE', '[E]'))
-        token_url      = valuesDict['tokenUrl']
-        url            = valuesDict['sourceXML']
+        token_url      = values_dict['tokenUrl']
+        url            = values_dict['sourceXML']
         url_list       = ('file:///', 'http://', 'https://')
-        use_digest     = valuesDict['useDigest']
+        use_digest     = values_dict['useDigest']
         var_list       = [var.id for var in indigo.variables]
 
         try:
-            _ = int(valuesDict['maxRetries'])
-        except ValueError:
-            error_msg_dict['maxRetries'] = u"You must enter an integer."
-            error_msg_dict['showAlertText'] = u"Max Retries Error.\n\nThe value must be an integer."
-            return False, valuesDict, error_msg_dict
+            try:
+                _ = int(values_dict['maxRetries'])
+            except ValueError:
+                raise DeviceValidationError(key=('maxRetries',), alert_text=u"Max Retries Error.\n\nThe value must be an integer.", message=u"You must enter an integer.")
 
-        # Test the source URL/Path for proper prefix.
-        if not url.startswith(url_list):
-            error_msg_dict['sourceXML'] = u"You must supply a valid URL/Path."
-            error_msg_dict['showAlertText'] = u"URL/Path Error.\n\nA valid URL/Path starts with:\n'http://',\n'https://', or\n'file:///'."
-            return False, valuesDict, error_msg_dict
+            # Test the source URL/Path for proper prefix.
+            if not url.startswith(url_list):
+                raise DeviceValidationError(key=('sourceXML',), alert_text=u"URL/Path Error.\n\nA valid URL/Path starts with:\n'http://',\n'https://', or\n'file:///'.", message=u"You must supply a valid URL/Path.")
 
-        # Test the token URL/Path for proper prefix.
-        if use_digest == 'Token' and not token_url.startswith(url_list):
-            error_msg_dict['sourceXML'] = u"You must supply a valid Token URL."
-            error_msg_dict['showAlertText'] = u"Token Error.\n\nA valid URL/Path starts with:\n'http://',\n'https://', or\n'file:///'."
-            return False, valuesDict, error_msg_dict
+            # Test the token URL/Path for proper prefix.
+            if use_digest == 'Token' and not token_url.startswith(url_list):
+                raise DeviceValidationError(key=('sourceXML',), alert_text=u"Token Error.\n\nA valid URL/Path starts with:\n'http://',\n'https://', or\n'file:///'.", message=u"You must supply a valid Token URL.")
 
-        # Test the variable substitution IDs and indexes. If substitutions aren't
-        # enabled, we can skip this bit.
-        if valuesDict['doSubs']:
+            # Test the variable substitution IDs and indexes. If substitutions aren't
+            # enabled, we can skip this bit.
+            if values_dict['doSubs']:
 
-            for sub in sub_list:
+                for sub in sub_list:
 
-                # Ensure that the values entered in the substitution fields are valid Indigo
-                # variable IDs.
-                if valuesDict[sub[0]].isspace() or valuesDict[sub[0]] == "":
-                    pass
-                elif int(valuesDict[sub[0]]) not in var_list:
-                    error_msg_dict[sub[0]] = u"You must supply a valid variable ID."
-                    error_msg_dict['showAlertText'] = u"Variable {0} Error\n\nYou must supply a valid Indigo variable ID number to perform substitutions (or leave the field " \
-                                                      u"blank).".format(sub[0].replace('sub', ''))
-                    return False, valuesDict, error_msg_dict
+                    # Ensure that the values entered in the substitution fields are valid Indigo
+                    # variable IDs.
+                    if values_dict[sub[0]].isspace() or values_dict[sub[0]] == "":
+                        pass
+                    elif int(values_dict[sub[0]]) not in var_list:
+                        raise DeviceValidationError(key=(sub[0],), alert_text=u"Variable {0} Error\n\nYou must supply a valid Indigo variable ID number to perform substitutions (or leave the field blank).".format(sub[0].replace('sub', '')), message=u"You must supply a valid variable ID.")
 
-        return True, valuesDict, error_msg_dict
+            return True, values_dict, error_msg_dict
+
+        except DeviceValidationError as err:
+            for key in err.key:
+                error_msg_dict[key] = err.message
+            if err.alert_text:
+                error_msg_dict['showAlertText'] = err.alert_text
+            return False, values_dict, error_msg_dict
 
     # =============================================================================
     # =============================== Plugin Methods ==============================
     # =============================================================================
-    def adjust_refresh_time(self, valuesDict):
+    def adjust_refresh_time(self, values_dict):
         """
         Programmatically Adjust the refresh time for an individual device
 
@@ -395,13 +400,13 @@ class Plugin(indigo.PluginBase):
 
         -----
 
-        :param indigo.Dict() valuesDict:
+        :param indigo.Dict() values_dict:
         :return:
         """
-        dev = self.managedDevices[valuesDict.deviceId].device
+        dev = self.managedDevices[values_dict.deviceId].device
 
         new_props = dev.pluginProps
-        new_props['refreshFreq'] = int(valuesDict.props['new_refresh_freq'])
+        new_props['refreshFreq'] = int(values_dict.props['new_refresh_freq'])
         dev.replacePluginPropsOnServer(new_props)
 
         return True
@@ -447,7 +452,7 @@ class Plugin(indigo.PluginBase):
         return True
 
     # =============================================================================
-    def get_device_list(self, filter="", typeId=0, valuesDict=None, targetId=0):
+    def get_device_list(self, filter="", type_id=0, values_dict=None, target_id=0):
 
         return [(dev.id, dev.name) for dev in indigo.devices.itervalues(filter="self")]
 
@@ -492,7 +497,7 @@ class Plugin(indigo.PluginBase):
             pass
 
     # =============================================================================
-    def refreshDataAction(self, valuesDict):
+    def refreshDataAction(self, values_dict):
         """
         Legacy callback to Refresh Data for All Devices
 
@@ -503,10 +508,10 @@ class Plugin(indigo.PluginBase):
         :return:
         """
         self.logger.warning(u"You are using an outdated plugin Action Item. Please update it.")
-        self.refresh_data_action(valuesDict)
+        self.refresh_data_action(values_dict)
 
     # =============================================================================
-    def refreshDataForDevAction(self, valuesDict):
+    def refreshDataForDevAction(self, values_dict):
         """
         Legacy callback to Refresh Data for a Specified Device
 
@@ -518,10 +523,10 @@ class Plugin(indigo.PluginBase):
         :return:
         """
         self.logger.warning(u"You are using an outdated plugin Action Item. Please update it.")
-        self.refresh_data_for_dev_action(valuesDict)
+        self.refresh_data_for_dev_action(values_dict)
 
     # =============================================================================
-    def refresh_data_action(self, valuesDict):
+    def refresh_data_action(self, values_dict):
         """
         Initiate data refresh based on menu call
 
@@ -530,10 +535,10 @@ class Plugin(indigo.PluginBase):
 
         -----
 
-        :param valuesDict:
+        :param values_dict:
         """
         self.refresh_data()
-        return True, valuesDict
+        return True, values_dict
 
     # =============================================================================
     def refresh_data(self):
@@ -565,7 +570,7 @@ class Plugin(indigo.PluginBase):
             return False
 
     # =============================================================================
-    def refresh_data_for_dev_action(self, valuesDict):
+    def refresh_data_for_dev_action(self, values_dict):
         """
         Initiate a device refresh based on an Indigo Action call
 
@@ -574,10 +579,10 @@ class Plugin(indigo.PluginBase):
 
         -----
 
-        :param valuesDict:
+        :param values_dict:
         """
 
-        dev = self.managedDevices[valuesDict.deviceId].device
+        dev = self.managedDevices[values_dict.deviceId].device
         self.managedDevices[dev.id].queue.put(dev)
 
         return True
