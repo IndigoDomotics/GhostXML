@@ -166,10 +166,6 @@ class Plugin(indigo.PluginBase):
             dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Manual")
         else:
             dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Started")
-            # DaveL17 - removed next line because devices could be refreshed twice in the
-            # first 2 seconds upon plugin (or device) restart. It doesn't appear to be
-            # necessary as a device will check within 2 seconds of deviceStartComm.
-            # self.managedDevices[dev.id].queue.put(dev)
 
         self.logger.debug(u"[{0}] Communication started.".format(dev.name))
 
@@ -183,7 +179,9 @@ class Plugin(indigo.PluginBase):
         # Delete the device from the list of managed devices.
         del self.managedDevices[dev.id]
 
+        # Update the device's icon to reflect the stopped condition.
         dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
+
         self.logger.debug(u"[{0}] Communication stopped.".format(dev.name))
 
     # =============================================================================
@@ -411,43 +409,57 @@ class Plugin(indigo.PluginBase):
         """
         Disable communication of all plugin devices
 
-        comms_kill_all() sets the enabled status of all plugin devices to false.
+        comms_kill_all() sets the enabled status of all plugin devices to False.
 
         -----
 
         """
 
-        for dev in indigo.devices.itervalues("self"):
+        try:
+            for dev in indigo.devices.itervalues("self"):
+                if dev.enabled:
+                    indigo.device.enable(dev, value=False)
+            return True
 
-            try:
-                indigo.device.enable(dev, value=False)
-            except Exception as sub_error:
-                self.logger.critical(u"Exception when trying to kill all comms. Error: {0} (Line {1})".format(sub_error, sys.exc_traceback.tb_lineno))
-
-        return True
+        except Exception as sub_error:
+            self.logger.critical(u"Exception when trying to disable all plugin devices. Error: {0} (Line {1})".format(sub_error, sys.exc_traceback.tb_lineno))
 
     # =============================================================================
     def comms_unkill_all(self):
         """
         Enable communication of all plugin devices
 
-        comms_unkill_all() sets the enabled status of all plugin devices to true.
+        comms_unkill_all() sets the enabled status of all plugin devices to True.
 
         -----
 
         """
 
-        for dev in indigo.devices.itervalues("self"):
+        try:
+            for dev in indigo.devices.itervalues("self"):
+                if not dev.enabled:
+                    indigo.device.enable(dev, value=True)
+            return True
 
-            try:
-                indigo.device.enable(dev, value=True)
-            except Exception as sub_error:
-                self.logger.critical(u"Exception when trying to unkill all comms. Error: {0} (Line {1})".format(sub_error, sys.exc_traceback.tb_lineno))
-
-        return True
+        except Exception as sub_error:
+            self.logger.critical(u"Exception when trying to enable all plugin devices. Error: {0} (Line {1})".format(sub_error, sys.exc_traceback.tb_lineno))
 
     # =============================================================================
     def get_device_list(self, filter="", type_id=0, values_dict=None, target_id=0):
+        """
+        Return a list of plugin devices for use in dropdown menus
+
+        Returns a list of plugin devices for use in dropdown menus in the form of
+        [(dev.id, dev.name), (dev.id, dev.name)]
+
+        -----
+
+        :param string filter:
+        :param int type_id:
+        :param indigo.Dict values_dict:
+        :param int target_id:
+        :return list:
+        """
 
         return [(dev.id, dev.name) for dev in indigo.devices.itervalues(filter="self")]
 
@@ -458,6 +470,8 @@ class Plugin(indigo.PluginBase):
 
         -----
 
+        :param indigo.Device dev:
+        :param int retries:
         :return:
         """
         if dev.enabled:
@@ -467,6 +481,7 @@ class Plugin(indigo.PluginBase):
             self.logger.critical(u"Disabling device: [{0}] {1} because it has failed {2} times.".format(dev.id, dev.name, retries))
             indigo.device.enable(dev.id, value=False)
             dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
+            return True
 
     # =============================================================================
     def process_triggers(self):
@@ -490,6 +505,8 @@ class Plugin(indigo.PluginBase):
 
         except KeyError:
             pass
+
+        return True
 
     # =============================================================================
     def refreshDataAction(self, values_dict):
@@ -548,7 +565,7 @@ class Plugin(indigo.PluginBase):
 
         # If there are no devices created or all devices are disabled.
         if len(self.managedDevices) == 0:
-            self.logger.warning(u"No GhostXML devices have been created.")
+            self.logger.warning(u"No GhostXML devices to refresh.")
             return True
 
         # Iterate devices to see if an update is required.
