@@ -9,7 +9,7 @@
         <Label>Developed by: Indigo Users</Label>
     </Field>
 
-<!--    TODO: since device timeouts are handled within each device, this code can probably be deleted.  DaveL17 2019-12-13 -->
+<!-- TODO: since device timeouts are handled within each device, this code can probably be deleted.  DaveL17 2019-12-13 -->
 <!--    <Field id="space4" type="label" fontColor="black" alignText="right">-->
 <!--        <Label>Server Timeout:</Label>-->
 <!--    </Field>-->
