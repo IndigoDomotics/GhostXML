@@ -374,6 +374,7 @@ class Plugin(indigo.PluginBase):
                     error_msg_dict[sub[0]] = u"Please enter a valid variable ID."
 
         if len(error_msg_dict) > 0:
+            error_msg_dict['showAlertText'] = u"Configuration Errors\n\nThere are one or more settings that need to be corrected. Fields requiring attention will be highlighted."
             return False, values_dict, error_msg_dict
 
         return True, values_dict, error_msg_dict
