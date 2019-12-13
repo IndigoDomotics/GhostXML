@@ -10,8 +10,7 @@ transitive Indigo plugin device states.
 """
 
 # TODO: Additional auth types: Oauth2, WSSE
-# TODO: when device name is changed, it doesn't get updated in the plugin.
-# TODO: phony IP device doesn't show offline in UI.  Look at "no data to return" in code. Note that this was not tested on LAN.
+# TODO: when device name is changed, it doesn't get updated in the plugin (because we use managed devices).
 
 # ================================Stock Imports================================
 # import datetime
@@ -180,6 +179,7 @@ class Plugin(indigo.PluginBase):
         del self.managedDevices[dev.id]
 
         # Update the device's icon to reflect the stopped condition.
+        dev.setErrorStateOnServer(u"")
         dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
         self.logger.debug(u"[{0}] Communication stopped.".format(dev.name))
@@ -364,12 +364,15 @@ class Plugin(indigo.PluginBase):
 
             for sub in sub_list:
 
-                # Ensure that the values entered in the substitution fields are valid Indigo
-                # variable IDs.
-                if values_dict[sub[0]].isspace() or values_dict[sub[0]] == "":
-                    pass
-                elif int(values_dict[sub[0]]) not in var_list:
-                    error_msg_dict[sub[0]] = u"Please enter a valid variable ID."
+                try:
+                    # Ensure that the values entered in the substitution fields are valid Indigo
+                    # variable IDs.
+                    if values_dict[sub[0]].isspace() or values_dict[sub[0]] == "":
+                        pass
+                    elif int(values_dict[sub[0]]) not in var_list:
+                        error_msg_dict[sub[0]] = u"Please enter a valid variable ID."
+                except ValueError:
+                        error_msg_dict[sub[0]] = u"Please enter a valid variable ID."
 
         if len(error_msg_dict) > 0:
             error_msg_dict['showAlertText'] = u"Configuration Errors\n\nThere are one or more settings that need to be corrected. Fields requiring attention will be highlighted."
