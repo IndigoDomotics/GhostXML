@@ -334,12 +334,6 @@ class Plugin(indigo.PluginBase):
     # =============================================================================
     def validateDeviceConfigUi(self, values_dict, type_id, dev_id):
 
-        class DeviceValidationError(Exception):
-            def __init__(self, key=(), alert_text=None, message=u'Error!'):
-                self.key = key
-                self.alert_text = alert_text
-                self.message = message
-
         error_msg_dict = indigo.Dict()
         sub_list       = (('subA', '[A]'), ('subB', '[B]'), ('subC', '[C]'), ('subD', '[D]'), ('subE', '[E]'))
         token_url      = values_dict['tokenUrl']
@@ -349,40 +343,40 @@ class Plugin(indigo.PluginBase):
         var_list       = [var.id for var in indigo.variables]
 
         try:
-            try:
-                _ = int(values_dict['maxRetries'])
-            except ValueError:
-                raise DeviceValidationError(key=('maxRetries',), alert_text=u"Max Retries Error.\n\nThe value must be an integer.", message=u"You must enter an integer.")
+            _ = int(values_dict['maxRetries'])
+        except ValueError:
+            error_msg_dict['maxRetries'] = u"The max retries value must be an integer."
 
-            # Test the source URL/Path for proper prefix.
-            if not url.startswith(url_list):
-                raise DeviceValidationError(key=('sourceXML',), alert_text=u"URL/Path Error.\n\nA valid URL/Path starts with:\n'http://',\n'https://', or\n'file:///'.", message=u"You must supply a valid URL/Path.")
+        try:
+            _ = float(values_dict['timeout'])
+        except ValueError:
+            error_msg_dict['timeout'] = u"The timeout value must be a real number."
 
-            # Test the token URL/Path for proper prefix.
-            if use_digest == 'Token' and not token_url.startswith(url_list):
-                raise DeviceValidationError(key=('sourceXML',), alert_text=u"Token Error.\n\nA valid URL/Path starts with:\n'http://',\n'https://', or\n'file:///'.", message=u"You must supply a valid Token URL.")
+        # Test the source URL/Path for proper prefix.
+        if not url.startswith(url_list):
+            error_msg_dict['sourceXML'] = u"Please enter a valid URL/Path."
 
-            # Test the variable substitution IDs and indexes. If substitutions aren't
-            # enabled, we can skip this bit.
-            if values_dict['doSubs']:
+        # Test the token URL/Path for proper prefix.
+        if use_digest == 'Token' and not token_url.startswith(url_list):
+            error_msg_dict['sourceXML'] = u"You must supply a valid Token URL."
 
-                for sub in sub_list:
+        # Test the variable substitution IDs and indexes. If substitutions aren't
+        # enabled, we can skip this bit.
+        if values_dict['doSubs']:
 
-                    # Ensure that the values entered in the substitution fields are valid Indigo
-                    # variable IDs.
-                    if values_dict[sub[0]].isspace() or values_dict[sub[0]] == "":
-                        pass
-                    elif int(values_dict[sub[0]]) not in var_list:
-                        raise DeviceValidationError(key=(sub[0],), alert_text=u"Variable {0} Error\n\nYou must supply a valid Indigo variable ID number to perform substitutions (or leave the field blank).".format(sub[0].replace('sub', '')), message=u"You must supply a valid variable ID.")
+            for sub in sub_list:
 
-            return True, values_dict, error_msg_dict
+                # Ensure that the values entered in the substitution fields are valid Indigo
+                # variable IDs.
+                if values_dict[sub[0]].isspace() or values_dict[sub[0]] == "":
+                    pass
+                elif int(values_dict[sub[0]]) not in var_list:
+                    error_msg_dict[sub[0]] = u"Please enter a valid variable ID."
 
-        except DeviceValidationError as err:
-            for key in err.key:
-                error_msg_dict[key] = err.message
-            if err.alert_text:
-                error_msg_dict['showAlertText'] = err.alert_text
+        if len(error_msg_dict) > 0:
             return False, values_dict, error_msg_dict
+
+        return True, values_dict, error_msg_dict
 
     # =============================================================================
     # =============================== Plugin Methods ==============================
