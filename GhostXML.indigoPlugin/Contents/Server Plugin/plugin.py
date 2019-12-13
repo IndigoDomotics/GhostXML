@@ -43,9 +43,12 @@ __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
 __version__   = u"0.4.41"
 
+# 2019-12-13 DaveL17
+# Deprecating configMenuServerTimeout setting since the timeout is now set within each device.
+# TODO: if no problems are created, remove configMenuServerTimeout permanently.
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
-    u'configMenuServerTimeout': "15",  # Server timeout limit.
+    # u'configMenuServerTimeout': "15",  # Server timeout limit.
     u'oldDebugLevel': "20",            # Supports legacy debugging levels.
     u'showDebugInfo': False,           # Verbose debug logging?
     u'showDebugLevel': "20",           # Debugging level.
@@ -340,11 +343,21 @@ class Plugin(indigo.PluginBase):
         use_digest     = values_dict['useDigest']
         var_list       = [var.id for var in indigo.variables]
 
+        # The timeout value must be a real number.
         try:
             _ = float(values_dict['timeout'])
         except ValueError:
             error_msg_dict['timeout'] = u"The timeout value must be a real number."
 
+        # The timeout value cannot be greater than the refresh frequency.
+        try:
+            if int(values_dict['timeout']) > int(values_dict['refreshFreq']):
+                error_msg_dict['timeout'] = u"The timeout value cannot be greater than the refresh frequency."
+                error_msg_dict['refreshFreq'] = u"The refresh frequency cannot be greater than the timeout value."
+        except ValueError:
+            error_msg_dict['timeout'] = u"The timeout value must be a real number."
+
+        # Max retries must be an integer.
         try:
             _ = int(values_dict['maxRetries'])
         except ValueError:
@@ -372,7 +385,7 @@ class Plugin(indigo.PluginBase):
                     elif int(values_dict[sub[0]]) not in var_list:
                         error_msg_dict[sub[0]] = u"Please enter a valid variable ID."
                 except ValueError:
-                        error_msg_dict[sub[0]] = u"Please enter a valid variable ID."
+                    error_msg_dict[sub[0]] = u"Please enter a valid variable ID."
 
         if len(error_msg_dict) > 0:
             error_msg_dict['showAlertText'] = u"Configuration Errors\n\nThere are one or more settings that need to be corrected. Fields requiring attention will be highlighted."

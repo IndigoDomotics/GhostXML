@@ -1,10 +1,12 @@
 GhostXML Change Log
 
 v0.4.41
+- Removes timeout setting in plugin preferences since timeouts are now
+  handled within each device independently.
 - Improvements to device configuration validation.
-- Code refinements.
 - Improved image state handling when errored device is disabled (retain the
   state but clear the icon).
+- Code refinements.
 
 v0.4.40
 - Widens coverage to include additional API constructions.
