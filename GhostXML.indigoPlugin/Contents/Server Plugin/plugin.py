@@ -343,14 +343,14 @@ class Plugin(indigo.PluginBase):
         var_list       = [var.id for var in indigo.variables]
 
         try:
-            _ = int(values_dict['maxRetries'])
-        except ValueError:
-            error_msg_dict['maxRetries'] = u"The max retries value must be an integer."
-
-        try:
             _ = float(values_dict['timeout'])
         except ValueError:
             error_msg_dict['timeout'] = u"The timeout value must be a real number."
+
+        try:
+            _ = int(values_dict['maxRetries'])
+        except ValueError:
+            error_msg_dict['maxRetries'] = u"The max retries value must be an integer."
 
         # Test the source URL/Path for proper prefix.
         if not url.startswith(url_list):
@@ -358,7 +358,7 @@ class Plugin(indigo.PluginBase):
 
         # Test the token URL/Path for proper prefix.
         if use_digest == 'Token' and not token_url.startswith(url_list):
-            error_msg_dict['sourceXML'] = u"You must supply a valid Token URL."
+            error_msg_dict['tokenUrl'] = u"You must supply a valid Token URL."
 
         # Test the variable substitution IDs and indexes. If substitutions aren't
         # enabled, we can skip this bit.
