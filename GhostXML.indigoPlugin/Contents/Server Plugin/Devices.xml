@@ -1,8 +1,200 @@
 <?xml version="1.0"?>
+<!-- TODO: Note that, depending on the changes made, changes made to the string type device will also need to be made to the real type device. -->
 <Devices>
 
     <Device type="custom" id="GhostXMLdevice">
-        <Name>GhostXML Device</Name>
+        <Name>GhostXML Device (String Type)</Name>
+
+        <ConfigUI>
+            <SupportURL>https://github.com/IndigoDomotics/GhostXML/wiki/devices</SupportURL>
+
+            <!-- FeedType -->
+
+            <Field id="settingsLabel" type="label" fontSize="small">
+                <Label>Provide the feed type (XML or JSON), the frequency of data refreshes, and the source URL.</Label>
+            </Field>
+
+            <Field id="feedType" type="menu" defaultValue="XML" tooltip="The type of feed you will be using.">
+                <Label>Feed Type:</Label>
+                <List>
+                    <Option value="JSON">JSON</Option>
+                    <Option value="XML">XML</Option>
+                </List>
+            </Field>
+
+            <!-- RefreshFrequency -->
+
+            <Field id="refreshFreq" type="menu" defaultValue="300" tooltip="How often this feed should refresh.">
+                <Label>Refresh Frequency:</Label>
+                <List>
+                    <Option value="0">Manual refresh</Option>
+                    <Option value="15">15 Seconds</Option>
+                    <Option value="30">30 Seconds</Option>
+                    <Option value="60">1 Minute</Option>
+                    <Option value="120">2 Minutes</Option>
+                    <Option value="300">5 Minutes</Option>
+                    <Option value="900">15 Minutes</Option>
+                    <Option value="3600">1 Hour</Option>
+                    <Option value="14400">4 Hours</Option>
+                    <Option value="86400">1 Day</Option>
+                </List>
+            </Field>
+
+            <!-- Timeout -->
+
+            <Field id="timeout" type="textfield" defaultValue="5" tooltip="Enter the number of seconds that the plugin should continue to try this source before giving up (integer).">
+                <Label>Timeout:</Label>
+            </Field>
+
+            <Field id="maxRetries" type="textfield" defaultValue="10" tooltip="Enter the maximum number of retries before the plugin automatically disables the device (integer).">
+                <Label>Max Retries:</Label>
+            </Field>
+
+            <!-- URL -->
+
+            <Field id="sourceXML" type="textfield" tooltip="Enter the path to your data source using the examples below as a guide. If you use substitutions, be sure to include the proper variable index in the form of [A], [B], etc.">
+                <Label>URL/Path:</Label>
+            </Field>
+
+            <Field id="label1" type="label" fontSize="small" alignWithControl="true">
+                <Label>Examples:&#xA;URL: http://www.ip_address.com/filename.xml&#xA;Local file: file:///folder_path/filename.json</Label>
+            </Field>
+
+            <!-- Authentication -->
+
+            <Field id="authTitle" type="label" alignText="right">
+                <Label>Authentication</Label>
+            </Field>
+
+            <Field id="authSep" type="separator"/>
+
+            <Field id="authLabel" type="label" fontSize="small">
+                <Label>If your source requires authentication, select type of authentication used, and enter the username, password or token URL as required.</Label>
+            </Field>
+
+            <!-- Note: although this field is called 'useDigest' it's value supports all
+            manner of authentication -->
+            <Field id="useDigest" type="menu" defaultValue="None" tooltip="Select the appropriate authentication type for your data source.">
+                <Label>Method:</Label>
+                <List>
+                    <Option value="Basic">Basic</Option>
+                    <Option value="Digest">Digest</Option>
+                    <Option value="Raw">Raw Curl (Advanced)</Option>
+                    <Option value="Token">Token</Option>
+                    <Option value="-1">%%separator%%</Option>
+                    <Option value="None">None</Option>
+                </List>
+            </Field>
+
+            <!-- Note: although the username and password fields are called digestUser and
+            digestPass, these fields are now used for both digest and basic auth. -->
+            <Field id="tokenUrl" type="textfield" tooltip="Enter the URL for the Token server." visibleBindingId="useDigest" visibleBindingValue="Token">
+                <Label>Token URL:</Label>
+            </Field>
+
+            <Field id="digestUser" type="textfield" tooltip="Enter or paste a Username ID here." visibleBindingId="useDigest" visibleBindingValue="Basic, Digest">
+                <Label>Username:</Label>
+            </Field>
+
+            <Field id="digestPass" type="textfield" tooltip="Enter or paste a Password ID here." visibleBindingId="useDigest" visibleBindingValue="Basic, Digest, Token">
+                <Label>Password:</Label>
+            </Field>
+
+            <!-- Raw Curl -->
+            <Field id="curlArray" type="textfield" tooltip="Please enter your curl commands, which will be appended to the url above." visibleBindingId="useDigest" visibleBindingValue="Raw">
+                <Label>Curl Commands:
+
+
+
+
+
+
+
+                </Label>
+            </Field>
+
+            <Field id="rawCurlLabel" type="label" fontSize="small" alignWithControl="true" visibleBindingId="useDigest" visibleBindingValue="Raw">
+                <Label>Enter the raw curl commands as either a continuous string (no quotes) or line-separated with a space and a backslash to escape each linebreak. Use OPTION/Return to move to the next line.</Label>
+            </Field>
+
+            <!-- Substitutions -->
+
+            <Field id="subTitle" type="label" alignText="right">
+                <Label>Substitutions</Label>
+            </Field>
+
+            <Field id="subSep" type="separator"/>
+
+            <Field id="subLabel" type="label" fontSize="small">
+                <Label>If you would like to use variable substitutions in your feed's URL, tick the Use Substitutions box and enter the variable ID numbers and add the corresponding substitution index to the feed's URL above.</Label>
+            </Field>
+
+            <Field id="doSubs" type="checkbox" defaultValue="false" tooltip="Would you like to use substitutions in this feed? Checking the box turns them on and unchecking the box turns them off.">
+                <Label>Use substitutions?:</Label>
+                <!--<Description>Would you like to use variable substitutions in this feed's URL?</Description>-->
+            </Field>
+
+            <Field id="subA" type="textfield" tooltip="Enter or paste a variable ID here (ID number only)." visibleBindingId="doSubs" visibleBindingValue="true">
+                <Label>Variable A:</Label>
+            </Field>
+
+            <Field id="subB" type="textfield" tooltip="Enter or paste a variable ID here (ID number only)." visibleBindingId="doSubs" visibleBindingValue="true">
+                <Label>Variable B:</Label>
+            </Field>
+
+            <Field id="subC" type="textfield" tooltip="Enter or paste a variable ID here (ID number only)." visibleBindingId="doSubs" visibleBindingValue="true">
+                <Label>Variable C:</Label>
+            </Field>
+
+            <Field id="subD" type="textfield" tooltip="Enter or paste a variable ID here (ID number only)." visibleBindingId="doSubs" visibleBindingValue="true">
+                <Label>Variable D:</Label>
+            </Field>
+
+            <Field id="subE" type="textfield" tooltip="Enter or paste a variable ID here (ID number only)." visibleBindingId="doSubs" visibleBindingValue="true">
+                <Label>Variable E:</Label>
+            </Field>
+
+            <Field id="subExample" type="label" fontSize="small" alignWithControl="true" visibleBindingId="doSubs" visibleBindingValue="true">
+                <Label>Examples:&#xA;URL: http://www.ip_address.com/[A].xml&#xA;Local file: file:///[A]/[B].json</Label>
+            </Field>
+
+        </ConfigUI>
+
+        <States>
+
+<!-- IMPORTANT! If a new device state is added here, it must also be added to deviceStartComm (Audit Device States) -->
+            <State id="deviceIsOnline">
+                <ValueType>Boolean</ValueType>
+                <TriggerLabel>Device Online?</TriggerLabel>
+                <ControlPageLabel>Device Online?</ControlPageLabel>
+            </State>
+
+            <State id="deviceLastUpdated">
+                <ValueType>String</ValueType>
+                <TriggerLabel>Device Last Updated</TriggerLabel>
+                <ControlPageLabel>Device Last Updated</ControlPageLabel>
+            </State>
+
+            <State id="deviceTimestamp">
+                <ValueType>Integer</ValueType>
+                <TriggerLabel>Device Timestamp</TriggerLabel>
+                <ControlPageLabel>Device Timestamp</ControlPageLabel>
+            </State>
+
+            <State id="parse_error">
+                <ValueType>Boolean</ValueType>
+                <TriggerLabel>Parse Error</TriggerLabel>
+                <ControlPageLabel>Parse Error</ControlPageLabel>
+            </State>
+
+        </States>
+
+        <UiDisplayStateId>deviceIsOnline</UiDisplayStateId>
+
+    </Device>
+
+    <Device type="custom" id="GhostXMLdeviceTrue">
+        <Name>GhostXML Device (Real Type)</Name>
 
         <ConfigUI>
             <SupportURL>https://github.com/IndigoDomotics/GhostXML/wiki/devices</SupportURL>

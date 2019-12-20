@@ -41,7 +41,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.41"
+__version__   = u"0.4.42"
 
 # 2019-12-13 DaveL17
 # Deprecating configMenuServerTimeout setting since the timeout is now set within each device.
@@ -195,7 +195,7 @@ class Plugin(indigo.PluginBase):
         xml           = self.devicesTypeDict[type_id]["ConfigUIRawXml"]
         root          = Etree.fromstring(xml)
 
-        if type_id == 'GhostXMLdevice':
+        if type_id in ('GhostXMLdevice', 'GhostXMLdeviceTrue'):
 
             # Get current list of refresh frequencies from the XML file.
             for item in root.findall('Field'):
@@ -241,21 +241,69 @@ class Plugin(indigo.PluginBase):
         # This statement goes out and gets the existing state list for dev from Devices.xml.
         state_list = indigo.PluginBase.getDeviceStateList(self, dev)
 
-        # If there are no managed devices, return the existing states.
-        if dev.id not in self.managedDevices.keys():
-            for key in dev.states:
-                dynamic_state = self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key))
-                state_list.append(dynamic_state)
+        # ========================= Custom States as Strings ==========================
+        if dev.deviceTypeId == 'GhostXMLdevice':
+            # If there are no managed devices, return the existing states.
+            if dev.id not in self.managedDevices.keys():
+                for key in dev.states:
+                    dynamic_state = self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key))
+                    state_list.append(dynamic_state)
+
+                return state_list
+
+            # If there are managed devices, return the keys that are in finalDict.
+            else:
+                for key in sorted(self.managedDevices[dev.id].finalDict.keys()):
+                    dynamic_state = self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key))
+                    state_list.append(dynamic_state)
 
             return state_list
 
-        # If there are managed devices, return the keys that are in finalDict.
-        else:
-            for key in sorted(self.managedDevices[dev.id].finalDict.keys()):
-                dynamic_state = self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key))
-                state_list.append(dynamic_state)
+        # ======================== Custom States as True Type =========================
+        #
+        # 2019-12-18 DaveL17 -- Reconfigured to allow for the establishment of other device state types (int, float, bool, etc.)
+        #
+        if dev.deviceTypeId == 'GhostXMLdeviceTrue':
 
-        return state_list
+            # If there are no managed devices, return the existing states.
+            if dev.id not in self.managedDevices.keys():
+                for key in dev.states:
+                    dynamic_state = self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key))
+                    state_list.append(dynamic_state)
+
+                return state_list
+
+            # If there are managed devices, return the keys that are in finalDict.
+            else:
+                for key in sorted(self.managedDevices[dev.id].finalDict.keys()):
+                    value = self.managedDevices[dev.id].finalDict[key]
+                    try:
+                        # Integers
+                        _ = int(value)
+                        state_list.append(self.getDeviceStateDictForNumberType(unicode(key), unicode(key), unicode(key)))
+                    except (TypeError, ValueError):
+                        try:
+                            # Floats
+                            _ = float(value)
+                            state_list.append(self.getDeviceStateDictForNumberType(unicode(key), unicode(key), unicode(key)))
+                        except (TypeError, ValueError):
+                            try:
+                                # Bools
+                                if value.lower() in ('on', 'off', 'open', 'locked', 'up', 'armed', 'closed', 'unlocked', 'down', 'disarmed'):
+                                    state_list.append(self.getDeviceStateDictForBoolOnOffType(unicode(key), unicode(key), unicode(key)))
+                                    state_list.append(self.getDeviceStateDictForBoolOnOffType(unicode(u"{0}_bool".format(key)), unicode(u"{0}_bool".format(key)), unicode(u"{0}_bool".format(key))))
+                                elif value.lower() in ('yes', 'no'):
+                                    state_list.append(self.getDeviceStateDictForBoolOnOffType(unicode(key), unicode(key), unicode(key)))
+                                    state_list.append(self.getDeviceStateDictForBoolYesNoType(unicode(u"{0}_bool".format(key)), unicode(u"{0}_bool".format(key)), unicode(u"{0}_bool".format(key))))
+                                elif value.lower() in ('true', 'false'):
+                                    state_list.append(self.getDeviceStateDictForBoolOnOffType(unicode(key), unicode(key), unicode(key)))
+                                    state_list.append(self.getDeviceStateDictForBoolTrueFalseType(unicode(u"{0}_bool".format(key)), unicode(u"{0}_bool".format(key)), unicode(u"{0}_bool".format(key))))
+                                else:
+                                    state_list.append(self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key)))
+                            except (AttributeError, TypeError, ValueError):
+                                state_list.append(self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key)))
+
+            return state_list
 
     # =============================================================================
     def runConcurrentThread(self):
@@ -349,9 +397,9 @@ class Plugin(indigo.PluginBase):
         except ValueError:
             error_msg_dict['timeout'] = u"The timeout value must be a real number."
 
-        # The timeout value cannot be greater than the refresh frequency.
+        # The timeout value must be less than the refresh frequency.
         try:
-            if int(values_dict['timeout']) > int(values_dict['refreshFreq']):
+            if int(values_dict['timeout']) >= int(values_dict['refreshFreq']):
                 error_msg_dict['timeout'] = u"The timeout value cannot be greater than the refresh frequency."
                 error_msg_dict['refreshFreq'] = u"The refresh frequency cannot be greater than the timeout value."
         except ValueError:
@@ -967,19 +1015,27 @@ class PluginDevice(object):
 
         :param dev:
         """
-
+        #
+        # 2019-12-18 DaveL17 -- Reconfigured to allow for the establishment of other device state types (int, float, bool, etc.)
+        #
         state_list  = []
         sorted_list = sorted(self.finalDict.iterkeys())
 
-        for key in sorted_list:
-            try:
+        try:
+            for key in sorted_list:
+                value = self.finalDict[key]
+                if isinstance(value, (str, unicode)):
+                    if value.lower() in ('armed', 'locked', 'on', 'open', 'true', 'up', 'yes'):
+                        self.finalDict["{0}_bool".format(key)] = True
+                    elif value.lower() in ('closed', 'disarmed', 'down', 'false', 'No', 'off',  'unlocked'):
+                        self.finalDict["{0}_bool".format(key)] = False
 
-                state_list.append({'key': unicode(key), 'value': unicode(self.finalDict[key]), 'uiValue': unicode(self.finalDict[key])})
+                state_list.append({'key': unicode(key), 'value': self.finalDict[key], 'uiValue': self.finalDict[key]})
 
-            except ValueError as sub_error:
-                self.host_plugin.logger.critical(u"[{0}] Error parsing key/value pair: {1} = {2}. Reason: {3}".format(dev.name, key, self.finalDict[key], sub_error))
-                dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
-                state_list.append({'key': 'deviceIsOnline', 'value': False, 'uiValue': "Error"})
+        except ValueError as sub_error:
+            self.host_plugin.logger.critical(u"[{0}] Error parsing state values.\n{1}\nReason: {2}".format(dev.name, self.finalDict, sub_error))
+            dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
+            state_list.append({'key': 'deviceIsOnline', 'value': False, 'uiValue': "Error"})
 
         dev.updateStatesOnServer(state_list)
 
