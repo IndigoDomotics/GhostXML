@@ -41,7 +41,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.42"
+__version__   = u"0.4.43"
 
 # 2019-12-13 DaveL17
 # Deprecating configMenuServerTimeout setting since the timeout is now set within each device.
@@ -293,10 +293,10 @@ class Plugin(indigo.PluginBase):
                                     state_list.append(self.getDeviceStateDictForBoolOnOffType(unicode(key), unicode(key), unicode(key)))
                                     state_list.append(self.getDeviceStateDictForBoolOnOffType(unicode(u"{0}_bool".format(key)), unicode(u"{0}_bool".format(key)), unicode(u"{0}_bool".format(key))))
                                 elif value.lower() in ('yes', 'no'):
-                                    state_list.append(self.getDeviceStateDictForBoolOnOffType(unicode(key), unicode(key), unicode(key)))
+                                    state_list.append(self.getDeviceStateDictForBoolYesNoType(unicode(key), unicode(key), unicode(key)))
                                     state_list.append(self.getDeviceStateDictForBoolYesNoType(unicode(u"{0}_bool".format(key)), unicode(u"{0}_bool".format(key)), unicode(u"{0}_bool".format(key))))
                                 elif value.lower() in ('true', 'false'):
-                                    state_list.append(self.getDeviceStateDictForBoolOnOffType(unicode(key), unicode(key), unicode(key)))
+                                    state_list.append(self.getDeviceStateDictForBoolTrueFalseType(unicode(key), unicode(key), unicode(key)))
                                     state_list.append(self.getDeviceStateDictForBoolTrueFalseType(unicode(u"{0}_bool".format(key)), unicode(u"{0}_bool".format(key)), unicode(u"{0}_bool".format(key))))
                                 else:
                                     state_list.append(self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key)))
@@ -1026,10 +1026,11 @@ class PluginDevice(object):
                 value = self.finalDict[key]
                 if isinstance(value, (str, unicode)):
                     if value.lower() in ('armed', 'locked', 'on', 'open', 'true', 'up', 'yes'):
-                        self.finalDict["{0}_bool".format(key)] = True
-                    elif value.lower() in ('closed', 'disarmed', 'down', 'false', 'No', 'off',  'unlocked'):
-                        self.finalDict["{0}_bool".format(key)] = False
-
+                        self.finalDict[u"{0}_bool".format(key)] = True
+                        state_list.append({'key': u"{0}_bool".format(key), 'value': True})
+                    elif value.lower() in ('closed', 'disarmed', 'down', 'false', 'no', 'off',  'unlocked'):
+                        self.finalDict[u"{0}_bool".format(key)] = False
+                        state_list.append({'key': u"{0}_bool".format(key), 'value': False})
                 state_list.append({'key': unicode(key), 'value': self.finalDict[key], 'uiValue': self.finalDict[key]})
 
         except ValueError as sub_error:

@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.4.43
+- Fixes bug that caused all secondary boolean states to be set to False.
+
 v0.4.42
 - Implements second device type that tries to coerce custom device states that
   reflect the data type (bool, integer, float, etc.)
