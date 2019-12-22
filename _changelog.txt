@@ -1,6 +1,10 @@
 GhostXML Change Log
 
-v0.4.43
+v0.4.45
+- Updates to device name in Indigo now properly reflected in
+  self.managedDevices.
+
+v0.4.44
 - Fixes bug that caused all secondary boolean states to be set to False.
 
 v0.4.42

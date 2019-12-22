@@ -10,7 +10,6 @@ transitive Indigo plugin device states.
 """
 
 # TODO: Additional auth types: Oauth2, WSSE
-# TODO: when device name is changed, it doesn't get updated in the plugin (because we use managed devices).
 
 # ================================Stock Imports================================
 # import datetime
@@ -41,11 +40,12 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.43"
+__version__   = u"0.4.45"
 
 # 2019-12-13 DaveL17
 # Deprecating configMenuServerTimeout setting since the timeout is now set within each device.
 # TODO: if no problems are created, remove configMenuServerTimeout permanently.
+
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
     # u'configMenuServerTimeout': "15",  # Server timeout limit.
@@ -288,7 +288,7 @@ class Plugin(indigo.PluginBase):
                             state_list.append(self.getDeviceStateDictForNumberType(unicode(key), unicode(key), unicode(key)))
                         except (TypeError, ValueError):
                             try:
-                                # Bools
+                                # Bools - we create a state for the original data (in string form) and for the boolean representation.
                                 if value.lower() in ('on', 'off', 'open', 'locked', 'up', 'armed', 'closed', 'unlocked', 'down', 'disarmed'):
                                     state_list.append(self.getDeviceStateDictForBoolOnOffType(unicode(key), unicode(key), unicode(key)))
                                     state_list.append(self.getDeviceStateDictForBoolOnOffType(unicode(u"{0}_bool".format(key)), unicode(u"{0}_bool".format(key)), unicode(u"{0}_bool".format(key))))
@@ -319,6 +319,12 @@ class Plugin(indigo.PluginBase):
                 # Iterate devices to see if an update is required.
                 for devId in self.managedDevices:
                     dev = self.managedDevices[devId].device
+
+                    # 2019-12-22 DaveL17
+                    # If device name has changed in Indigo, update the copy in managedDevices.
+                    # TODO: consider moving this to its own method and adding anything else that might need updating.
+                    if dev.name != indigo.devices[devId].name:
+                        self.managedDevices[devId].device.name = indigo.devices[devId].name
 
                     # If a device has failed too many times, disable it and notify the user.
                     retries = int(dev.pluginProps.get('maxRetries', 10))
