@@ -1,5 +1,9 @@
 GhostXML Change Log
 
+v0.4.46
+- Fixes bug where string type device still received some true type state
+  values.
+
 v0.4.45
 - Updates to device name in Indigo now properly reflected in
   self.managedDevices.

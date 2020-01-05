@@ -1028,16 +1028,22 @@ class PluginDevice(object):
         sorted_list = sorted(self.finalDict.iterkeys())
 
         try:
-            for key in sorted_list:
-                value = self.finalDict[key]
-                if isinstance(value, (str, unicode)):
-                    if value.lower() in ('armed', 'locked', 'on', 'open', 'true', 'up', 'yes'):
-                        self.finalDict[u"{0}_bool".format(key)] = True
-                        state_list.append({'key': u"{0}_bool".format(key), 'value': True})
-                    elif value.lower() in ('closed', 'disarmed', 'down', 'false', 'no', 'off',  'unlocked'):
-                        self.finalDict[u"{0}_bool".format(key)] = False
-                        state_list.append({'key': u"{0}_bool".format(key), 'value': False})
-                state_list.append({'key': unicode(key), 'value': self.finalDict[key], 'uiValue': self.finalDict[key]})
+            if dev.deviceTypeId == 'GhostXMLdeviceTrue':
+                # Parse all values into states as true type.
+                for key in sorted_list:
+                    value = self.finalDict[key]
+                    if isinstance(value, (str, unicode)):
+                        if value.lower() in ('armed', 'locked', 'on', 'open', 'true', 'up', 'yes'):
+                            self.finalDict[u"{0}_bool".format(key)] = True
+                            state_list.append({'key': u"{0}_bool".format(key), 'value': True})
+                        elif value.lower() in ('closed', 'disarmed', 'down', 'false', 'no', 'off',  'unlocked'):
+                            self.finalDict[u"{0}_bool".format(key)] = False
+                            state_list.append({'key': u"{0}_bool".format(key), 'value': False})
+                    state_list.append({'key': unicode(key), 'value': self.finalDict[key], 'uiValue': self.finalDict[key]})
+            else:
+                # Parse all values into states as strings.
+                for key in sorted_list:
+                    state_list.append({'key': unicode(key), 'value': unicode(self.finalDict[key]), 'uiValue': unicode(self.finalDict[key])})
 
         except ValueError as sub_error:
             self.host_plugin.logger.critical(u"[{0}] Error parsing state values.\n{1}\nReason: {2}".format(dev.name, self.finalDict, sub_error))
