@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.4.47
+- Fixes bug where devices could not be brought back from error state.
+
 v0.4.46
 - Fixes bug where string type device still received some true type state
   values.
