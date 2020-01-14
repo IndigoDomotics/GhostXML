@@ -40,7 +40,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.47"
+__version__   = u"0.4.48"
 
 # 2019-12-13 DaveL17
 # Deprecating configMenuServerTimeout setting since the timeout is now set within each device.
@@ -774,11 +774,17 @@ class PluginDevice(object):
         :param queue q:
         :return:
         """
-        while True:
-            t.sleep(1)
-            while not q.empty():
-                task = q.get()
-                self.refresh_data_for_dev(task)
+        try:
+            while True:
+                t.sleep(1)
+                while not q.empty():
+                    task = q.get()
+                    self.refresh_data_for_dev(task)
+
+        except Exception as subError:
+
+            # Add wider exception testing to test errors
+            self.host_plugin.logger.exception(u'General exception: {0}'.format(subError))
 
     # =============================================================================
     def get_the_data(self, dev):
@@ -886,10 +892,9 @@ class PluginDevice(object):
             dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No comm")
             return '{"GhostXML": "IOError"}'
 
-        except:
-
+        except Exception as subError:
             # Add wider exception testing to test errors
-            self.host_plugin.logger.exception(u'curl array related error')
+            self.host_plugin.logger.exception(u'General exception: {0}'.format(subError))
 
     # =============================================================================
     def clean_the_keys(self, input_data):
@@ -940,8 +945,15 @@ class PluginDevice(object):
 
             self.jsonRawData = input_data
 
+        except RuntimeError:
+            pass
+
         except ValueError as sub_error:
             self.host_plugin.logger.critical(u'Error cleaning dictionary keys: {0}'.format(sub_error))
+
+        except Exception as subError:
+            # Add wider exception testing to test errors
+            self.host_plugin.logger.exception(u'General exception: {0}'.format(subError))
 
     # =============================================================================
     def kill_curl(self, proc):
@@ -956,9 +968,14 @@ class PluginDevice(object):
         :param proc:
         """
 
-        self.host_plugin.logger.debug(u'Timeout for Curl Subprocess. Killed by timer.')
+        try:
+            self.host_plugin.logger.debug(u'Timeout for Curl Subprocess. Killed by timer.')
 
-        proc.kill()
+            proc.kill()
+
+        except Exception as subError:
+            # Add wider exception testing to test errors
+            self.host_plugin.logger.exception(u'General exception: {0}'.format(subError))
 
     # =============================================================================
     def parse_the_json(self, dev, root):
@@ -1009,6 +1026,10 @@ class PluginDevice(object):
             self.old_device_states['parse_error'] = True
             return self.old_device_states
 
+        except Exception as subError:
+            # Add wider exception testing to test errors
+            self.host_plugin.logger.exception(u'General exception: {0}'.format(subError))
+
     # =============================================================================
     def parse_state_values(self, dev):
         """
@@ -1051,6 +1072,10 @@ class PluginDevice(object):
             dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
             state_list.append({'key': 'deviceIsOnline', 'value': False, 'uiValue': "Error"})
 
+        except Exception as subError:
+            # Add wider exception testing to test errors
+            self.host_plugin.logger.exception(u'General exception: {0}'.format(subError))
+
         dev.updateStatesOnServer(state_list)
 
     # =============================================================================
@@ -1065,70 +1090,75 @@ class PluginDevice(object):
         :param dev:
         """
 
-        if dev.configured and dev.enabled:
+        try:
+            if dev.configured and dev.enabled:
 
-            self.host_plugin.logger.info(u"{0}".format(dev.name))
+                self.host_plugin.logger.info(u"{0}".format(dev.name))
 
-            # Get the data.
-            self.rawData = self.get_the_data(dev)
+                # Get the data.
+                self.rawData = self.get_the_data(dev)
 
-            dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Processing")
+                dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Processing")
 
-            update_time = t.strftime("%m/%d/%Y at %H:%M")
-            dev.updateStateOnServer('deviceLastUpdated', value=update_time)
-            dev.updateStateOnServer('deviceTimestamp', value=t.time())
-
-            # Throw the data to the appropriate module to flatten it.
-            if dev.pluginProps['feedType'] == "XML":
-                self.rawData = self.strip_namespace(dev, self.rawData)
-                self.finalDict = iterateXML.iterateMain(self.rawData)
-
-            elif dev.pluginProps['feedType'] == "JSON":
-                self.finalDict = self.parse_the_json(dev, self.rawData)
-                self.clean_the_keys(self.finalDict)
-
-            else:
-                self.host_plugin.logger.warning(u"{0}: The plugin only supports XML and JSON data sources.".format(dev.name))
-
-            if self.finalDict is not None:
-                # Create the device states.
-                dev.stateListOrDisplayStateIdChanged()
-                dev.updateStateOnServer('parse_error', value=False)
-
-                # Put the final values into the device states.
-                self.parse_state_values(dev)
-
-                if "GhostXML" in dev.states:
-                    dev.updateStateOnServer('deviceIsOnline', value=False, uiValue=dev.states['GhostXML'])
-                    dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
-                    self.bad_calls += 1
-                elif dev.states.get("parse_error", False):
-                    dev.updateStateOnServer('deviceIsOnline', value=False, uiValue='Error')
-                    dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
-                    self.bad_calls += 1
-                # 2019-11-23 DaveL17 Added additional condition where device should be marked as offline.
-                elif dev.states.get("Response", "") == "No data to return.":
-                    dev.updateStateOnServer('deviceIsOnline', value=False, uiValue='Error')
-                    dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
-                    self.bad_calls += 1
-                else:
-                    dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Updated")
-                    dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
-                    dev.setErrorStateOnServer(None)
-                    self.bad_calls = 0
-
-            else:
-                # Set the Timestamp so that the seconds-since-update code doesn't keep checking
-                # a dead link / invalid URL every 5 seconds - it will keep checking on it's
-                # normal schedule. BUT don't set the "lastUpdated" value so humans can see when
-                # it last successfully updated.
+                update_time = t.strftime("%m/%d/%Y at %H:%M")
+                dev.updateStateOnServer('deviceLastUpdated', value=update_time)
                 dev.updateStateOnServer('deviceTimestamp', value=t.time())
-                dev.setErrorStateOnServer("Error")
-                self.bad_calls += 1
 
-        else:
-            self.host_plugin.logger.debug(u"[{0}] Device not available for update [Enabled: {1}, Configured: {2}]".format(dev.name, dev.enabled, dev.configured))
-            dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
+                # Throw the data to the appropriate module to flatten it.
+                if dev.pluginProps['feedType'] == "XML":
+                    self.rawData = self.strip_namespace(dev, self.rawData)
+                    self.finalDict = iterateXML.iterateMain(self.rawData)
+
+                elif dev.pluginProps['feedType'] == "JSON":
+                    self.finalDict = self.parse_the_json(dev, self.rawData)
+                    self.clean_the_keys(self.finalDict)
+
+                else:
+                    self.host_plugin.logger.warning(u"{0}: The plugin only supports XML and JSON data sources.".format(dev.name))
+
+                if self.finalDict is not None:
+                    # Create the device states.
+                    dev.stateListOrDisplayStateIdChanged()
+                    dev.updateStateOnServer('parse_error', value=False)
+
+                    # Put the final values into the device states.
+                    self.parse_state_values(dev)
+
+                    if "GhostXML" in dev.states:
+                        dev.updateStateOnServer('deviceIsOnline', value=False, uiValue=dev.states['GhostXML'])
+                        dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
+                        self.bad_calls += 1
+                    elif dev.states.get("parse_error", False):
+                        dev.updateStateOnServer('deviceIsOnline', value=False, uiValue='Error')
+                        dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
+                        self.bad_calls += 1
+                    # 2019-11-23 DaveL17 Added additional condition where device should be marked as offline.
+                    elif dev.states.get("Response", "") == "No data to return.":
+                        dev.updateStateOnServer('deviceIsOnline', value=False, uiValue='Error')
+                        dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
+                        self.bad_calls += 1
+                    else:
+                        dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Updated")
+                        dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
+                        dev.setErrorStateOnServer(None)
+                        self.bad_calls = 0
+
+                else:
+                    # Set the Timestamp so that the seconds-since-update code doesn't keep checking
+                    # a dead link / invalid URL every 5 seconds - it will keep checking on it's
+                    # normal schedule. BUT don't set the "lastUpdated" value so humans can see when
+                    # it last successfully updated.
+                    dev.updateStateOnServer('deviceTimestamp', value=t.time())
+                    dev.setErrorStateOnServer("Error")
+                    self.bad_calls += 1
+
+            else:
+                self.host_plugin.logger.debug(u"[{0}] Device not available for update [Enabled: {1}, Configured: {2}]".format(dev.name, dev.enabled, dev.configured))
+                dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
+
+        except Exception as subError:
+            # Add wider exception testing to test errors
+            self.host_plugin.logger.exception(u'General exception: {0}'.format(subError))
 
     # =============================================================================
     def strip_namespace(self, dev, root):
@@ -1164,4 +1194,8 @@ class PluginDevice(object):
             self.rawData = '<?xml version="1.0" encoding="UTF-8"?><Emptydict><Response>No data to return.</Response></Emptydict>'
             dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No data")
             return self.rawData
+
+        except Exception as subError:
+            # Add wider exception testing to test errors
+            self.host_plugin.logger.exception(u'General exception: {0}'.format(subError))
     # =============================================================================

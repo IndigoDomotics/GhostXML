@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.4.48
+- Adds wider exception trapping to plugin device object class.
+
 v0.4.47
 - Fixes bug where devices could not be brought back from error state.
 
