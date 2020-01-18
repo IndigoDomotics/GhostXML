@@ -1,5 +1,9 @@
 GhostXML Change Log
 
+v0.4.49
+- Fixes bug where a device with a parse error would not be taken offline after
+  max retries exceeded.
+
 v0.4.48
 - Adds wider exception trapping to plugin device object class.
 

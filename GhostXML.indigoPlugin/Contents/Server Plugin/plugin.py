@@ -40,7 +40,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.48"
+__version__   = u"0.4.49"
 
 # 2019-12-13 DaveL17
 # Deprecating configMenuServerTimeout setting since the timeout is now set within each device.
@@ -1119,7 +1119,6 @@ class PluginDevice(object):
                 if self.finalDict is not None:
                     # Create the device states.
                     dev.stateListOrDisplayStateIdChanged()
-                    dev.updateStateOnServer('parse_error', value=False)
 
                     # Put the final values into the device states.
                     self.parse_state_values(dev)
