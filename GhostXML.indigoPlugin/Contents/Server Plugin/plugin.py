@@ -10,6 +10,7 @@ transitive Indigo plugin device states.
 """
 
 # TODO: Additional auth types: Oauth2, WSSE
+# TODO: Trap instances where a source may have a tag that is the same as the built-in states.
 
 # ================================Stock Imports================================
 # import datetime
@@ -40,15 +41,10 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.49"
-
-# 2019-12-13 DaveL17
-# Deprecating configMenuServerTimeout setting since the timeout is now set within each device.
-# TODO: if no problems are created, remove configMenuServerTimeout permanently.
+__version__   = u"0.4.50"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
-    # u'configMenuServerTimeout': "15",  # Server timeout limit.
     u'oldDebugLevel': "20",            # Supports legacy debugging levels.
     u'showDebugInfo': False,           # Verbose debug logging?
     u'showDebugLevel': "20",           # Debugging level.
@@ -239,6 +235,8 @@ class Plugin(indigo.PluginBase):
         """
 
         # This statement goes out and gets the existing state list for dev from Devices.xml.
+        # It seems like it's calling itself, but the structure was recommended by Matt:
+        # https://forums.indigodomo.com/viewtopic.php?f=108&t=12898#p87456
         state_list = indigo.PluginBase.getDeviceStateList(self, dev)
 
         # ========================= Custom States as Strings ==========================
@@ -249,15 +247,11 @@ class Plugin(indigo.PluginBase):
                     dynamic_state = self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key))
                     state_list.append(dynamic_state)
 
-                return state_list
-
             # If there are managed devices, return the keys that are in finalDict.
             else:
                 for key in sorted(self.managedDevices[dev.id].finalDict.keys()):
                     dynamic_state = self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key))
                     state_list.append(dynamic_state)
-
-            return state_list
 
         # ======================== Custom States as True Type =========================
         #
@@ -270,8 +264,6 @@ class Plugin(indigo.PluginBase):
                 for key in dev.states:
                     dynamic_state = self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key))
                     state_list.append(dynamic_state)
-
-                return state_list
 
             # If there are managed devices, return the keys that are in finalDict.
             else:
@@ -303,7 +295,7 @@ class Plugin(indigo.PluginBase):
                             except (AttributeError, TypeError, ValueError):
                                 state_list.append(self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key)))
 
-            return state_list
+        return state_list
 
     # =============================================================================
     def runConcurrentThread(self):
@@ -883,6 +875,7 @@ class PluginDevice(object):
             if int(proc.returncode) != 0:
                 self.host_plugin.logger.warning(u"[{0}] curl error {1}. [Return code: {2}".format(dev.name, err.replace('\n', ' '), proc.returncode))
 
+            # if proc.returncode != 0 here, it is likely that 'result' is empty.
             return result
 
         except IOError:
@@ -919,6 +912,7 @@ class PluginDevice(object):
             pattern          = re.compile("|".join(chars_to_replace.keys()))
 
             for key in input_data.iterkeys():
+                self.host_plugin.logger.info(u"{0}".format(key))
                 new_key = pattern.sub(lambda m: chars_to_replace[re.escape(m.group(0))], key)
                 input_data[new_key] = input_data.pop(key)
 
@@ -996,6 +990,16 @@ class PluginDevice(object):
         """
 
         self.old_device_states = dict(dev.states)
+
+        # =============================================================================
+        # 2020-02-20 DaveL17 - Fixes bug where device is offline and '.ui' states are
+        # included and become new keys '_dot_ui_' in the name.
+        #
+        # Drop the '.ui' states.
+        for key in self.old_device_states.keys():
+            if key.endswith('.ui'):
+                del self.old_device_states[key]
+        # =============================================================================
 
         try:
             parsed_simplejson = simplejson.loads(root)
@@ -1093,8 +1097,6 @@ class PluginDevice(object):
         try:
             if dev.configured and dev.enabled:
 
-                self.host_plugin.logger.info(u"{0}".format(dev.name))
-
                 # Get the data.
                 self.rawData = self.get_the_data(dev)
 
@@ -1104,6 +1106,7 @@ class PluginDevice(object):
                 dev.updateStateOnServer('deviceLastUpdated', value=update_time)
                 dev.updateStateOnServer('deviceTimestamp', value=t.time())
 
+                # TODO: why do we call clean_the_keys() for JSON and not for XML?
                 # Throw the data to the appropriate module to flatten it.
                 if dev.pluginProps['feedType'] == "XML":
                     self.rawData = self.strip_namespace(dev, self.rawData)

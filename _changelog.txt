@@ -1,5 +1,9 @@
 GhostXML Change Log
 
+v0.4.50
+- Fixes bug where offline JSON sources would result in a cascading key name
+  (changing '.ui' to '_dot_ui_' with each plugin cycle.
+
 v0.4.49
 - Fixes bug where a device with a parse error would not be taken offline after
   max retries exceeded.
