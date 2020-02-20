@@ -912,7 +912,6 @@ class PluginDevice(object):
             pattern          = re.compile("|".join(chars_to_replace.keys()))
 
             for key in input_data.iterkeys():
-                self.host_plugin.logger.info(u"{0}".format(key))
                 new_key = pattern.sub(lambda m: chars_to_replace[re.escape(m.group(0))], key)
                 input_data[new_key] = input_data.pop(key)
 
