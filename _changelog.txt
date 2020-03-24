@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.4.51
+- Fixes device validation bug that precluded setting manual refresh rate.
+
 v0.4.50
 - Fixes bug where offline JSON sources would result in a cascading key name
   (changing '.ui' to '_dot_ui_' with each plugin cycle.

@@ -41,7 +41,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.50"
+__version__   = u"0.4.51"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -397,7 +397,8 @@ class Plugin(indigo.PluginBase):
 
         # The timeout value must be less than the refresh frequency.
         try:
-            if int(values_dict['timeout']) >= int(values_dict['refreshFreq']):
+            refresh_freq = int(values_dict['refreshFreq'])
+            if int(values_dict['timeout']) >= refresh_freq and refresh_freq != 0:
                 error_msg_dict['timeout'] = u"The timeout value cannot be greater than the refresh frequency."
                 error_msg_dict['refreshFreq'] = u"The refresh frequency cannot be greater than the timeout value."
         except ValueError:
