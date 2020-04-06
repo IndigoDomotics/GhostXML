@@ -41,7 +41,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.51"
+__version__   = u"0.4.52"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -385,7 +385,7 @@ class Plugin(indigo.PluginBase):
         sub_list       = (('subA', '[A]'), ('subB', '[B]'), ('subC', '[C]'), ('subD', '[D]'), ('subE', '[E]'))
         token_url      = values_dict['tokenUrl']
         url            = values_dict['sourceXML']
-        url_list       = ('file:///', 'http://', 'https://')
+        url_list       = ('file:///', 'http://', 'https://', 'ftp://')
         use_digest     = values_dict['useDigest']
         var_list       = [var.id for var in indigo.variables]
 

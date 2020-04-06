@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.4.52
+- Fixes device validation bug that precluded setting FTP source URL.
+
 v0.4.51
 - Fixes device validation bug that precluded setting manual refresh rate.
 
