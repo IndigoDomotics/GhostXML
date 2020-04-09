@@ -366,6 +366,19 @@ class Plugin(indigo.PluginBase):
             else:
                 dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Initialized")
 
+            # 2020-04-07 DaveL17
+            # =========================== Add Global Props ============================
+            # Add props to devices that don't have them. This step is agnostic to
+            # whether a device is enabled or not.
+            new_props = dev.pluginProps
+            if 'disableLogging' not in new_props.keys():
+                self.logger.debug("Adding device property: disableLogging to {0}".format(dev.name))
+                new_props['disableLogging'] = False
+            if 'sqlLoggerIgnoreStates' not in new_props.keys():
+                self.logger.debug("Adding device property: sqlLoggerIgnoreStates to {0}".format(dev.name))
+                new_props['sqlLoggerIgnoreStates'] = ""
+            dev.replacePluginPropsOnServer(new_props)
+
             dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
     # =============================================================================
@@ -1052,6 +1065,20 @@ class PluginDevice(object):
         state_list  = []
         # 2019-01-13 DaveL17 -- excluding standard states.
         sorted_list = [_ for _ in sorted(self.finalDict.iterkeys()) if _ not in ('deviceIsOnline', 'parse_error')]
+
+        # 2020-04-07 DaveL17
+        # If 'sqlLoggerIgnoreStates' prop exists and is set to True, add the states
+        # list to the prop; else empty the prop value. We add the wildcard to suppress
+        # all states, but this could be adjusted to allow user to hide (or include)
+        # selected states.
+        new_props       = dev.pluginProps
+        disable_logging = new_props.get('disableLogging', False)
+        if disable_logging:
+            # new_props['sqlLoggerIgnoreStates'] = ", ".join(sorted_list)
+            new_props['sqlLoggerIgnoreStates'] = "*"
+        else:
+            new_props['sqlLoggerIgnoreStates'] = ""
+        dev.replacePluginPropsOnServer(new_props)
 
         try:
             if dev.deviceTypeId == 'GhostXMLdeviceTrue':

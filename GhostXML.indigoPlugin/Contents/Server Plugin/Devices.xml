@@ -50,6 +50,10 @@
                 <Label>Max Retries:</Label>
             </Field>
 
+            <Field id="disableLogging" type="checkbox" defaultValue="false" tooltip="Check the box to disable SQL Plugin logging for all states belonging to this device.">
+                <Label>Disable SQL Logging:</Label>
+            </Field>
+
             <!-- URL -->
 
             <Field id="sourceXML" type="textfield" tooltip="Enter the path to your data source using the examples below as a guide. If you use substitutions, be sure to include the proper variable index in the form of [A], [B], etc.">
@@ -239,6 +243,10 @@
 
             <Field id="maxRetries" type="textfield" defaultValue="10" tooltip="Enter the maximum number of retries before the plugin automatically disables the device (integer).">
                 <Label>Max Retries:</Label>
+            </Field>
+
+            <Field id="disableLogging" type="checkbox" defaultValue="false" tooltip="Check the box to disable SQL Plugin logging for all states belonging to this device.">
+                <Label>Disable SQL Logging:</Label>
             </Field>
 
             <!-- URL -->
