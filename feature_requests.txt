@@ -9,3 +9,5 @@ Present custom states as their "inherent" type.
 
 DaveL17 - Consider howartp's suggestion to present this as a second device
 type (i.e., original string states and another literal states).
+
+Note that this was implemented with version 0.4.42 on 2020-01-05.

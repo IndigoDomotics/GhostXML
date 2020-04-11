@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.4.54
+- Adds code to address tags that start with the 'illegal' @ character.
+
 v0.4.53
 - Adds Disable SQL logging feature.
 
