@@ -816,6 +816,11 @@ class PluginDevice(object):
             password   = dev.pluginProps.get('digestPass', '')
             auth_type  = dev.pluginProps.get('useDigest', 'None')
 
+            if dev.pluginProps.get('disableGlobbing', False):
+                glob_off = 'g'
+            else:
+                glob_off = ''
+
             # Format any needed substitutions
             if dev.pluginProps.get('doSubs', False):
                 self.host_plugin.logger.debug(u"[{0}] URL: {1}  (before substitution)".format(dev.name, url))
@@ -833,23 +838,23 @@ class PluginDevice(object):
             # if using raw Curl - don't worry about auth_Type or much else
             if auth_type == "Raw":
                 self.host_plugin.logger.debug(u'/usr/bin/curl -vsk {0} {1}'.format(curl_array, url))
-                proc = subprocess.Popen('/usr/bin/curl -vsk ' + curl_array + ' ' + url, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+                proc = subprocess.Popen('/usr/bin/curl -vsk' + glob_off + ' ' + curl_array + ' ' + url, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             # =============================================================================
 
             # Digest auth
             elif auth_type == 'Digest':
-                proc = subprocess.Popen(["curl", '-vs', '--digest', '-u', username + ':' + password, url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                proc = subprocess.Popen(["curl", '-vs' + glob_off, '--digest', '-u', username + ':' + password, url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             # Basic auth
             elif auth_type == 'Basic':
-                proc = subprocess.Popen(["curl", '-vs', '-u', username + ':' + password, url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                proc = subprocess.Popen(["curl", '-vs' + glob_off, '-u', username + ':' + password, url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             # Token auth
             # Added by berkinet and DaveL17 2018-06-18
             elif auth_type == 'Token':
                 # We need to get a token to get started
                 a_url    = dev.pluginProps['tokenUrl']
-                curl_arg = "/usr/bin/curl -vsk -H 'Content-Type: application/json' -X POST --data-binary '{ \"pwd\": \"" + password + "\", \"remember\": 1 }' '} ' " + a_url
+                curl_arg = "/usr/bin/curl -vsk" + glob_off + " -H 'Content-Type: application/json' -X POST --data-binary '{ \"pwd\": \"" + password + "\", \"remember\": 1 }' '} ' " + a_url
 
                 proc = subprocess.Popen(curl_arg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 
@@ -859,11 +864,11 @@ class PluginDevice(object):
 
                 # Now, add the token to the end of the url
                 url  = "{0}?access_token={1}".format(url, token)
-                proc = subprocess.Popen(["curl", '-vsk', url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                proc = subprocess.Popen(["curl", '-vsk' + glob_off, url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             # No auth
             else:
-                proc = subprocess.Popen(["curl", '-vs', url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                proc = subprocess.Popen(["curl", '-vs' + glob_off, url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             # =============================================================================
             # The following code adds a timeout function to the call.

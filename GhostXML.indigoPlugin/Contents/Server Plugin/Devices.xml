@@ -54,6 +54,11 @@
                 <Label>Disable SQL Logging:</Label>
             </Field>
 
+            <Field id="disableGlobbing" type="checkbox" defaultValue="false" tooltip="Check the box to disable Curl globbing. Use only after normal attempt fails. See plugin wiki for more information.">
+                <Label>Disable Curl Globbing:</Label>
+                <Description>(advanced)</Description>
+            </Field>
+
             <!-- URL -->
 
             <Field id="sourceXML" type="textfield" tooltip="Enter the path to your data source using the examples below as a guide. If you use substitutions, be sure to include the proper variable index in the form of [A], [B], etc.">
