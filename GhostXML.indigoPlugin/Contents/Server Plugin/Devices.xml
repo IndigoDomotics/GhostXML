@@ -23,9 +23,11 @@
             </Field>
 
             <!-- RefreshFrequency -->
+            <!-- Note that the use of multi-line label is a hack and may not work in the future. -->
 
             <Field id="refreshFreq" type="menu" defaultValue="300" tooltip="How often this feed should refresh.">
-                <Label>Refresh Frequency:</Label>
+                <Label>Refresh
+Frequency:</Label>
                 <List>
                     <Option value="0">Manual refresh</Option>
                     <Option value="15">15 Seconds</Option>
@@ -50,8 +52,10 @@
                 <Label>Max Retries:</Label>
             </Field>
 
+            <!-- Note that the use of multi-line label is a hack and may not work in the future. -->
             <Field id="disableLogging" type="checkbox" defaultValue="false" tooltip="Check the box to disable SQL Plugin logging for all states belonging to this device.">
-                <Label>Disable SQL Logging:</Label>
+                <Label>Disable SQL
+Logging:</Label>
             </Field>
 
             <Field id="disableGlobbing" type="checkbox" defaultValue="false" tooltip="Check the box to disable Curl globbing. Use only after normal attempt fails. See plugin wiki for more information.">
@@ -223,9 +227,11 @@
             </Field>
 
             <!-- RefreshFrequency -->
+            <!-- Note that the use of multi-line label is a hack and may not work in the future. -->
 
             <Field id="refreshFreq" type="menu" defaultValue="300" tooltip="How often this feed should refresh.">
-                <Label>Refresh Frequency:</Label>
+                <Label>Refresh
+Frequency:</Label>
                 <List>
                     <Option value="0">Manual refresh</Option>
                     <Option value="15">15 Seconds</Option>
@@ -250,8 +256,10 @@
                 <Label>Max Retries:</Label>
             </Field>
 
+            <!-- Note that the use of multi-line label is a hack and may not work in the future. -->
             <Field id="disableLogging" type="checkbox" defaultValue="false" tooltip="Check the box to disable SQL Plugin logging for all states belonging to this device.">
-                <Label>Disable SQL Logging:</Label>
+                <Label>Disable SQL
+Logging:</Label>
             </Field>
 
             <!-- URL -->

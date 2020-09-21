@@ -36,11 +36,16 @@ class XmlDictConfig(dict):
                 self.updateShim({element.tag: a_dict})
                 
             elif element.items():
-                self.updateShim({element.tag: element.text})  # This line added to handle when value and attribs are both present.
-                element_tag_attribs = element.tag + u'_A_t_t_r_i_b_s'  # This line added to create a unique element.tag for attribs.
-                self.updateShim({element_tag_attribs: dict(element.items())})  # This line modded to use new element.tag + '_Attribs'.
+                # This line added to handle when value and attribs are both present.
+                self.updateShim({element.tag: element.text})
+                # This line added to create a unique element.tag for attribs.
+                element_tag_attribs = element.tag + u'_A_t_t_r_i_b_s'
+                # This line modded to use new element.tag + '_Attribs'.
+                self.updateShim({element_tag_attribs: dict(element.items())})
             else:
-                self.updateShim({element.tag: element.text})  # WAS: _self.updateShim({element.tag: element.text.strip()})_ with strip(), the function will choke on some XML. 'NoneType' object has no attribute 'strip'.
+                # WAS: _self.updateShim({element.tag: element.text.strip()})_ with strip(), the function will choke
+                # on some XML. 'NoneType' object has no attribute 'strip'.
+                self.updateShim({element.tag: element.text})
 
     def updateShim(self, a_dict):
         """ placeholder docstring """

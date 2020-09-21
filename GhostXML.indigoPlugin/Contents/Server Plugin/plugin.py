@@ -12,7 +12,7 @@ transitive Indigo plugin device states.
 # TODO: Additional auth types: Oauth2, WSSE
 # TODO: Trap instances where a source may have a tag that is the same as the built-in states.
 
-# ================================Stock Imports================================
+# =============================== Stock Imports ===============================
 # import datetime
 import xml.etree.ElementTree as Etree
 import logging
@@ -25,7 +25,7 @@ import sys
 import threading
 import time as t
 
-# =============================Third-party Imports=============================
+# ============================ Third-party Imports ============================
 import flatdict  # https://github.com/gmr/flatdict
 try:
     import indigo  # only needed for IDE syntax checking
@@ -41,7 +41,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.54"
+__version__   = u"0.4.56"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -67,7 +67,8 @@ class Plugin(indigo.PluginBase):
         except ValueError:
             self.debugLevel = 30
 
-        self.plugin_file_handler.setFormatter(logging.Formatter('%(asctime)s.%(msecs)03d\t%(levelname)-10s\t%(name)s.%(funcName)-28s %(msg)s', datefmt='%Y-%m-%d %H:%M:%S'))
+        log_format = '%(asctime)s.%(msecs)03d\t%(levelname)-10s\t%(name)s.%(funcName)-28s %(msg)s'
+        self.plugin_file_handler.setFormatter(logging.Formatter(log_format, datefmt='%Y-%m-%d %H:%M:%S'))
 
         self.indigo_log_handler.setLevel(20)
         self.logger.info(u"")
@@ -113,7 +114,8 @@ class Plugin(indigo.PluginBase):
             self.debugLevel = int(values_dict.get('showDebugLevel', "30"))
             self.indigo_log_handler.setLevel(self.debugLevel)
 
-            indigo.server.log(u"Debugging on (Level: {0} ({1})".format(current_debug_level[self.debugLevel], self.debugLevel))
+            indigo.server.log(u"Debugging on (Level: {0} ({1})".format(current_debug_level[self.debugLevel],
+                                                                       self.debugLevel))
 
             if self.debugLevel == 10:
                 self.logger.debug(u"values_dict: {0} ".format(values_dict))
@@ -255,7 +257,8 @@ class Plugin(indigo.PluginBase):
 
         # ======================== Custom States as True Type =========================
         #
-        # 2019-12-18 DaveL17 -- Reconfigured to allow for the establishment of other device state types (int, float, bool, etc.)
+        # 2019-12-18 DaveL17 -- Reconfigured to allow for the establishment of other device state types (int,
+        # float, bool, etc.)
         #
         if dev.deviceTypeId == 'GhostXMLdeviceTrue':
 
@@ -269,31 +272,36 @@ class Plugin(indigo.PluginBase):
             else:
                 for key in sorted(self.managedDevices[dev.id].finalDict.keys()):
                     value = self.managedDevices[dev.id].finalDict[key]
+                    b_key = unicode(u"{0}_bool".format(key))  # boolean key
+                    u_key = unicode(key)  # unicode key
+
                     try:
                         # Integers
                         _ = int(value)
-                        state_list.append(self.getDeviceStateDictForNumberType(unicode(key), unicode(key), unicode(key)))
+                        state_list.append(self.getDeviceStateDictForNumberType(u_key, u_key, u_key))
                     except (TypeError, ValueError):
                         try:
                             # Floats
                             _ = float(value)
-                            state_list.append(self.getDeviceStateDictForNumberType(unicode(key), unicode(key), unicode(key)))
+                            state_list.append(self.getDeviceStateDictForNumberType(u_key, u_key, u_key))
                         except (TypeError, ValueError):
                             try:
-                                # Bools - we create a state for the original data (in string form) and for the boolean representation.
-                                if value.lower() in ('on', 'off', 'open', 'locked', 'up', 'armed', 'closed', 'unlocked', 'down', 'disarmed'):
-                                    state_list.append(self.getDeviceStateDictForBoolOnOffType(unicode(key), unicode(key), unicode(key)))
-                                    state_list.append(self.getDeviceStateDictForBoolOnOffType(unicode(u"{0}_bool".format(key)), unicode(u"{0}_bool".format(key)), unicode(u"{0}_bool".format(key))))
+                                # Bools - we create a state for the original data (in string form) and for the
+                                # boolean representation.
+                                if value.lower() in ('on', 'off', 'open', 'locked', 'up', 'armed', 'closed',
+                                                     'unlocked', 'down', 'disarmed'):
+                                    state_list.append(self.getDeviceStateDictForBoolOnOffType(u_key, u_key, u_key))
+                                    state_list.append(self.getDeviceStateDictForBoolOnOffType(b_key, b_key, b_key))
                                 elif value.lower() in ('yes', 'no'):
-                                    state_list.append(self.getDeviceStateDictForBoolYesNoType(unicode(key), unicode(key), unicode(key)))
-                                    state_list.append(self.getDeviceStateDictForBoolYesNoType(unicode(u"{0}_bool".format(key)), unicode(u"{0}_bool".format(key)), unicode(u"{0}_bool".format(key))))
+                                    state_list.append(self.getDeviceStateDictForBoolYesNoType(u_key, u_key, u_key))
+                                    state_list.append(self.getDeviceStateDictForBoolYesNoType(b_key, b_key, b_key))
                                 elif value.lower() in ('true', 'false'):
-                                    state_list.append(self.getDeviceStateDictForBoolTrueFalseType(unicode(key), unicode(key), unicode(key)))
-                                    state_list.append(self.getDeviceStateDictForBoolTrueFalseType(unicode(u"{0}_bool".format(key)), unicode(u"{0}_bool".format(key)), unicode(u"{0}_bool".format(key))))
+                                    state_list.append(self.getDeviceStateDictForBoolTrueFalseType(u_key, u_key, u_key))
+                                    state_list.append(self.getDeviceStateDictForBoolTrueFalseType(b_key, b_key, b_key))
                                 else:
-                                    state_list.append(self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key)))
+                                    state_list.append(self.getDeviceStateDictForStringType(u_key, u_key, u_key))
                             except (AttributeError, TypeError, ValueError):
-                                state_list.append(self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key)))
+                                state_list.append(self.getDeviceStateDictForStringType(u_key, u_key, u_key))
 
         return state_list
 
@@ -356,7 +364,8 @@ class Plugin(indigo.PluginBase):
         min_ver = 7
         ver     = self.versStrToTuple(indigo.server.version)
         if ver[0] < min_ver:
-            self.stopPlugin(u"The Matplotlib plugin requires Indigo version {0} or above.".format(min_ver), isError=True)
+            self.stopPlugin(u"The Matplotlib plugin requires Indigo version {0} or above.".format(min_ver),
+                            isError=True)
 
         # Initialize all plugin devices to ensure that they're in the proper state.
         # We can't use managedDevices here because they may not yet have showed up.
@@ -411,7 +420,8 @@ class Plugin(indigo.PluginBase):
         # The timeout value must be less than the refresh frequency.
         try:
             refresh_freq = int(values_dict['refreshFreq'])
-            if int(values_dict['timeout']) >= refresh_freq and refresh_freq != 0:
+            # if int(values_dict['timeout']) >= refresh_freq and refresh_freq != 0:
+            if int(values_dict['timeout']) >= refresh_freq != 0:
                 error_msg_dict['timeout'] = u"The timeout value cannot be greater than the refresh frequency."
                 error_msg_dict['refreshFreq'] = u"The refresh frequency cannot be greater than the timeout value."
         except ValueError:
@@ -448,7 +458,8 @@ class Plugin(indigo.PluginBase):
                     error_msg_dict[sub[0]] = u"Please enter a valid variable ID."
 
         if len(error_msg_dict) > 0:
-            error_msg_dict['showAlertText'] = u"Configuration Errors\n\nThere are one or more settings that need to be corrected. Fields requiring attention will be highlighted."
+            error_msg_dict['showAlertText'] = u"Configuration Errors\n\nThere are one or more settings that need to " \
+                                              u"be corrected. Fields requiring attention will be highlighted."
             return False, values_dict, error_msg_dict
 
         return True, values_dict, error_msg_dict
@@ -498,7 +509,8 @@ class Plugin(indigo.PluginBase):
             return True
 
         except Exception as sub_error:
-            self.logger.critical(u"Exception when trying to disable all plugin devices. Error: {0} (Line {1})".format(sub_error, sys.exc_traceback.tb_lineno))
+            self.logger.critical(u"Exception when trying to disable all plugin devices. Error: {0} "
+                                 u"(Line {1})".format(sub_error, sys.exc_traceback.tb_lineno))
 
     # =============================================================================
     def comms_unkill_all(self):
@@ -518,7 +530,8 @@ class Plugin(indigo.PluginBase):
             return True
 
         except Exception as sub_error:
-            self.logger.critical(u"Exception when trying to enable all plugin devices. Error: {0} (Line {1})".format(sub_error, sys.exc_traceback.tb_lineno))
+            self.logger.critical(u"Exception when trying to enable all plugin devices. Error: {0} "
+                                 u"(Line {1})".format(sub_error, sys.exc_traceback.tb_lineno))
 
     # =============================================================================
     def get_device_list(self, filter="", type_id=0, values_dict=None, target_id=0):
@@ -554,7 +567,8 @@ class Plugin(indigo.PluginBase):
             # Add the device to the trigger queue and disable it.
             self.master_trigger_dict['disabled'].put(dev.id)
 
-            self.logger.critical(u"Disabling device: [{0}] {1} because it has failed {2} times.".format(dev.id, dev.name, retries))
+            self.logger.critical(u"Disabling device: [{0}] {1} because it has failed {2} "
+                                 u"times.".format(dev.id, dev.name, retries))
             indigo.device.enable(dev.id, value=False)
             dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
             return True
@@ -838,16 +852,26 @@ class PluginDevice(object):
             # if using raw Curl - don't worry about auth_Type or much else
             if auth_type == "Raw":
                 self.host_plugin.logger.debug(u'/usr/bin/curl -vsk {0} {1}'.format(curl_array, url))
-                proc = subprocess.Popen('/usr/bin/curl -vsk' + glob_off + ' ' + curl_array + ' ' + url, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+                proc = subprocess.Popen('/usr/bin/curl -vsk' + glob_off + ' ' + curl_array + ' ' + url,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE,
+                                        shell=True
+                                        )
             # =============================================================================
 
             # Digest auth
             elif auth_type == 'Digest':
-                proc = subprocess.Popen(["curl", '-vs' + glob_off, '--digest', '-u', username + ':' + password, url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                proc = subprocess.Popen(["curl", '-vs' + glob_off, '--digest', '-u', username + ':' + password, url],
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE
+                                        )
 
             # Basic auth
             elif auth_type == 'Basic':
-                proc = subprocess.Popen(["curl", '-vs' + glob_off, '-u', username + ':' + password, url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                proc = subprocess.Popen(["curl", '-vs' + glob_off, '-u', username + ':' + password, url],
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE
+                                        )
 
             # Token auth
             # Added by berkinet and DaveL17 2018-06-18
@@ -864,11 +888,17 @@ class PluginDevice(object):
 
                 # Now, add the token to the end of the url
                 url  = "{0}?access_token={1}".format(url, token)
-                proc = subprocess.Popen(["curl", '-vsk' + glob_off, url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                proc = subprocess.Popen(["curl", '-vsk' + glob_off, url],
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE
+                                        )
 
             # No auth
             else:
-                proc = subprocess.Popen(["curl", '-vs' + glob_off, url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                proc = subprocess.Popen(["curl", '-vs' + glob_off, url],
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE
+                                        )
 
             # =============================================================================
             # The following code adds a timeout function to the call.
@@ -892,7 +922,8 @@ class PluginDevice(object):
             # dependent and (according to brief research) generally underdeveloped. Looks
             # like there's not much more that can be provided to the user.
             if int(proc.returncode) != 0:
-                self.host_plugin.logger.warning(u"[{0}] curl error {1}. [Return code: {2}".format(dev.name, err.replace('\n', ' '), proc.returncode))
+                self.host_plugin.logger.warning(u"[{0}] curl error {1}. [Return code: "
+                                                u"{2}".format(dev.name, err.replace('\n', ' '), proc.returncode))
 
             # if proc.returncode != 0 here, it is likely that 'result' is empty.
             return result
@@ -900,7 +931,8 @@ class PluginDevice(object):
         except IOError:
 
             self.host_plugin.logger.warning(u"[{0}] IOError:  Skipping until next scheduled poll.".format(dev.name))
-            self.host_plugin.logger.debug(u"[{0}] Device is offline. No data to return. Returning dummy dict.".format(dev.name))
+            self.host_plugin.logger.debug(u"[{0}] Device is offline. No data to return. Returning dummy "
+                                          u"dict.".format(dev.name))
             dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No comm")
             return '{"GhostXML": "IOError"}'
 
@@ -926,7 +958,8 @@ class PluginDevice(object):
             # simply deleting them could cause problems. Add additional k/v pairs to
             # chars_to_replace as needed.
 
-            chars_to_replace = {'_ghostxml_': '_', '+': '_plus_', '-': '_minus_', 'true': 'True', 'false': 'False', ' ': '_', ':': '_colon_', '.': '_dot_', '@': 'at_'}
+            chars_to_replace = {'_ghostxml_': '_', '+': '_plus_', '-': '_minus_', 'true': 'True', 'false': 'False',
+                                ' ': '_', ':': '_colon_', '.': '_dot_', '@': 'at_'}
             chars_to_replace = dict((re.escape(k), v) for k, v in chars_to_replace.iteritems())
             pattern          = re.compile("|".join(chars_to_replace.keys()))
 
@@ -1065,7 +1098,8 @@ class PluginDevice(object):
         :param dev:
         """
         #
-        # 2019-12-18 DaveL17 -- Reconfigured to allow for the establishment of other device state types (int, float, bool, etc.)
+        # 2019-12-18 DaveL17 -- Reconfigured to allow for the establishment of other device state types (int, float,
+        # bool, etc.)
         #
         state_list  = []
         # 2019-01-13 DaveL17 -- excluding standard states.
@@ -1097,14 +1131,23 @@ class PluginDevice(object):
                         elif value.lower() in ('closed', 'disarmed', 'down', 'false', 'no', 'off',  'unlocked'):
                             self.finalDict[u"{0}_bool".format(key)] = False
                             state_list.append({'key': u"{0}_bool".format(key), 'value': False})
-                    state_list.append({'key': unicode(key), 'value': self.finalDict[key], 'uiValue': self.finalDict[key]})
+                    state_list.append({'key': unicode(key),
+                                       'value': self.finalDict[key],
+                                       'uiValue': self.finalDict[key]
+                                       }
+                                      )
             else:
                 # Parse all values into states as strings.
                 for key in sorted_list:
-                    state_list.append({'key': unicode(key), 'value': unicode(self.finalDict[key]), 'uiValue': unicode(self.finalDict[key])})
+                    state_list.append({'key': unicode(key),
+                                       'value': unicode(self.finalDict[key]),
+                                       'uiValue': unicode(self.finalDict[key])
+                                       }
+                                      )
 
         except ValueError as sub_error:
-            self.host_plugin.logger.critical(u"[{0}] Error parsing state values.\n{1}\nReason: {2}".format(dev.name, self.finalDict, sub_error))
+            self.host_plugin.logger.critical(u"[{0}] Error parsing state values.\n{1}\nReason: "
+                                             u"{2}".format(dev.name, self.finalDict, sub_error))
             dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
             state_list.append({'key': 'deviceIsOnline', 'value': False, 'uiValue': "Error"})
 
@@ -1149,7 +1192,8 @@ class PluginDevice(object):
                     self.clean_the_keys(self.finalDict)
 
                 else:
-                    self.host_plugin.logger.warning(u"{0}: The plugin only supports XML and JSON data sources.".format(dev.name))
+                    self.host_plugin.logger.warning(u"{0}: The plugin only supports XML and JSON data "
+                                                    u"sources.".format(dev.name))
 
                 if self.finalDict is not None:
                     # Create the device states.
@@ -1187,7 +1231,8 @@ class PluginDevice(object):
                     self.bad_calls += 1
 
             else:
-                self.host_plugin.logger.debug(u"[{0}] Device not available for update [Enabled: {1}, Configured: {2}]".format(dev.name, dev.enabled, dev.configured))
+                self.host_plugin.logger.debug(u"[{0}] Device not available for update [Enabled: {1}, Configured: "
+                                              u"{2}]".format(dev.name, dev.enabled, dev.configured))
                 dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
         except Exception as subError:
@@ -1209,9 +1254,11 @@ class PluginDevice(object):
         :return self.rawData:
         """
 
+        d_root = '<?xml version="1.0" encoding="UTF-8"?><Emptydict><Response>No data to return.</Response></Emptydict>'
+
         try:
             if root == "":
-                root = '<?xml version="1.0" encoding="UTF-8"?><Emptydict><Response>No data to return.</Response></Emptydict>'
+                root = d_root
 
             # Remove namespace stuff if it's in there. There's probably a more
             # comprehensive re.sub() that could be run, but it also could do *too* much.
@@ -1224,8 +1271,9 @@ class PluginDevice(object):
             return self.rawData
 
         except ValueError as sub_error:
-            self.host_plugin.logger.warning(u"[{0}] Error parsing source data: {1}. Skipping until next scheduled poll.".format(dev.name, unicode(sub_error)))
-            self.rawData = '<?xml version="1.0" encoding="UTF-8"?><Emptydict><Response>No data to return.</Response></Emptydict>'
+            self.host_plugin.logger.warning(u"[{0}] Error parsing source data: {1}. Skipping until next scheduled "
+                                            u"poll.".format(dev.name, unicode(sub_error)))
+            self.rawData = d_root
             dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No data")
             return self.rawData
 
