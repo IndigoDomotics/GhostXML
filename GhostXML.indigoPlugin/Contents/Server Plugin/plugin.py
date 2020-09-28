@@ -41,7 +41,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.4.56"
+__version__   = u"0.4.57"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -155,10 +155,8 @@ class Plugin(indigo.PluginBase):
             dev.replacePluginPropsOnServer(new_props)
             self.sleep(2)
 
-        # Check for changes to the device's default states.
         dev.stateListOrDisplayStateIdChanged()
 
-        # Add device instance to dict of managed devices
         self.managedDevices[dev.id] = PluginDevice(self, dev)
 
         # Force refresh of device when comm started
@@ -182,6 +180,8 @@ class Plugin(indigo.PluginBase):
         # Update the device's icon to reflect the stopped condition.
         dev.setErrorStateOnServer(u"")
         dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
+
+        dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Disabled")
 
         self.logger.debug(u"[{0}] Communication stopped.".format(dev.name))
 
@@ -239,11 +239,13 @@ class Plugin(indigo.PluginBase):
         # This statement goes out and gets the existing state list for dev from Devices.xml.
         # It seems like it's calling itself, but the structure was recommended by Matt:
         # https://forums.indigodomo.com/viewtopic.php?f=108&t=12898#p87456
+        self.logger.debug(u"self.managedDevices: {0}".format(self.managedDevices))
+
         state_list = indigo.PluginBase.getDeviceStateList(self, dev)
 
         # ========================= Custom States as Strings ==========================
         if dev.deviceTypeId == 'GhostXMLdevice':
-            # If there are no managed devices, return the existing states.
+            # If dev is not listed in managed devices, return the existing states.
             if dev.id not in self.managedDevices.keys():
                 for key in dev.states:
                     dynamic_state = self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key))
@@ -259,14 +261,55 @@ class Plugin(indigo.PluginBase):
         #
         # 2019-12-18 DaveL17 -- Reconfigured to allow for the establishment of other device state types (int,
         # float, bool, etc.)
+        # 2020-09-28 DaveL17 -- Refactored code where dev.id is not in self.managedDevices so that the true type
+        # for each state is retained.  Prior to refactoring, the states were all returned as strings (original code
+        # retained as comment for now).
         #
+        # TODO: there is duplicated code here that can be moved to a local function (it appears that we still need to
+        #   confirm whether dev is in managedDevices().
         if dev.deviceTypeId == 'GhostXMLdeviceTrue':
 
             # If there are no managed devices, return the existing states.
             if dev.id not in self.managedDevices.keys():
+
+                # TODO: 2020-09-28 DaveL17 -- the following code will likely be removed in future versions.
+                # for key in dev.states:
+                #
+                #     dynamic_state = self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key))
+                #     state_list.append(dynamic_state)
+
                 for key in dev.states:
-                    dynamic_state = self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key))
-                    state_list.append(dynamic_state)
+                    value = dev.states[key]
+                    b_key = unicode(u"{0}_bool".format(key))  # boolean key
+                    u_key = unicode(key)  # unicode key
+
+                    try:
+                        # Integers
+                        _ = int(value)
+                        state_list.append(self.getDeviceStateDictForNumberType(u_key, u_key, u_key))
+                    except (TypeError, ValueError):
+                        try:
+                            # Floats
+                            _ = float(value)
+                            state_list.append(self.getDeviceStateDictForNumberType(u_key, u_key, u_key))
+                        except (TypeError, ValueError):
+                            try:
+                                # Bools - we create a state for the original data (in string form) and for the
+                                # boolean representation.
+                                if value.lower() in ('on', 'off', 'open', 'locked', 'up', 'armed', 'closed',
+                                                     'unlocked', 'down', 'disarmed'):
+                                    state_list.append(self.getDeviceStateDictForBoolOnOffType(u_key, u_key, u_key))
+                                    state_list.append(self.getDeviceStateDictForBoolOnOffType(b_key, b_key, b_key))
+                                elif value.lower() in ('yes', 'no'):
+                                    state_list.append(self.getDeviceStateDictForBoolYesNoType(u_key, u_key, u_key))
+                                    state_list.append(self.getDeviceStateDictForBoolYesNoType(b_key, b_key, b_key))
+                                elif value.lower() in ('true', 'false'):
+                                    state_list.append(self.getDeviceStateDictForBoolTrueFalseType(u_key, u_key, u_key))
+                                    state_list.append(self.getDeviceStateDictForBoolTrueFalseType(b_key, b_key, b_key))
+                                else:
+                                    state_list.append(self.getDeviceStateDictForStringType(u_key, u_key, u_key))
+                            except (AttributeError, TypeError, ValueError):
+                                state_list.append(self.getDeviceStateDictForStringType(u_key, u_key, u_key))
 
             # If there are managed devices, return the keys that are in finalDict.
             else:
