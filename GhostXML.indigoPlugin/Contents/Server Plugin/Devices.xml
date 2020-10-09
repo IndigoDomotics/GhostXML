@@ -26,8 +26,7 @@
             <!-- Note that the use of multi-line label is a hack and may not work in the future. -->
 
             <Field id="refreshFreq" type="menu" defaultValue="300" tooltip="How often this feed should refresh.">
-                <Label>Refresh
-Frequency:</Label>
+                <Label>Refresh&#xA;Frequency:</Label>
                 <List>
                     <Option value="0">Manual refresh</Option>
                     <Option value="15">15 Seconds</Option>
@@ -54,12 +53,11 @@ Frequency:</Label>
 
             <!-- Note that the use of multi-line label is a hack and may not work in the future. -->
             <Field id="disableLogging" type="checkbox" defaultValue="false" tooltip="Check the box to disable SQL Plugin logging for all states belonging to this device.">
-                <Label>Disable SQL
-Logging:</Label>
+                <Label>Disable SQL&#xA;Logging:</Label>
             </Field>
-
+<!--TODO: add curl globbing control to real type device.-->
             <Field id="disableGlobbing" type="checkbox" defaultValue="false" tooltip="Check the box to disable Curl globbing. Use only after normal attempt fails. See plugin wiki for more information.">
-                <Label>Disable Curl Globbing:</Label>
+                <Label>Disable Curl&#xA;Globbing:</Label>
                 <Description>(advanced)</Description>
             </Field>
 
@@ -115,23 +113,14 @@ Logging:</Label>
 
             <!-- Raw Curl -->
             <Field id="curlArray" type="textfield" tooltip="Please enter your curl commands, which will be appended to the url above." visibleBindingId="useDigest" visibleBindingValue="Raw">
-                <Label>Curl Commands:
-
-
-
-
-
-
-
-                </Label>
+                <Label>Curl Commands:&#xA;&#xA;&#xA;&#xA;&#xA;&#xA;&#xA;&#xA;</Label>
             </Field>
 
             <Field id="rawCurlLabel" type="label" fontSize="small" alignWithControl="true" visibleBindingId="useDigest" visibleBindingValue="Raw">
                 <Label>Enter the raw curl commands as either a continuous string (no quotes) or line-separated with a space and a backslash to escape each linebreak. Use OPTION/Return to move to the next line.</Label>
             </Field>
 
-            <!-- Substitutions -->
-
+            <!-- URL Substitutions -->
             <Field id="subTitle" type="label" alignText="right">
                 <Label>Substitutions</Label>
             </Field>
@@ -139,12 +128,12 @@ Logging:</Label>
             <Field id="subSep" type="separator"/>
 
             <Field id="subLabel" type="label" fontSize="small">
-                <Label>If you would like to use variable substitutions in your feed's URL, tick the Use Substitutions box and enter the variable ID numbers and add the corresponding substitution index to the feed's URL above.</Label>
+                <Label>If you would like to use variable substitutions with your device's configuration, tick the appropriate box, enter the variable ID numbers, and add the corresponding substitution index above.</Label>
             </Field>
 
             <Field id="doSubs" type="checkbox" defaultValue="false" tooltip="Would you like to use substitutions in this feed? Checking the box turns them on and unchecking the box turns them off.">
-                <Label>Use substitutions?:</Label>
-                <!--<Description>Would you like to use variable substitutions in this feed's URL?</Description>-->
+                <Label>URL substitutions:</Label>
+                <Description>applied to the [URL/Path] field above.</Description>
             </Field>
 
             <Field id="subA" type="textfield" tooltip="Enter or paste a variable ID here (ID number only)." visibleBindingId="doSubs" visibleBindingValue="true">
@@ -168,7 +157,38 @@ Logging:</Label>
             </Field>
 
             <Field id="subExample" type="label" fontSize="small" alignWithControl="true" visibleBindingId="doSubs" visibleBindingValue="true">
-                <Label>Examples:&#xA;URL: http://www.ip_address.com/[A].xml&#xA;Local file: file:///[A]/[B].json</Label>
+                <Label>URL Examples:&#xA;URL: http://www.ip_address.com/[A].xml&#xA;Local file: file:///[A]/[B].json</Label>
+            </Field>
+
+            <!-- Curl Substitutions -->
+            <Field id="curlSubs" type="checkbox" defaultValue="false" visibleBindingId="useDigest"  visibleBindingValue="Raw"
+                   tooltip="Would you like to use substitutions in this feed? Checking the box turns them on and unchecking the box turns them off.">
+                <Label>Curl substitutions:</Label>
+                <Description>applied to the [Curl Commands] field above.</Description>
+            </Field>
+
+            <Field id="curlSubA" type="textfield" tooltip="Enter or paste a variable ID here (ID number only)." visibleBindingId="curlSubs" visibleBindingValue="true">
+                <Label>Variable A:</Label>
+            </Field>
+
+            <Field id="curlSubB" type="textfield" tooltip="Enter or paste a variable ID here (ID number only)." visibleBindingId="curlSubs" visibleBindingValue="true">
+                <Label>Variable B:</Label>
+            </Field>
+
+            <Field id="curlSubC" type="textfield" tooltip="Enter or paste a variable ID here (ID number only)." visibleBindingId="curlSubs" visibleBindingValue="true">
+                <Label>Variable C:</Label>
+            </Field>
+
+            <Field id="curlSubD" type="textfield" tooltip="Enter or paste a variable ID here (ID number only)." visibleBindingId="curlSubs" visibleBindingValue="true">
+                <Label>Variable D:</Label>
+            </Field>
+
+            <Field id="curlSubE" type="textfield" tooltip="Enter or paste a variable ID here (ID number only)." visibleBindingId="curlSubs" visibleBindingValue="true">
+                <Label>Variable E:</Label>
+            </Field>
+
+            <Field id="curlSubExample" type="label" fontSize="small" alignWithControl="true" visibleBindingId="curlSubs" visibleBindingValue="true">
+                <Label>Curl Example:&#xA;-H "Authorization: Bearer [API KEY VALUE]" \&#xA;-H "Content-Type: application/json" \&#xA;-X POST \&#xA;-d '{ "query": "{viewer {homes {consumption(resolution: HOURLY, last: 1) {nodes {from to totalCost unitCost unitPrice unitPriceVAT consumption consumptionUnit }} meteringPointData {estimatedAnnualConsumption } currentSubscription {priceInfo {current {total energy tax startsAt }}}}}}" }'</Label>
             </Field>
 
         </ConfigUI>
@@ -230,8 +250,7 @@ Logging:</Label>
             <!-- Note that the use of multi-line label is a hack and may not work in the future. -->
 
             <Field id="refreshFreq" type="menu" defaultValue="300" tooltip="How often this feed should refresh.">
-                <Label>Refresh
-Frequency:</Label>
+                <Label>Refresh&#xA;Frequency:</Label>
                 <List>
                     <Option value="0">Manual refresh</Option>
                     <Option value="15">15 Seconds</Option>
@@ -258,8 +277,7 @@ Frequency:</Label>
 
             <!-- Note that the use of multi-line label is a hack and may not work in the future. -->
             <Field id="disableLogging" type="checkbox" defaultValue="false" tooltip="Check the box to disable SQL Plugin logging for all states belonging to this device.">
-                <Label>Disable SQL
-Logging:</Label>
+                <Label>Disable SQL&#xA;Logging:</Label>
             </Field>
 
             <!-- URL -->
@@ -368,6 +386,37 @@ Logging:</Label>
 
             <Field id="subExample" type="label" fontSize="small" alignWithControl="true" visibleBindingId="doSubs" visibleBindingValue="true">
                 <Label>Examples:&#xA;URL: http://www.ip_address.com/[A].xml&#xA;Local file: file:///[A]/[B].json</Label>
+            </Field>
+
+            <!-- Curl Substitutions -->
+            <Field id="curlSubs" type="checkbox" defaultValue="false" visibleBindingId="useDigest"  visibleBindingValue="Raw"
+                   tooltip="Would you like to use substitutions in this feed? Checking the box turns them on and unchecking the box turns them off.">
+                <Label>Curl substitutions:</Label>
+                <Description>applied to the [Curl Commands] field above.</Description>
+            </Field>
+
+            <Field id="curlSubA" type="textfield" tooltip="Enter or paste a variable ID here (ID number only)." visibleBindingId="curlSubs" visibleBindingValue="true">
+                <Label>Variable A:</Label>
+            </Field>
+
+            <Field id="curlSubB" type="textfield" tooltip="Enter or paste a variable ID here (ID number only)." visibleBindingId="curlSubs" visibleBindingValue="true">
+                <Label>Variable B:</Label>
+            </Field>
+
+            <Field id="curlSubC" type="textfield" tooltip="Enter or paste a variable ID here (ID number only)." visibleBindingId="curlSubs" visibleBindingValue="true">
+                <Label>Variable C:</Label>
+            </Field>
+
+            <Field id="curlSubD" type="textfield" tooltip="Enter or paste a variable ID here (ID number only)." visibleBindingId="curlSubs" visibleBindingValue="true">
+                <Label>Variable D:</Label>
+            </Field>
+
+            <Field id="curlSubE" type="textfield" tooltip="Enter or paste a variable ID here (ID number only)." visibleBindingId="curlSubs" visibleBindingValue="true">
+                <Label>Variable E:</Label>
+            </Field>
+
+            <Field id="curlSubExample" type="label" fontSize="small" alignWithControl="true" visibleBindingId="curlSubs" visibleBindingValue="true">
+                <Label>Curl Example:&#xA;-H "Authorization: Bearer [API KEY VALUE]" \&#xA;-H "Content-Type: application/json" \&#xA;-X POST \&#xA;-d '{ "query": "{viewer {homes {consumption(resolution: HOURLY, last: 1) {nodes {from to totalCost unitCost unitPrice unitPriceVAT consumption consumptionUnit }} meteringPointData {estimatedAnnualConsumption } currentSubscription {priceInfo {current {total energy tax startsAt }}}}}}" }'</Label>
             </Field>
 
         </ConfigUI>

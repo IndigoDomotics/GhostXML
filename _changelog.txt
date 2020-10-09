@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.5.01
+- Adds UI for variable substitution for raw curl commands.
+
 v0.4.57
 - Fixes bug where states for Real Type devices were returned as strings when device comm first started.
 
