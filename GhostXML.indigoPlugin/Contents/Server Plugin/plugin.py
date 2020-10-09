@@ -41,7 +41,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.5.01"
+__version__   = u"0.5.02"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -448,6 +448,8 @@ class Plugin(indigo.PluginBase):
 
         error_msg_dict = indigo.Dict()
         sub_list       = (('subA', '[A]'), ('subB', '[B]'), ('subC', '[C]'), ('subD', '[D]'), ('subE', '[E]'))
+        curl_sub_list  = (('curlSubA', '[A]'), ('curlSubB', '[B]'), ('curlSubC', '[C]'), ('curlSubD', '[D]'),
+                          ('curlSubE', '[E]'))
         token_url      = values_dict['tokenUrl']
         url            = values_dict['sourceXML']
         url_list       = ('file:///', 'http://', 'https://', 'ftp://')
@@ -484,21 +486,35 @@ class Plugin(indigo.PluginBase):
         if use_digest == 'Token' and not token_url.startswith(url_list):
             error_msg_dict['tokenUrl'] = u"You must supply a valid Token URL."
 
-        # Test the variable substitution IDs and indexes. If substitutions aren't
+        # Test the variable substitution IDs and indexes for URL subs. If substitutions aren't
         # enabled, we can skip this bit.
         if values_dict['doSubs']:
 
             for sub in sub_list:
 
                 try:
-                    # Ensure that the values entered in the substitution fields are valid Indigo
-                    # variable IDs.
+                    # Ensure that the values entered in the substitution fields are valid Indigo variable IDs.
                     if values_dict[sub[0]].isspace() or values_dict[sub[0]] == "":
                         pass
                     elif int(values_dict[sub[0]]) not in var_list:
                         error_msg_dict[sub[0]] = u"Please enter a valid variable ID."
                 except ValueError:
                     error_msg_dict[sub[0]] = u"Please enter a valid variable ID."
+
+        # Test the variable substitution IDs and indexes for curl subs. If substitutions aren't
+        # enabled, we can skip this bit.
+        if values_dict['curlSubs']:
+
+            for c_sub in curl_sub_list:
+
+                try:
+                    # Ensure that the values entered in the substitution fields are valid Indigo variable IDs.
+                    if values_dict[c_sub[0]].isspace() or values_dict[c_sub[0]] == "":
+                        pass
+                    elif int(values_dict[c_sub[0]]) not in var_list:
+                        error_msg_dict[c_sub[0]] = u"Please enter a valid variable ID."
+                except ValueError:
+                    error_msg_dict[c_sub[0]] = u"Please enter a valid variable ID."
 
         if len(error_msg_dict) > 0:
             error_msg_dict['showAlertText'] = u"Configuration Errors\n\nThere are one or more settings that need to " \
@@ -878,7 +894,7 @@ class PluginDevice(object):
             else:
                 glob_off = ''
 
-            # Format any needed substitutions
+            # Format any needed URL substitutions
             if dev.pluginProps.get('doSubs', False):
                 self.host_plugin.logger.debug(u"[{0}] URL: {1}  (before substitution)".format(dev.name, url))
                 url = self.host_plugin.substitute(url.replace("[A]", "%%v:" + dev.pluginProps['subA'] + "%%"))
@@ -887,6 +903,17 @@ class PluginDevice(object):
                 url = self.host_plugin.substitute(url.replace("[D]", "%%v:" + dev.pluginProps['subD'] + "%%"))
                 url = self.host_plugin.substitute(url.replace("[E]", "%%v:" + dev.pluginProps['subE'] + "%%"))
                 self.host_plugin.logger.debug(u"[{0}] URL: {1}  (after substitution)".format(dev.name, url))
+
+            # Added by DaveL17 - 2020 10 09
+            # Format any needed Raw Curl substitutions
+            if dev.pluginProps.get('curlSubs', False):
+                self.host_plugin.logger.debug(u"[{0}] Raw Curl: {1}  (before substitution)".format(dev.name, curl_array))
+                curl_array = self.host_plugin.substitute(curl_array.replace("[A]", "%%v:" + dev.pluginProps['curlSubA'] + "%%"))
+                curl_array = self.host_plugin.substitute(curl_array.replace("[B]", "%%v:" + dev.pluginProps['curlSubB'] + "%%"))
+                curl_array = self.host_plugin.substitute(curl_array.replace("[C]", "%%v:" + dev.pluginProps['curlSubC'] + "%%"))
+                curl_array = self.host_plugin.substitute(curl_array.replace("[D]", "%%v:" + dev.pluginProps['curlSubD'] + "%%"))
+                curl_array = self.host_plugin.substitute(curl_array.replace("[E]", "%%v:" + dev.pluginProps['curlSubE'] + "%%"))
+                self.host_plugin.logger.debug(u"[{0}] Raw Curl: {1}  (after substitution)".format(dev.name, curl_array))
 
             # Initiate curl call to data source.
 

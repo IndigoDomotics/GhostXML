@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.5.02
+- Adds support for raw curl substitutions.
+
 v0.5.01
 - Adds UI for variable substitution for raw curl commands.
 
