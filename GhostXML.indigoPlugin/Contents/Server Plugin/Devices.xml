@@ -89,6 +89,7 @@
                 <Label>Method:</Label>
                 <List>
                     <Option value="Basic">Basic</Option>
+                    <Option value="Bearer">Bearer</Option>
                     <Option value="Digest">Digest</Option>
                     <Option value="Raw">Raw Curl (Advanced)</Option>
                     <Option value="Token">Token</Option>
@@ -97,10 +98,12 @@
                 </List>
             </Field>
 
-            <!-- Note: although the username and password fields are called digestUser and
-            digestPass, these fields are now used for both digest and basic auth. -->
             <Field id="tokenUrl" type="textfield" tooltip="Enter the URL for the Token server." visibleBindingId="useDigest" visibleBindingValue="Token">
                 <Label>Token URL:</Label>
+            </Field>
+
+            <Field id="token" type="textfield" tooltip="Enter the Token for the server." visibleBindingId="useDigest" visibleBindingValue="Bearer">
+                <Label>Token:</Label>
             </Field>
 
             <Field id="digestUser" type="textfield" tooltip="Enter or paste a Username ID here." visibleBindingId="useDigest" visibleBindingValue="Basic, Digest">
@@ -308,6 +311,7 @@
                 <Label>Method:</Label>
                 <List>
                     <Option value="Basic">Basic</Option>
+                    <Option value="Bearer">Bearer</Option>
                     <Option value="Digest">Digest</Option>
                     <Option value="Raw">Raw Curl (Advanced)</Option>
                     <Option value="Token">Token</Option>
@@ -316,10 +320,12 @@
                 </List>
             </Field>
 
-            <!-- Note: although the username and password fields are called digestUser and
-            digestPass, these fields are now used for both digest and basic auth. -->
             <Field id="tokenUrl" type="textfield" tooltip="Enter the URL for the Token server." visibleBindingId="useDigest" visibleBindingValue="Token">
                 <Label>Token URL:</Label>
+            </Field>
+
+            <Field id="token" type="textfield" tooltip="Enter the Token for the server." visibleBindingId="useDigest" visibleBindingValue="Bearer">
+                <Label>Token:</Label>
             </Field>
 
             <Field id="digestUser" type="textfield" tooltip="Enter or paste a Username ID here." visibleBindingId="useDigest" visibleBindingValue="Basic, Digest">
@@ -332,15 +338,7 @@
 
             <!-- Raw Curl -->
             <Field id="curlArray" type="textfield" tooltip="Please enter your curl commands, which will be appended to the url above." visibleBindingId="useDigest" visibleBindingValue="Raw">
-                <Label>Curl Commands:
-
-
-
-
-
-
-
-                </Label>
+                <Label>Curl Commands:&#xD;&#xD;&#xD;&#xD;&#xD;&#xD;&#xD;&#xD;</Label>
             </Field>
 
             <Field id="rawCurlLabel" type="label" fontSize="small" alignWithControl="true" visibleBindingId="useDigest" visibleBindingValue="Raw">

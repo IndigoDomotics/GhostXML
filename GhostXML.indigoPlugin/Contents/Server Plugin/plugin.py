@@ -41,7 +41,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.5.02"
+__version__   = u"0.5.03"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -450,6 +450,7 @@ class Plugin(indigo.PluginBase):
         sub_list       = (('subA', '[A]'), ('subB', '[B]'), ('subC', '[C]'), ('subD', '[D]'), ('subE', '[E]'))
         curl_sub_list  = (('curlSubA', '[A]'), ('curlSubB', '[B]'), ('curlSubC', '[C]'), ('curlSubD', '[D]'),
                           ('curlSubE', '[E]'))
+        token          = values_dict['token']
         token_url      = values_dict['tokenUrl']
         url            = values_dict['sourceXML']
         url_list       = ('file:///', 'http://', 'https://', 'ftp://')
@@ -485,6 +486,11 @@ class Plugin(indigo.PluginBase):
         # Test the token URL/Path for proper prefix.
         if use_digest == 'Token' and not token_url.startswith(url_list):
             error_msg_dict['tokenUrl'] = u"You must supply a valid Token URL."
+
+        # Test the token URL/Path for proper prefix.
+        if use_digest == 'Bearer' and token.replace(" ", "") == "":
+            error_msg_dict['token'] = u"You must supply a Token value. The plugin does not attempt to ensure that " \
+                                      u"the token is valid."
 
         # Test the variable substitution IDs and indexes for URL subs. If substitutions aren't
         # enabled, we can skip this bit.
@@ -943,12 +949,25 @@ class PluginDevice(object):
                                         stderr=subprocess.PIPE
                                         )
 
+            # Bearer auth
+            # Added by DaveL17 2020-11-07
+            elif auth_type == 'Bearer':
+                token = dev.pluginProps['token']
+                curl_arg = ('curl -vskX' + glob_off + ' GET ' + url +
+                            ' -H "accept: application/json" -H "Authorization: Bearer "' + token
+                            )
+
+                proc = subprocess.Popen(curl_arg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+
             # Token auth
             # Added by berkinet and DaveL17 2018-06-18
             elif auth_type == 'Token':
                 # We need to get a token to get started
                 a_url    = dev.pluginProps['tokenUrl']
-                curl_arg = "/usr/bin/curl -vsk" + glob_off + " -H 'Content-Type: application/json' -X POST --data-binary '{ \"pwd\": \"" + password + "\", \"remember\": 1 }' '} ' " + a_url
+                curl_arg = ("/usr/bin/curl -vsk" + glob_off +
+                            " -H 'Content-Type: application/json' -X POST --data-binary '{ \"pwd\": \"" +
+                            password + "\", \"remember\": 1 }' '} ' " + a_url
+                            )
 
                 proc = subprocess.Popen(curl_arg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 
