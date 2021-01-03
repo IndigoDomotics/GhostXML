@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.5.06
+- Adds reminders to various curl options in comments.
+
 v0.5.05
 - Adds curl return code definitions to provide more human-friendly reporting
   of curl errors.

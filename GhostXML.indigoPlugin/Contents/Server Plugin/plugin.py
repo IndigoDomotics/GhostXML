@@ -41,7 +41,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.5.05"
+__version__   = u"0.5.06"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -939,6 +939,7 @@ class PluginDevice(object):
             # if using raw Curl - don't worry about auth_Type or much else
             if auth_type == "Raw":
                 self.host_plugin.logger.debug(u'/usr/bin/curl -vsk {0} {1}'.format(curl_array, url))
+                # v = [verbose] s = [silent] k = [insecure]
                 proc = subprocess.Popen('/usr/bin/curl -vsk' + glob_off + ' ' + curl_array + ' ' + url,
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE,
@@ -948,6 +949,7 @@ class PluginDevice(object):
 
             # Digest auth
             elif auth_type == 'Digest':
+                # v = [verbose] s = [silent] u = [--user <user:password>]
                 proc = subprocess.Popen(["curl", '-vs' + glob_off, '--digest', '-u', username + ':' + password, url],
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE
@@ -955,6 +957,7 @@ class PluginDevice(object):
 
             # Basic auth
             elif auth_type == 'Basic':
+                # v = [verbose] s = [silent] u = [--user <user:password>]
                 proc = subprocess.Popen(["curl", '-vs' + glob_off, '-u', username + ':' + password, url],
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE
@@ -964,6 +967,7 @@ class PluginDevice(object):
             # Added by DaveL17 2020-11-07
             elif auth_type == 'Bearer':
                 token = dev.pluginProps['token']
+                # v = [verbose] s = [silent] k = [insecure] X = [--request <command>] H = [Header]
                 curl_arg = ('curl -vskX' + glob_off + ' GET ' + url +
                             ' -H "accept: application/json" -H "Authorization: Bearer "' + token
                             )
@@ -975,6 +979,7 @@ class PluginDevice(object):
             elif auth_type == 'Token':
                 # We need to get a token to get started
                 a_url    = dev.pluginProps['tokenUrl']
+                # v = [verbose] s = [silent] k = [insecure] H = [Header] X = [--request <command>]
                 curl_arg = ("/usr/bin/curl -vsk" + glob_off +
                             " -H 'Content-Type: application/json' -X POST --data-binary '{ \"pwd\": \"" +
                             password + "\", \"remember\": 1 }' '} ' " + a_url
