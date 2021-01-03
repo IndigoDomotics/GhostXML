@@ -279,7 +279,7 @@
             </Field>
 
             <!-- Note that the use of multi-line label is a hack and may not work in the future. -->
-            <Field id="disableLogging" type="checkbox" defaultValue="false" tooltip="Check the box to disable SQL Plugin logging for all states belonging to this device.">
+            <Field id="disableLogging" type="checkbox" defaultValue="true" tooltip="Check the box to disable SQL Plugin logging for all states belonging to this device.">
                 <Label>Disable SQL&#xA;Logging:</Label>
             </Field>
 

@@ -1,5 +1,12 @@
 GhostXML Change Log
 
+v0.5.05
+- Adds curl return code definitions to provide more human-friendly reporting
+  of curl errors.
+
+v0.5.04
+- Refines saving of device preferences changes.
+
 v0.5.03
 - Adds bearer authentication method.
 

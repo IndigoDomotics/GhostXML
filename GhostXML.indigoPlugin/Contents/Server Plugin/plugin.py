@@ -10,10 +10,10 @@ transitive Indigo plugin device states.
 """
 
 # TODO: Additional auth types: Oauth2, WSSE
-# TODO: Trap instances where a source may have a tag that is the same as the built-in states.
 
 # =============================== Stock Imports ===============================
 # import datetime
+from curlcodes import codes as curl_code
 import xml.etree.ElementTree as Etree
 import logging
 import os
@@ -41,7 +41,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.5.03"
+__version__   = u"0.5.05"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -101,6 +101,9 @@ class Plugin(indigo.PluginBase):
     # =============================================================================
     # =============================== Indigo Methods ===============================
     # =============================================================================
+    def closedDeviceConfigUi(self, values_dict=None, user_cancelled=False, type_id="", dev_id=0):
+        pass
+
     def closedPrefsConfigUi(self, values_dict, user_cancelled):
 
         current_debug_level = {10: 'Debug', 20: 'Info', 30: 'Warning', 40: 'Error', 50: 'Critical'}
@@ -526,6 +529,14 @@ class Plugin(indigo.PluginBase):
             error_msg_dict['showAlertText'] = u"Configuration Errors\n\nThere are one or more settings that need to " \
                                               u"be corrected. Fields requiring attention will be highlighted."
             return False, values_dict, error_msg_dict
+
+        # ===========================  Disable SQL Logging  ===========================
+        # If the user elects to disable SQL logging, we need to set the property
+        # 'sqlLoggerIgnoreStates' to "*".
+        if values_dict['disableLogging']:
+            values_dict['sqlLoggerIgnoreStates'] = "*"
+        else:
+            values_dict['sqlLoggerIgnoreStates'] = ""
 
         return True, values_dict, error_msg_dict
 
@@ -998,23 +1009,26 @@ class PluginDevice(object):
             try:
                 timer_kill.start()
                 result, err = proc.communicate()
-
-                self.host_plugin.logger.debug(u'HTTPS CURL result: {0}'.format(err))
-                self.host_plugin.logger.debug(u'ReturnCode: {0}'.format(proc.returncode))
+                return_code = proc.returncode
 
             finally:
                 timer_kill.cancel()
 
             # =============================================================================
-            # 2019-11-13 DaveL17: Did a little digging on exit codes to see about being
-            # more specific on the result.  However, it appears that exit codes are site
-            # dependent and (according to brief research) generally underdeveloped. Looks
-            # like there's not much more that can be provided to the user.
-            if int(proc.returncode) != 0:
-                self.host_plugin.logger.warning(u"[{0}] curl error {1}. [Return code: "
-                                                u"{2}".format(dev.name, err.replace('\n', ' '), proc.returncode))
-
-            # if proc.returncode != 0 here, it is likely that 'result' is empty.
+            # 2021-01-03 DaveL17: Did a little more digging on exit codes and pulled codes
+            # from the man page.  See `curlcodes.py` for more information.
+            if return_code != 0:
+                # for plugin log (verbose error)
+                self.host_plugin.logger.debug(u"[{0}] curl error {1}.".format(dev.name,
+                                                                              err.replace('\n', ' ')
+                                                                              )
+                                              )
+                # for Indigo event log
+                self.host_plugin.logger.warning(u"[{0}] - Return code: {1} - "
+                                                u"{2}]".format(dev.name,
+                                                               return_code,
+                                                               curl_code.get(str(return_code), "Unknown code message."))
+                                                )
             return result
 
         except IOError:
@@ -1194,19 +1208,21 @@ class PluginDevice(object):
         # 2019-01-13 DaveL17 -- excluding standard states.
         sorted_list = [_ for _ in sorted(self.finalDict.iterkeys()) if _ not in ('deviceIsOnline', 'parse_error')]
 
+        # 2020-12-19 DaveL17
+        # Moved to validateDeviceConfigUi(). Legacy devices without the prop would get
+        # it when deviceStartComm is called.
+        # TODO: this commented block can be deleted if no errors reported.
         # 2020-04-07 DaveL17
-        # If 'sqlLoggerIgnoreStates' prop exists and is set to True, add the states
+        # If 'sqlLoggerIgnoreStates' prop exists and is set to "*", add the states
         # list to the prop; else empty the prop value. We add the wildcard to suppress
         # all states, but this could be adjusted to allow user to hide (or include)
         # selected states.
-        new_props       = dev.pluginProps
-        disable_logging = new_props.get('disableLogging', False)
-        if disable_logging:
-            # new_props['sqlLoggerIgnoreStates'] = ", ".join(sorted_list)
-            new_props['sqlLoggerIgnoreStates'] = "*"
-        else:
-            new_props['sqlLoggerIgnoreStates'] = ""
-        dev.replacePluginPropsOnServer(new_props)
+        # new_props       = dev.pluginProps
+        # if new_props.get('disableLogging', False):
+        #     new_props['sqlLoggerIgnoreStates'] = "*"
+        # else:
+        #     new_props['sqlLoggerIgnoreStates'] = ""
+        # dev.replacePluginPropsOnServer(new_props)
 
         try:
             if dev.deviceTypeId == 'GhostXMLdeviceTrue':
