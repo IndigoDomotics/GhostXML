@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.5.07
+- Removes unneeded returns from plugin Action methods.
+
 v0.5.06
 - Adds reminders to various curl options in comments.
 

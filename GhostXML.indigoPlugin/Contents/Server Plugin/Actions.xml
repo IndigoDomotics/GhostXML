@@ -15,6 +15,8 @@
         <CallbackMethod>adjust_refresh_time</CallbackMethod>
     </Action>
 
+    <Action id="sep1" uiPath="DeviceActions"/>
+
     <Action id="refresh_data" uiPath="DeviceActions">
         <Name>Refresh Data For All Devices</Name>
         <CallbackMethod>refresh_data_action</CallbackMethod>

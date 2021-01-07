@@ -41,7 +41,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.5.06"
+__version__   = u"0.5.07"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -565,8 +565,6 @@ class Plugin(indigo.PluginBase):
         new_props['refreshFreq'] = int(values_dict.props['new_refresh_freq'])
         dev.replacePluginPropsOnServer(new_props)
 
-        return True
-
     # =============================================================================
     def comms_kill_all(self):
         """
@@ -716,7 +714,6 @@ class Plugin(indigo.PluginBase):
         :param values_dict:
         """
         self.refresh_data()
-        return True, values_dict
 
     # =============================================================================
     def refresh_data(self):
@@ -762,32 +759,6 @@ class Plugin(indigo.PluginBase):
 
         dev = self.managedDevices[values_dict.deviceId].device
         self.managedDevices[dev.id].queue.put(dev)
-
-        return True
-
-    # 2019-11-13 DaveL17 - I ran grep against the plugin folder and plugin.py is
-    # the only hit.  This method is the only spot in plugin.py where it's called.
-    # Earmarked for removal.
-    # =============================================================================
-    # def stop_sleep(self, start_sleep):
-    #     """
-    #     Update device sleep value as warranted
-    #
-    #     The stop_sleep() method accounts for changes to the user upload interval
-    #     preference. The plugin checks every 2 seconds to see if the sleep interval
-    #     should be updated.
-    #
-    #     -----
-    #
-    #     :param start_sleep:
-    #     """
-    #
-    #     total_sleep = float(self.pluginPrefs.get('configMenuUploadInterval', 300))
-    #
-    #     if t.time() - start_sleep > total_sleep:
-    #         return True
-    #
-    #     return False
 
     # =============================================================================
     def time_to_update(self, dev):
