@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.5.08
+- Fixes but in setting to ignore SQL logging.
+
 v0.5.07
 - Removes unneeded returns from plugin Action methods.
 

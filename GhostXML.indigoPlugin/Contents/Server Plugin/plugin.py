@@ -41,7 +41,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.5.07"
+__version__   = u"0.5.08"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -157,6 +157,13 @@ class Plugin(indigo.PluginBase):
         if new_props != dev.pluginProps:
             dev.replacePluginPropsOnServer(new_props)
             self.sleep(2)
+
+        # 2021-01-08 DaveL17 We were mistakenly saving this to pluginProps and not sharedProps.
+        # This works to update devices with the disable logging setting already checked.
+        shared_props = dev.sharedprops
+        if dev.pluginProps['disableLogging']:
+            shared_props['sqlLoggerIgnoreStates'] = "*"
+        dev.replaceSharedPropsOnServer(shared_props)
 
         dev.stateListOrDisplayStateIdChanged()
 
@@ -453,6 +460,7 @@ class Plugin(indigo.PluginBase):
         sub_list       = (('subA', '[A]'), ('subB', '[B]'), ('subC', '[C]'), ('subD', '[D]'), ('subE', '[E]'))
         curl_sub_list  = (('curlSubA', '[A]'), ('curlSubB', '[B]'), ('curlSubC', '[C]'), ('curlSubD', '[D]'),
                           ('curlSubE', '[E]'))
+        dev            = indigo.devices[dev_id]
         token          = values_dict['token']
         token_url      = values_dict['tokenUrl']
         url            = values_dict['sourceXML']
@@ -533,10 +541,18 @@ class Plugin(indigo.PluginBase):
         # ===========================  Disable SQL Logging  ===========================
         # If the user elects to disable SQL logging, we need to set the property
         # 'sqlLoggerIgnoreStates' to "*".
+        # 2021-01-08 DaveL17 - we were mistakenly saving this to pluginProps instead of sharedProps.
+        # We do both to ensure no errors during the transition. The pluginProp can be deleted later on.
+        # TODO: delete the reference to values_dict later at a later time.
+        shared_props = dev.sharedProps
         if values_dict['disableLogging']:
             values_dict['sqlLoggerIgnoreStates'] = "*"
+            shared_props['sqlLoggerIgnoreStates'] = "*"
         else:
             values_dict['sqlLoggerIgnoreStates'] = ""
+            shared_props['sqlLoggerIgnoreStates'] = ""
+
+        dev.replaceSharedPropsOnServer(shared_props)
 
         return True, values_dict, error_msg_dict
 
@@ -1362,3 +1378,4 @@ class PluginDevice(object):
             # Add wider exception testing to test errors
             self.host_plugin.logger.exception(u'General exception: {0}'.format(subError))
     # =============================================================================
+

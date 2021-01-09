@@ -3,20 +3,15 @@
     <Event id="deviceDisabled">
         <Name>Device Disabled</Name>
             <ConfigUI>
-
                 <SupportURL>https://IndigoDomotics.github.io/GhostXML/</SupportURL>
-
                 <Field id="deviceDisabledLabel" type="label">
                     <Label>The GhostXML Plugin can fire a trigger if a plugin device has been automatically taken out of service.  Select the device that you want to monitor.</Label>
                 </Field>
-
                 <Field id="deviceDisabledSeparator" type="separator"/>
-
                 <Field id="disabledDevice" type="menu">
                     <Label>Device:</Label>
                     <List class="self" filter="" method="get_device_list"/>
                 </Field>
-
             </ConfigUI>
     </Event>
 </Events>
