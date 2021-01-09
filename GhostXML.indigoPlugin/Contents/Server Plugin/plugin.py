@@ -41,7 +41,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.5.09"
+__version__   = u"0.5.10"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -102,7 +102,11 @@ class Plugin(indigo.PluginBase):
     # =============================== Indigo Methods ===============================
     # =============================================================================
     def closedDeviceConfigUi(self, values_dict=None, user_cancelled=False, type_id="", dev_id=0):
-        pass
+        dev = indigo.devices[dev_id]
+
+        # Replace device to list of managed devices to ensure any configuration
+        # changes are used.
+        self.managedDevices[dev.id] = PluginDevice(self, dev)
 
     def closedPrefsConfigUi(self, values_dict, user_cancelled):
 
@@ -163,10 +167,14 @@ class Plugin(indigo.PluginBase):
         shared_props = dev.sharedProps
         if dev.pluginProps['disableLogging']:
             shared_props['sqlLoggerIgnoreStates'] = "*"
+        else:
+            shared_props['sqlLoggerIgnoreStates'] = ""
+
         dev.replaceSharedPropsOnServer(shared_props)
 
         dev.stateListOrDisplayStateIdChanged()
 
+        # Add device to list of managed devices
         self.managedDevices[dev.id] = PluginDevice(self, dev)
 
         # Force refresh of device when comm started
@@ -432,14 +440,16 @@ class Plugin(indigo.PluginBase):
             # =========================== Add Global Props ============================
             # Add props to devices that don't have them. This step is agnostic to
             # whether a device is enabled or not.
-            new_props = dev.pluginProps
-            if 'disableLogging' not in new_props.keys():
-                self.logger.debug("Adding device property: disableLogging to {0}".format(dev.name))
-                new_props['disableLogging'] = False
-            if 'sqlLoggerIgnoreStates' not in new_props.keys():
-                self.logger.debug("Adding device property: sqlLoggerIgnoreStates to {0}".format(dev.name))
-                new_props['sqlLoggerIgnoreStates'] = ""
-            dev.replacePluginPropsOnServer(new_props)
+            # TODO: 2020-01-09 DaveL17 I think all this can go away since this prop is
+            #       now taken care of in deviceStartComm
+            # new_props = dev.pluginProps
+            # if 'disableLogging' not in new_props.keys():
+            #     self.logger.debug("Adding device property: disableLogging to {0}".format(dev.name))
+            #     new_props['disableLogging'] = False
+            # if 'sqlLoggerIgnoreStates' not in new_props.keys():
+            #     self.logger.debug("Adding device property: sqlLoggerIgnoreStates to {0}".format(dev.name))
+            #     new_props['sqlLoggerIgnoreStates'] = ""
+            # dev.replacePluginPropsOnServer(new_props)
 
             dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
@@ -546,10 +556,10 @@ class Plugin(indigo.PluginBase):
         # TODO: delete the reference to values_dict later at a later time.
         shared_props = dev.sharedProps
         if values_dict['disableLogging']:
-            values_dict['sqlLoggerIgnoreStates'] = "*"
+            # values_dict['sqlLoggerIgnoreStates'] = "*"
             shared_props['sqlLoggerIgnoreStates'] = "*"
         else:
-            values_dict['sqlLoggerIgnoreStates'] = ""
+            # values_dict['sqlLoggerIgnoreStates'] = ""
             shared_props['sqlLoggerIgnoreStates'] = ""
 
         dev.replaceSharedPropsOnServer(shared_props)
