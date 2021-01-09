@@ -41,7 +41,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.5.08"
+__version__   = u"0.5.09"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -159,8 +159,8 @@ class Plugin(indigo.PluginBase):
             self.sleep(2)
 
         # 2021-01-08 DaveL17 We were mistakenly saving this to pluginProps and not sharedProps.
-        # This works to update devices with the disable logging setting already checked.
-        shared_props = dev.sharedprops
+        # This updates devices with the disable logging setting already checked.
+        shared_props = dev.sharedProps
         if dev.pluginProps['disableLogging']:
             shared_props['sqlLoggerIgnoreStates'] = "*"
         dev.replaceSharedPropsOnServer(shared_props)
