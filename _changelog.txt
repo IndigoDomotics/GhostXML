@@ -1,5 +1,8 @@
 GhostXML Change Log
 
+v0.5.12
+- Sync
+
 v0.5.11
 - Removes code marked for deletion. Refer to v0.5.10 if any needs to be
   restored.

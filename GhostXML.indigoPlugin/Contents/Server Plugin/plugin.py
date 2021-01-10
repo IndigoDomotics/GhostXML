@@ -41,7 +41,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.5.11"
+__version__   = u"0.5.12"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
