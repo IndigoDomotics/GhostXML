@@ -26,7 +26,7 @@ import threading
 import time as t
 
 # ============================ Third-party Imports ============================
-import flatdict  # https://github.com/gmr/flatdict
+import flatdict  # https://github.com/gmr/flatdict - flatdict deprecated Python 2 in v4.0.0
 try:
     import indigo  # only needed for IDE syntax checking
     import pydevd
@@ -41,7 +41,7 @@ __build__     = u""
 __copyright__ = u"There is no copyright for the GhostXML code base."
 __license__   = u"MIT"
 __title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.5.10"
+__version__   = u"0.5.11"
 
 # Establish default plugin prefs; create them if they don't already exist.
 kDefaultPluginPrefs = {
@@ -70,19 +70,10 @@ class Plugin(indigo.PluginBase):
         log_format = '%(asctime)s.%(msecs)03d\t%(levelname)-10s\t%(name)s.%(funcName)-28s %(msg)s'
         self.plugin_file_handler.setFormatter(logging.Formatter(log_format, datefmt='%Y-%m-%d %H:%M:%S'))
 
-        self.indigo_log_handler.setLevel(20)
-        self.logger.info(u"")
-        self.logger.info(u"{0:{1}^130}".format(" Initializing New Plugin Session ", "="))
-        self.logger.info(u"{0:<30} {1}".format("Plugin name:", pluginDisplayName))
-        self.logger.info(u"{0:<30} {1}".format("Plugin version:", pluginVersion))
-        self.logger.info(u"{0:<30} {1}".format("Plugin ID:", pluginId))
-        self.logger.info(u"{0:<30} {1}".format("Indigo version:", indigo.server.version))
-        self.logger.info(u"{0:<30} {1}".format("Python version:", sys.version.replace('\n', '')))
-        self.logger.info(u"{0:<30} {1}".format("Process ID:", os.getpid()))
-        self.logger.info(u"{0:{1}^130}".format("", "="))
-        self.indigo_log_handler.setLevel(self.debugLevel)
+        # ==========================  Log Environment Info  ===========================
+        self.log_environment_info()
 
-        # ================================== Other ====================================
+        # ==================================  Other  ==================================
         self.managedDevices = {}  # Managed list of plugin devices
 
         # Adding support for remote debugging in PyCharm. Other remote debugging
@@ -154,7 +145,6 @@ class Plugin(indigo.PluginBase):
 
         if auth_type in ('False', 'false', False):
             new_props['useDigest'] = 'Basic'
-
         elif auth_type in ('True', 'true', True):
             new_props['useDigest'] = 'Digest'
 
@@ -171,7 +161,6 @@ class Plugin(indigo.PluginBase):
             shared_props['sqlLoggerIgnoreStates'] = ""
 
         dev.replaceSharedPropsOnServer(shared_props)
-
         dev.stateListOrDisplayStateIdChanged()
 
         # Add device to list of managed devices
@@ -211,6 +200,7 @@ class Plugin(indigo.PluginBase):
         xml           = self.devicesTypeDict[type_id]["ConfigUIRawXml"]
         root          = Etree.fromstring(xml)
 
+        # TODO: elem.getchildren() will become list(elem)
         if type_id in ('GhostXMLdevice', 'GhostXMLdeviceTrue'):
 
             # Get current list of refresh frequencies from the XML file.
@@ -276,25 +266,12 @@ class Plugin(indigo.PluginBase):
                     state_list.append(dynamic_state)
 
         # ======================== Custom States as True Type =========================
-        #
-        # 2019-12-18 DaveL17 -- Reconfigured to allow for the establishment of other device state types (int,
-        # float, bool, etc.)
-        # 2020-09-28 DaveL17 -- Refactored code where dev.id is not in self.managedDevices so that the true type
-        # for each state is retained.  Prior to refactoring, the states were all returned as strings (original code
-        # retained as comment for now).
-        #
         # TODO: there is duplicated code here that can be moved to a local function (it appears that we still need to
         #   confirm whether dev is in managedDevices().
         if dev.deviceTypeId == 'GhostXMLdeviceTrue':
 
             # If there are no managed devices, return the existing states.
             if dev.id not in self.managedDevices.keys():
-
-                # TODO: 2020-09-28 DaveL17 -- the following code will likely be removed in future versions.
-                # for key in dev.states:
-                #
-                #     dynamic_state = self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key))
-                #     state_list.append(dynamic_state)
 
                 for key in dev.states:
                     value = dev.states[key]
@@ -369,9 +346,6 @@ class Plugin(indigo.PluginBase):
     # =============================================================================
     def runConcurrentThread(self):
 
-        # This sleep will execute only when the plugin is started/restarted. It gives
-        # the Indigo server a chance to catch up if it needs to. Five seconds may be
-        # overkill.
         self.sleep(5)
 
         try:
@@ -435,21 +409,6 @@ class Plugin(indigo.PluginBase):
                 dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Disabled")
             else:
                 dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Initialized")
-
-            # 2020-04-07 DaveL17
-            # =========================== Add Global Props ============================
-            # Add props to devices that don't have them. This step is agnostic to
-            # whether a device is enabled or not.
-            # TODO: 2020-01-09 DaveL17 I think all this can go away since this prop is
-            #       now taken care of in deviceStartComm
-            # new_props = dev.pluginProps
-            # if 'disableLogging' not in new_props.keys():
-            #     self.logger.debug("Adding device property: disableLogging to {0}".format(dev.name))
-            #     new_props['disableLogging'] = False
-            # if 'sqlLoggerIgnoreStates' not in new_props.keys():
-            #     self.logger.debug("Adding device property: sqlLoggerIgnoreStates to {0}".format(dev.name))
-            #     new_props['sqlLoggerIgnoreStates'] = ""
-            # dev.replacePluginPropsOnServer(new_props)
 
             dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
@@ -515,6 +474,7 @@ class Plugin(indigo.PluginBase):
 
         # Test the variable substitution IDs and indexes for URL subs. If substitutions aren't
         # enabled, we can skip this bit.
+        # TODO: There is duplicated code in here that can be consolidated.
         if values_dict['doSubs']:
 
             for sub in sub_list:
@@ -552,14 +512,11 @@ class Plugin(indigo.PluginBase):
         # If the user elects to disable SQL logging, we need to set the property
         # 'sqlLoggerIgnoreStates' to "*".
         # 2021-01-08 DaveL17 - we were mistakenly saving this to pluginProps instead of sharedProps.
-        # We do both to ensure no errors during the transition. The pluginProp can be deleted later on.
-        # TODO: delete the reference to values_dict later at a later time.
+        # sharedProps is correct.
         shared_props = dev.sharedProps
         if values_dict['disableLogging']:
-            # values_dict['sqlLoggerIgnoreStates'] = "*"
             shared_props['sqlLoggerIgnoreStates'] = "*"
         else:
-            # values_dict['sqlLoggerIgnoreStates'] = ""
             shared_props['sqlLoggerIgnoreStates'] = ""
 
         dev.replaceSharedPropsOnServer(shared_props)
@@ -585,8 +542,7 @@ class Plugin(indigo.PluginBase):
         :param indigo.Dict() values_dict:
         :return:
         """
-        dev = self.managedDevices[values_dict.deviceId].device
-
+        dev       = self.managedDevices[values_dict.deviceId].device
         new_props = dev.pluginProps
         new_props['refreshFreq'] = int(values_dict.props['new_refresh_freq'])
         dev.replacePluginPropsOnServer(new_props)
@@ -651,6 +607,24 @@ class Plugin(indigo.PluginBase):
         """
 
         return [(dev.id, dev.name) for dev in indigo.devices.itervalues(filter="self")]
+
+    # =============================================================================
+    def log_environment_info(self):
+        """
+        Write interesting information to the log on startup.
+        """
+        self.indigo_log_handler.setLevel(20)
+        self.logger.info(u"")
+        self.logger.info(u"{0:{1}^130}".format(" Initializing New Plugin Session ", "="))
+        self.logger.info(u"{0:<30} {1}".format("Plugin name:", self.pluginDisplayName))
+        self.logger.info(u"{0:<30} {1}".format("Plugin version:", self.pluginVersion))
+        self.logger.info(u"{0:<30} {1}".format("Plugin ID:", self.pluginId))
+        self.logger.info(u"{0:<30} {1}".format("Indigo version:", indigo.server.version))
+        self.logger.info(u"{0:<30} {1}".format("Python version:", sys.version.replace('\n', '')))
+        self.logger.info(u"{0:<30} {1}".format("Flatdict version:", flatdict.__version__))
+        self.logger.info(u"{0:<30} {1}".format("Process ID:", os.getpid()))
+        self.logger.info(u"{0:{1}^130}".format("", "="))
+        self.indigo_log_handler.setLevel(self.debugLevel)
 
     # =============================================================================
     def process_bad_calls(self, dev, retries):
@@ -718,7 +692,6 @@ class Plugin(indigo.PluginBase):
         Legacy callback to Refresh Data for a Specified Device
 
         This method supports the old callback name.
-
 
         -----
 
@@ -834,9 +807,8 @@ class PluginDevice(object):
 
         self.pluginDeviceIsInitializing = True
 
-        self.device      = device
-        self.host_plugin = plugin
-
+        self.device            = device
+        self.host_plugin       = plugin
         self.bad_calls         = 0
         self.finalDict         = {}
         self.jsonRawData       = ''
@@ -897,7 +869,7 @@ class PluginDevice(object):
         """
 
         try:
-            curl_array  = dev.pluginProps.get('curlArray', '')
+            curl_array = dev.pluginProps.get('curlArray', '')
             url        = dev.pluginProps['sourceXML']
             username   = dev.pluginProps.get('digestUser', '')
             password   = dev.pluginProps.get('digestPass', '')
@@ -916,7 +888,7 @@ class PluginDevice(object):
                 url = self.host_plugin.substitute(url.replace("[C]", "%%v:" + dev.pluginProps['subC'] + "%%"))
                 url = self.host_plugin.substitute(url.replace("[D]", "%%v:" + dev.pluginProps['subD'] + "%%"))
                 url = self.host_plugin.substitute(url.replace("[E]", "%%v:" + dev.pluginProps['subE'] + "%%"))
-                self.host_plugin.logger.debug(u"[{0}] URL: {1}  (after substitution)".format(dev.name, url))
+                self.host_plugin.logger.debug(u"[{0}] URL: {1} (after substitution)".format(dev.name, url))
 
             # Added by DaveL17 - 2020 10 09
             # Format any needed Raw Curl substitutions
@@ -927,13 +899,12 @@ class PluginDevice(object):
                 curl_array = self.host_plugin.substitute(curl_array.replace("[C]", "%%v:" + dev.pluginProps['curlSubC'] + "%%"))
                 curl_array = self.host_plugin.substitute(curl_array.replace("[D]", "%%v:" + dev.pluginProps['curlSubD'] + "%%"))
                 curl_array = self.host_plugin.substitute(curl_array.replace("[E]", "%%v:" + dev.pluginProps['curlSubE'] + "%%"))
-                self.host_plugin.logger.debug(u"[{0}] Raw Curl: {1}  (after substitution)".format(dev.name, curl_array))
+                self.host_plugin.logger.debug(u"[{0}] Raw Curl: {1} (after substitution)".format(dev.name, curl_array))
 
             # Initiate curl call to data source.
 
-            # =============================================================================
-            # Added by GlennNZ - 2018 12 06
-            # if using raw Curl - don't worry about auth_Type or much else
+            # ================================  Curl Auth  ================================
+            # GlennNZ
             if auth_type == "Raw":
                 self.host_plugin.logger.debug(u'/usr/bin/curl -vsk {0} {1}'.format(curl_array, url))
                 # v = [verbose] s = [silent] k = [insecure]
@@ -942,26 +913,21 @@ class PluginDevice(object):
                                         stderr=subprocess.PIPE,
                                         shell=True
                                         )
-            # =============================================================================
-
-            # Digest auth
+            # ===============================  Digest Auth  ===============================
             elif auth_type == 'Digest':
                 # v = [verbose] s = [silent] u = [--user <user:password>]
                 proc = subprocess.Popen(["curl", '-vs' + glob_off, '--digest', '-u', username + ':' + password, url],
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE
                                         )
-
-            # Basic auth
+            # ===============================  Basic Auth  ================================
             elif auth_type == 'Basic':
                 # v = [verbose] s = [silent] u = [--user <user:password>]
                 proc = subprocess.Popen(["curl", '-vs' + glob_off, '-u', username + ':' + password, url],
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE
                                         )
-
-            # Bearer auth
-            # Added by DaveL17 2020-11-07
+            # ===============================  Bearer Auth  ===============================
             elif auth_type == 'Bearer':
                 token = dev.pluginProps['token']
                 # v = [verbose] s = [silent] k = [insecure] X = [--request <command>] H = [Header]
@@ -970,9 +936,8 @@ class PluginDevice(object):
                             )
 
                 proc = subprocess.Popen(curl_arg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-
-            # Token auth
-            # Added by berkinet and DaveL17 2018-06-18
+            # ===============================  Token Auth  ================================
+            # berkinet and DaveL17
             elif auth_type == 'Token':
                 # We need to get a token to get started
                 a_url    = dev.pluginProps['tokenUrl']
@@ -982,8 +947,7 @@ class PluginDevice(object):
                             password + "\", \"remember\": 1 }' '} ' " + a_url
                             )
 
-                proc = subprocess.Popen(curl_arg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-
+                proc     = subprocess.Popen(curl_arg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
                 reply_in = proc.communicate()
                 reply    = simplejson.loads(reply_in[0])
                 token    = (reply["access_token"])
@@ -994,8 +958,7 @@ class PluginDevice(object):
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE
                                         )
-
-            # No auth
+            # =================================  No Auth  =================================
             else:
                 proc = subprocess.Popen(["curl", '-vs' + glob_off, url],
                                         stdout=subprocess.PIPE,
@@ -1005,7 +968,6 @@ class PluginDevice(object):
             # =============================================================================
             # The following code adds a timeout function to the call.
             # Added by GlennNZ and DaveL17 2018-07-18
-            # cmd = ""
             duration   = int(dev.pluginProps.get('timeout', '5'))
             timer_kill = threading.Timer(duration, self.kill_curl, [proc])
             try:
@@ -1062,9 +1024,16 @@ class PluginDevice(object):
             # Some characters need to be replaced with a valid replacement value because
             # simply deleting them could cause problems. Add additional k/v pairs to
             # chars_to_replace as needed.
-
-            chars_to_replace = {'_ghostxml_': '_', '+': '_plus_', '-': '_minus_', 'true': 'True', 'false': 'False',
-                                ' ': '_', ':': '_colon_', '.': '_dot_', '@': 'at_'}
+            chars_to_replace = {'_ghostxml_': '_',
+                                '+': '_plus_',
+                                '-': '_minus_',
+                                'true': 'True',
+                                'false': 'False',
+                                ' ': '_',
+                                ':': '_colon_',
+                                '.': '_dot_',
+                                '@': 'at_'
+                                }
             chars_to_replace = dict((re.escape(k), v) for k, v in chars_to_replace.iteritems())
             pattern          = re.compile("|".join(chars_to_replace.keys()))
 
@@ -1120,7 +1089,6 @@ class PluginDevice(object):
 
         try:
             self.host_plugin.logger.debug(u'Timeout for Curl Subprocess. Killed by timer.')
-
             proc.kill()
 
         except Exception as subError:
@@ -1147,15 +1115,11 @@ class PluginDevice(object):
 
         self.old_device_states = dict(dev.states)
 
-        # =============================================================================
-        # 2020-02-20 DaveL17 - Fixes bug where device is offline and '.ui' states are
-        # included and become new keys '_dot_ui_' in the name.
-        #
+        # =============================  Drop UI States  ==============================
         # Drop the '.ui' states.
         for key in self.old_device_states.keys():
             if key.endswith('.ui'):
                 del self.old_device_states[key]
-        # =============================================================================
 
         try:
             parsed_simplejson = simplejson.loads(root)
@@ -1202,29 +1166,8 @@ class PluginDevice(object):
 
         :param dev:
         """
-        #
-        # 2019-12-18 DaveL17 -- Reconfigured to allow for the establishment of other device state types (int, float,
-        # bool, etc.)
-        #
         state_list  = []
-        # 2019-01-13 DaveL17 -- excluding standard states.
         sorted_list = [_ for _ in sorted(self.finalDict.iterkeys()) if _ not in ('deviceIsOnline', 'parse_error')]
-
-        # 2020-12-19 DaveL17
-        # Moved to validateDeviceConfigUi(). Legacy devices without the prop would get
-        # it when deviceStartComm is called.
-        # TODO: this commented block can be deleted if no errors reported.
-        # 2020-04-07 DaveL17
-        # If 'sqlLoggerIgnoreStates' prop exists and is set to "*", add the states
-        # list to the prop; else empty the prop value. We add the wildcard to suppress
-        # all states, but this could be adjusted to allow user to hide (or include)
-        # selected states.
-        # new_props       = dev.pluginProps
-        # if new_props.get('disableLogging', False):
-        #     new_props['sqlLoggerIgnoreStates'] = "*"
-        # else:
-        #     new_props['sqlLoggerIgnoreStates'] = ""
-        # dev.replacePluginPropsOnServer(new_props)
 
         try:
             if dev.deviceTypeId == 'GhostXMLdeviceTrue':
@@ -1317,7 +1260,6 @@ class PluginDevice(object):
                         dev.updateStateOnServer('deviceIsOnline', value=False, uiValue='Error')
                         dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
                         self.bad_calls += 1
-                    # 2019-11-23 DaveL17 Added additional condition where device should be marked as offline.
                     elif dev.states.get("Response", "") == "No data to return.":
                         dev.updateStateOnServer('deviceIsOnline', value=False, uiValue='Error')
                         dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
@@ -1388,4 +1330,3 @@ class PluginDevice(object):
             # Add wider exception testing to test errors
             self.host_plugin.logger.exception(u'General exception: {0}'.format(subError))
     # =============================================================================
-

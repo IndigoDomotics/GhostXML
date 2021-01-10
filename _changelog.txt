@@ -1,9 +1,16 @@
 GhostXML Change Log
 
+v0.5.11
+- Removes code marked for deletion. Refer to v0.5.10 if any needs to be
+  restored.
+- Adds flat_dict_license.txt
+- Updates ghostXML license.
+- code refinements.
+
 v0.5.10
-- Prepares old 'sqlLoggerIgnoreStates' that's saved to pluginProps
-  for deletion. Should run in this state for a bit in case
-  something needs to be put back.
+- Prepares old 'sqlLoggerIgnoreStates' that's saved to pluginProps for
+  deletion. Should run in this state for a bit in case something needs to be
+  put back.
 
 v0.5.09
 - Fixes typo in deviceStartComm.

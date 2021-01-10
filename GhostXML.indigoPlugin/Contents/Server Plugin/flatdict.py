@@ -266,7 +266,10 @@ class FlatDict(dict):
         self.__delitem__(key)
         return value
 
-    def setdefault(self, key, default):
+    # 2020-01-10 DaveL17 changed default parameter to default=None in response to
+    # PyCharm syntax checking; "Signature of method 'FlatDict.setdefault()' does
+    # not match signature of base method in class 'dict'"
+    def setdefault(self, key, default=None):
         """ If key is in the flat dictionary, return its value. If not,
         insert key with a value of default and return default.
         default defaults to ``None``.
