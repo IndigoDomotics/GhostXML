@@ -1,5 +1,14 @@
 GhostXML Change Log
 
+v0.5.4
+- Implements Constants.py
+- Code refinements
+
+v0.5.13
+- Better traps OS error where plugin attempts to kill a process that is no
+  longer running.
+- Debug logging refinements.
+
 v0.5.12
 - Sync
 
