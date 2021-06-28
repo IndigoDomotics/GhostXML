@@ -1,6 +1,9 @@
 GhostXML Change Log
 
-v0.5.4
+v0.5.15
+- Code refinements
+
+v0.5.14
 - Implements Constants.py
 - Code refinements
 
