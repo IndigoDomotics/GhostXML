@@ -1,25 +1,25 @@
-#! /usr/bin/env python
-# -*- coding: utf-8 -*-
+# noqa pylint: disable=too-many-lines, line-too-long, invalid-name, unused-argument, redefined-builtin, broad-except, fixme
 
 """
-GhostXML Plugin
+GhostXML Indigo Plugin
 Authors: See (repo)
 
-This plugin provides an engine which parses tag/value pairs into
-transitive Indigo plugin device states.
+This plugin provides an engine which parses tag/value pairs into transitive Indigo plugin device
+states.
 """
 
-# TODO: Additional auth types: Oauth2, WSSE
+# TODO - When there's a parse error (like from a curl timeout), three messages are written to the
+#        event log. How to reduce to one?
+# TODO - Additional auth types: Oauth2, WSSE
+# TODO - If URL/Path for device is empty, raise exception
 
 # =============================== Stock Imports ===============================
-# import datetime
-from curlcodes import codes as curl_code
 import xml.etree.ElementTree as Etree
 import logging
 import os
-from Queue import Queue
+from queue import Queue  # import queue
 import re
-import simplejson
+import json
 import subprocess
 import sys
 import threading
@@ -27,108 +27,151 @@ import time as t
 
 # ============================ Third-party Imports ============================
 import flatdict  # https://github.com/gmr/flatdict - flatdict deprecated Python 2 in v4.0.0
+import iterateXML
 try:
-    import indigo  # only needed for IDE syntax checking
-    import pydevd
+    import indigo  # noqa - only needed for IDE syntax checking
+    # import pydevd  # noqa
 except ImportError:
     pass
 
 # ===============================Custom Imports================================
-import iterateXML
+from constants import *  # noqa
+from curlcodes import codes as curl_code  # noqa
+from plugin_defaults import kDefaultPluginPrefs  # noqa
 
-__author__    = u"berkinet, DaveL17, GlennNZ, howartp"
-__build__     = u""
-__copyright__ = u"There is no copyright for the GhostXML code base."
-__license__   = u"MIT"
-__title__     = u"GhostXML Plugin for Indigo Home Control"
-__version__   = u"0.5.12"
-
-# Establish default plugin prefs; create them if they don't already exist.
-kDefaultPluginPrefs = {
-    u'oldDebugLevel': "20",            # Supports legacy debugging levels.
-    u'showDebugInfo': False,           # Verbose debug logging?
-    u'showDebugLevel': "20",           # Debugging level.
-}
+__author__    = "berkinet, DaveL17, GlennNZ, howartp"
+__build__     = ""
+__copyright__ = "There is no copyright for the GhostXML code base."
+__license__   = "MIT"
+__title__     = "GhostXML Plugin for Indigo Home Control"
+__version__   = "2022.0.1"
 
 
+# =============================================================================
 class Plugin(indigo.PluginBase):
-    def __init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs):
-        super(Plugin, self).__init__(pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
+    """
+    The Indigo plugin class
 
-        self.pluginIsInitializing = True
-        self.pluginIsShuttingDown = False
-        self.master_trigger_dict  = {'disabled': Queue()}
+    :param indigo.PluginBase:
+    """
 
-        # ============================ Configure Logging ==============================
-        self.debugLevel = int(self.pluginPrefs['showDebugLevel'])
+    # =============================================================================
+    def __init__(self, plugin_id="", plugin_display_name="", plugin_version="", plugin_prefs=None):
+        """
+        Called when the plugin is initialized
+
+        :param str plugin_id:
+        :param str plugin_display_name:
+        :param str plugin_version:
+        :param indigo.Dict plugin_prefs:
+        """
+        super().__init__(plugin_id, plugin_display_name, plugin_version, plugin_prefs)
+
+        # ============================ Instance Attributes =============================
+        self.plugin_is_initializing   = True
+        self.debug_level              = int(self.pluginPrefs['showDebugLevel'])
+        self.master_trigger_dict      = {'disabled': Queue()}
+        self.plugin_is_shutting_down  = False
+        self.managed_devices          = {}  # Managed list of plugin devices
+        self.changing_managed_devices = False
+        self.prepare_to_sleep         = False
+
+        # =============================== Debug Logging ================================
         try:
-            if self.debugLevel < 10:
-                self.debugLevel *= 10
+            if self.debug_level < 10:
+                self.debug_level *= 10
         except ValueError:
-            self.debugLevel = 30
+            self.debug_level = 30
 
         log_format = '%(asctime)s.%(msecs)03d\t%(levelname)-10s\t%(name)s.%(funcName)-28s %(msg)s'
-        self.plugin_file_handler.setFormatter(logging.Formatter(log_format, datefmt='%Y-%m-%d %H:%M:%S'))
+        self.plugin_file_handler.setFormatter(
+            logging.Formatter(log_format, datefmt='%Y-%m-%d %H:%M:%S')
+        )
 
         # ==========================  Log Environment Info  ===========================
-        self.log_environment_info()
+        self._log_environment_info()
 
-        # ==================================  Other  ==================================
-        self.managedDevices = {}  # Managed list of plugin devices
-
-        # Adding support for remote debugging in PyCharm. Other remote debugging
-        # facilities can be added, but only one can be run at a time.
+        # Adding support for remote debugging in PyCharm. Other remote debugging facilities can be
+        # added, but only one can be run at a time.
         # try:
-        #     pydevd.settrace('localhost', port=5678, stdoutToServer=True, stderrToServer=True, suspend=False)
+        #     pydevd.settrace(
+        #         'localhost', port=5678, stdoutToServer=True, stderrToServer=True, suspend=False
+        #     )
         # except ImportError:
         #     pass
 
-        self.pluginIsInitializing = False
+        self.plugin_is_initializing = False
 
+    # =============================================================================
     def __del__(self):
-
+        """
+        Called when a device is deleted
+        """
         indigo.PluginBase.__del__(self)
 
     # =============================================================================
-    # =============================== Indigo Methods ===============================
+    # =============================== Indigo Methods ==============================
     # =============================================================================
-    def closedDeviceConfigUi(self, values_dict=None, user_cancelled=False, type_id="", dev_id=0):
+    def closedDeviceConfigUi(                                                   # noqa
+            self, values_dict=None, user_cancelled=False, type_id="", dev_id=0  # noqa
+    ):
+        """
+        Standard Indigo method called when the device configuration dialog is closed
+
+        :param indigo.Dict values_dict:
+        :param bool user_cancelled:
+        :param str type_id:
+        :param int dev_id:
+        """
         dev = indigo.devices[dev_id]
 
-        # Replace device to list of managed devices to ensure any configuration
-        # changes are used.
-        self.managedDevices[dev.id] = PluginDevice(self, dev)
+        # Replace device to list of managed devices to ensure any configuration changes are used.
+        self.managed_devices[dev.id] = PluginDevice(self, dev)
 
-    def closedPrefsConfigUi(self, values_dict, user_cancelled):
+    # =============================================================================
+    def closedPrefsConfigUi(self, values_dict=None, user_cancelled=False):  # noqa
+        """
+        Standard Indigo method called when the plugin configuration dialog is closed
 
-        current_debug_level = {10: 'Debug', 20: 'Info', 30: 'Warning', 40: 'Error', 50: 'Critical'}
-
+        :param indigo.Dict values_dict:
+        :param bool user_cancelled:
+        """
         if not user_cancelled:
 
             # Ensure that self.pluginPrefs includes any recent changes.
             for k in values_dict:
                 self.pluginPrefs[k] = values_dict[k]
 
-            self.debugLevel = int(values_dict.get('showDebugLevel', "30"))
-            self.indigo_log_handler.setLevel(self.debugLevel)
+            self.debug_level = int(values_dict.get('showDebugLevel', "30"))
+            self.indigo_log_handler.setLevel(self.debug_level)
 
-            indigo.server.log(u"Debugging on (Level: {0} ({1})".format(current_debug_level[self.debugLevel],
-                                                                       self.debugLevel))
+            indigo.server.log(
+                f"Debugging on (Level: {CURRENT_DEBUG_LEVEL[self.debug_level]} "
+                f"({self.debug_level})"
+            )
 
-            if self.debugLevel == 10:
-                self.logger.debug(u"values_dict: {0} ".format(values_dict))
+            if self.debug_level == 10:
+                self.logger.debug(f"values_dict: {values_dict}")
 
-            self.logger.debug(u"User prefs saved.")
+            self.logger.debug("User prefs saved.")
 
         else:
-            self.logger.debug(u"User prefs dialog cancelled.")
+            self.logger.debug("User prefs dialog cancelled.")
 
         return True
 
     # =============================================================================
-    def deviceStartComm(self, dev):
+    def deviceStartComm(self, dev=None):  # noqa
+        """
+        Standard Indigo method called when the device is enabled
 
-        dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Starting")
+        :param indigo.Device dev:
+        """
+        self.logger.debug(f"{dev.name} communication starting.")
+
+        dev.updateStateOnServer(
+            'deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Starting"
+        )
 
         # =============== Update legacy authentication settings ===============
         new_props = dev.pluginProps
@@ -136,8 +179,8 @@ class Plugin(indigo.PluginBase):
         try:
             use_auth = new_props['useAuth']
 
-            # If 'useAuth' was 'false', set 'useDigest' to 'None'. If useAuth was 'true' we
-            # leave 'useDigest' alone.
+            # If 'useAuth' was 'false', set 'useDigest' to 'None'. If useAuth was 'true' we leave
+            # 'useDigest' alone.
             if not use_auth:
                 new_props['useDigest'] = 'None'
         except KeyError:
@@ -153,359 +196,473 @@ class Plugin(indigo.PluginBase):
             self.sleep(2)
 
         # 2021-01-08 DaveL17 We were mistakenly saving this to pluginProps and not sharedProps.
-        # This updates devices with the disable logging setting already checked.
+        # This updates devices with the "disable logging" setting already checked.
         shared_props = dev.sharedProps
         if dev.pluginProps['disableLogging']:
             shared_props['sqlLoggerIgnoreStates'] = "*"
         else:
             shared_props['sqlLoggerIgnoreStates'] = ""
 
+        # If device does not have a URL/Path, it cannot possibly work.
+        try:
+            if dev.pluginProps['sourceXML'] == "":
+                raise KeyError
+        except KeyError:
+            self.logger.debug(f"{dev.name} does not have a URL/Path value set. Disabling.")
+            indigo.device.enable(dev, value=False)
+
         dev.replaceSharedPropsOnServer(shared_props)
         dev.stateListOrDisplayStateIdChanged()
 
         # Add device to list of managed devices
-        self.managedDevices[dev.id] = PluginDevice(self, dev)
+        self.changing_managed_devices = True
+        self.managed_devices[dev.id] = PluginDevice(self, dev)
+        self.changing_managed_devices = False
 
         # Force refresh of device when comm started
-        if int(dev.pluginProps['refreshFreq']) == 0:
-            dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Manual")
+        if int(dev.pluginProps.get('refreshFreq', 0)) == 0:
+            dev.updateStateOnServer(
+                'deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Manual"
+            )
         else:
-            dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Started")
+            dev.updateStateOnServer(
+                'deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Started"
+            )
 
-        self.logger.debug(u"[{0}] Communication started.".format(dev.name))
-
-    # =============================================================================
-    def deviceStopComm(self, dev):
-
-        # Join the related thread. There must be a timeout set because the threads may
-        # never terminate on their own.
-        self.managedDevices[dev.id].dev_thread.join(0.25)
-
-        # Delete the device from the list of managed devices.
-        del self.managedDevices[dev.id]
-
-        # Update the device's icon to reflect the stopped condition.
-        dev.setErrorStateOnServer(u"")
-        dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
-
-        dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Disabled")
-
-        self.logger.debug(u"[{0}] Communication stopped.".format(dev.name))
+        self.logger.debug(f"[{dev.name}] communication started.")
 
     # =============================================================================
-    def getDeviceConfigUiXml(self, type_id, dev_id):
+    def deviceStopComm(self, dev=None):  # noqa
+        """
+        Standard Indigo method called when the device is disabled
 
-        current_freq  = indigo.devices[dev_id].pluginProps.get('refreshFreq', '15')
-        list_of_freqs = []
-        xml           = self.devicesTypeDict[type_id]["ConfigUIRawXml"]
-        root          = Etree.fromstring(xml)
+        :param indigo.Device dev:
+        """
+        # Join the related thread. There must be a timeout set because the threads may never
+        # terminate on their own.
+        self.logger.debug(f"[{dev.name}] Communication stopped.")
 
-        # TODO: elem.getchildren() will become list(elem)
+        # =============================================================================
+        try:
+            self.managed_devices[dev.id].dev_thread.join(0.25)
+
+            # Delete the device from the list of managed devices.
+            self.changing_managed_devices = True
+            del self.managed_devices[dev.id]
+            self.changing_managed_devices = False
+
+            # Update the device's icon to reflect the stopped condition.
+            dev.setErrorStateOnServer("")
+            dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
+
+            dev.updateStateOnServer(
+                'deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Disabled"
+            )
+
+        except KeyError:
+            pass
+
+    # =============================================================================
+    def getDeviceConfigUiXml(self, type_id="", dev_id=0):  # noqa
+        """
+        Standard Indigo method called when device config dialog is opened
+
+        :param str type_id:
+        :param int dev_id:
+        """
+        current_freq = indigo.devices[dev_id].pluginProps.get('refreshFreq', '15')
+        freqs        = []
+        xml          = self.devicesTypeDict[type_id]["ConfigUIRawXml"]
+        root         = Etree.fromstring(xml)
+
+        # 2022-02-11 converted elem.getchildren() to list(elem) for Python 3.
         if type_id in ('GhostXMLdevice', 'GhostXMLdeviceTrue'):
 
             # Get current list of refresh frequencies from the XML file.
             for item in root.findall('Field'):
                 if item.attrib['id'] == 'refreshFreq':
-                    for child in item.getchildren():
-                        list_of_freqs = [int(grandchild.attrib['value']) for grandchild in child.getchildren() if child.tag == 'List']
+                    for child in list(item):
+                        freqs = [
+                            int(grandchild.attrib['value']) for grandchild in list(child)
+                            if child.tag == 'List'
+                        ]
 
-            # If the current refresh frequency is different from the default, it has
-            # been set through a custom refresh frequency action. So we add a "Custom"
-            # option that will display when the dialog opens.
-            if current_freq not in list_of_freqs:
+            # If the current refresh frequency is different from the default, it has been set
+            # through a custom refresh frequency action. So we add a "Custom" option that will
+            # display when the dialog opens.
+            if current_freq not in freqs:
                 for item in root.findall('Field'):
                     if item.attrib['id'] == 'refreshFreq':
-                        for child in item.getchildren():
+                        for child in list(item):
                             if child.tag == 'List':
-                                option = Etree.fromstring('<Option value="{0}">Custom ({0} seconds)</Option>'.format(current_freq))
+                                option = Etree.fromstring(
+                                    f"<Option value='{current_freq}'>Custom ({current_freq} "
+                                    f"seconds)</Option>"
+                                )
                                 child.append(option)
 
             return Etree.tostring(root)
 
     # =============================================================================
-    def getDeviceStateList(self, dev):
+    def getDeviceStateList(self, dev=None):  # noqa
         """
         Assign data keys to device state names (Indigo)
 
-        The getDeviceStateList() method pulls out all the keys in self.finalDict and
-        assigns them to device states. It returns the modified stateList which is then
-        written back to the device in the main thread. This method is automatically
-        called by
+        The getDeviceStateList() method pulls out all the keys in self.finalDict and assigns them to
+        device states. It returns the modified stateList which is then written back to the device in
+        the main thread. This method is automatically called by stateListOrDisplayStateIdChanged()
+        and by Indigo when Triggers and Control Pages are built. Note that it's not possible to
+        override Indigo's sorting of devices states which will present them as A, B, a, b.
 
-            stateListOrDisplayStateIdChanged()
-
-        and by Indigo when Triggers and Control Pages are built. Note that it's not
-        possible to override Indigo's sorting of devices states which will present them
-        as A, B, a, b.
-
-        -----
-
-        :param dev:
+        :param indigo.Device dev:
         :return state_list:
         """
+        def parse_the_states(k, v):
+            b_key = f"{k}_bool"  # boolean key
+            u_key = f"{k}"
 
-        # This statement goes out and gets the existing state list for dev from Devices.xml.
-        # It seems like it's calling itself, but the structure was recommended by Matt:
+            try:
+                # Integers
+                _ = int(v)  # Try int; if it fails move on to the next one.
+                state_list.append(
+                    self.getDeviceStateDictForNumberType(u_key, u_key, u_key)
+                )
+            except (TypeError, ValueError):
+                try:
+                    # Floats
+                    _ = float(v)  # Try float; if it fails move on to the next one.
+                    state_list.append(
+                        self.getDeviceStateDictForNumberType(u_key, u_key, u_key)
+                    )
+                except (TypeError, ValueError):
+                    try:
+                        # Bools - we create a state for the original data (in string
+                        # form) and for the boolean representation.
+                        if v.lower() in (
+                                'on', 'off', 'open', 'locked', 'up', 'armed', 'closed',
+                                'unlocked', 'down', 'disarmed'
+                        ):
+                            state_list.append(
+                                self.getDeviceStateDictForBoolOnOffType(
+                                    u_key, u_key, u_key
+                                )
+                            )
+                            state_list.append(
+                                self.getDeviceStateDictForBoolOnOffType(
+                                    b_key, b_key, b_key
+                                )
+                            )
+                        elif v.lower() in ('yes', 'no'):
+                            state_list.append(
+                                self.getDeviceStateDictForBoolYesNoType(
+                                    u_key, u_key, u_key
+                                )
+                            )
+                            state_list.append(
+                                self.getDeviceStateDictForBoolYesNoType(
+                                    b_key, b_key, b_key
+                                )
+                            )
+                        elif v.lower() in ('true', 'false'):
+                            state_list.append(
+                                self.getDeviceStateDictForBoolTrueFalseType(
+                                    u_key, u_key, u_key
+                                )
+                            )
+                            state_list.append(
+                                self.getDeviceStateDictForBoolTrueFalseType(
+                                    b_key, b_key, b_key
+                                )
+                            )
+                        else:
+                            state_list.append(
+                                self.getDeviceStateDictForStringType(
+                                    u_key, u_key, u_key
+                                )
+                            )
+                    except (AttributeError, TypeError, ValueError):
+                        state_list.append(
+                            self.getDeviceStateDictForStringType(
+                                u_key, u_key, u_key
+                            )
+                        )
+
+            return state_list
+
+        # This statement goes out and gets the existing state list for dev from Devices.xml. It
+        # seems like it's calling itself, but the structure was recommended by Matt:
         # https://forums.indigodomo.com/viewtopic.php?f=108&t=12898#p87456
-        self.logger.debug(u"self.managedDevices: {0}".format(self.managedDevices))
-
+        # 2021-02-19 DaveL17 disabled logging message as it's only useful for development debugging.
+        # self.logger.debug(f"self.managedDevices: {self.managedDevices}")
         state_list = indigo.PluginBase.getDeviceStateList(self, dev)
 
         # ========================= Custom States as Strings ==========================
         if dev.deviceTypeId == 'GhostXMLdevice':
             # If dev is not listed in managed devices, return the existing states.
-            if dev.id not in self.managedDevices.keys():
+            if dev.id not in self.managed_devices:
                 for key in dev.states:
-                    dynamic_state = self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key))
+                    dynamic_state = self.getDeviceStateDictForStringType(
+                        f"{key}", f"{key}", f"{key}"
+                    )
                     state_list.append(dynamic_state)
 
             # If there are managed devices, return the keys that are in finalDict.
             else:
-                for key in sorted(self.managedDevices[dev.id].finalDict.keys()):
-                    dynamic_state = self.getDeviceStateDictForStringType(unicode(key), unicode(key), unicode(key))
+                for key in sorted(self.managed_devices[dev.id].final_dict):
+                    dynamic_state = self.getDeviceStateDictForStringType(
+                        f"{key}", f"{key}", f"{key}"
+                    )
                     state_list.append(dynamic_state)
 
         # ======================== Custom States as True Type =========================
-        # TODO: there is duplicated code here that can be moved to a local function (it appears that we still need to
-        #   confirm whether dev is in managedDevices().
-        if dev.deviceTypeId == 'GhostXMLdeviceTrue':
+        try:
+            self.logger.debug(
+                f"[getDeviceStateList / self.managed_devices] = {self.managed_devices}"
+            )
+            if dev.deviceTypeId == 'GhostXMLdeviceTrue':
+                # If there are no managed devices, return the existing states.
+                if dev.id not in self.managed_devices:
+                    for key in dev.states:
+                        value = dev.states[key]
+                        state_list = parse_the_states(k=key, v=value)
 
-            # If there are no managed devices, return the existing states.
-            if dev.id not in self.managedDevices.keys():
+                # If there are managed devices, return the keys that are in finalDict.
+                else:
+                    for key in sorted(self.managed_devices[dev.id].final_dict):
+                        value = self.managed_devices[dev.id].final_dict[key]
+                        state_list = parse_the_states(k=key, v=value)
 
-                for key in dev.states:
-                    value = dev.states[key]
-                    b_key = unicode(u"{0}_bool".format(key))  # boolean key
-                    u_key = unicode(key)  # unicode key
-
-                    try:
-                        # Integers
-                        _ = int(value)
-                        state_list.append(self.getDeviceStateDictForNumberType(u_key, u_key, u_key))
-                    except (TypeError, ValueError):
-                        try:
-                            # Floats
-                            _ = float(value)
-                            state_list.append(self.getDeviceStateDictForNumberType(u_key, u_key, u_key))
-                        except (TypeError, ValueError):
-                            try:
-                                # Bools - we create a state for the original data (in string form) and for the
-                                # boolean representation.
-                                if value.lower() in ('on', 'off', 'open', 'locked', 'up', 'armed', 'closed',
-                                                     'unlocked', 'down', 'disarmed'):
-                                    state_list.append(self.getDeviceStateDictForBoolOnOffType(u_key, u_key, u_key))
-                                    state_list.append(self.getDeviceStateDictForBoolOnOffType(b_key, b_key, b_key))
-                                elif value.lower() in ('yes', 'no'):
-                                    state_list.append(self.getDeviceStateDictForBoolYesNoType(u_key, u_key, u_key))
-                                    state_list.append(self.getDeviceStateDictForBoolYesNoType(b_key, b_key, b_key))
-                                elif value.lower() in ('true', 'false'):
-                                    state_list.append(self.getDeviceStateDictForBoolTrueFalseType(u_key, u_key, u_key))
-                                    state_list.append(self.getDeviceStateDictForBoolTrueFalseType(b_key, b_key, b_key))
-                                else:
-                                    state_list.append(self.getDeviceStateDictForStringType(u_key, u_key, u_key))
-                            except (AttributeError, TypeError, ValueError):
-                                state_list.append(self.getDeviceStateDictForStringType(u_key, u_key, u_key))
-
-            # If there are managed devices, return the keys that are in finalDict.
-            else:
-                for key in sorted(self.managedDevices[dev.id].finalDict.keys()):
-                    value = self.managedDevices[dev.id].finalDict[key]
-                    b_key = unicode(u"{0}_bool".format(key))  # boolean key
-                    u_key = unicode(key)  # unicode key
-
-                    try:
-                        # Integers
-                        _ = int(value)
-                        state_list.append(self.getDeviceStateDictForNumberType(u_key, u_key, u_key))
-                    except (TypeError, ValueError):
-                        try:
-                            # Floats
-                            _ = float(value)
-                            state_list.append(self.getDeviceStateDictForNumberType(u_key, u_key, u_key))
-                        except (TypeError, ValueError):
-                            try:
-                                # Bools - we create a state for the original data (in string form) and for the
-                                # boolean representation.
-                                if value.lower() in ('on', 'off', 'open', 'locked', 'up', 'armed', 'closed',
-                                                     'unlocked', 'down', 'disarmed'):
-                                    state_list.append(self.getDeviceStateDictForBoolOnOffType(u_key, u_key, u_key))
-                                    state_list.append(self.getDeviceStateDictForBoolOnOffType(b_key, b_key, b_key))
-                                elif value.lower() in ('yes', 'no'):
-                                    state_list.append(self.getDeviceStateDictForBoolYesNoType(u_key, u_key, u_key))
-                                    state_list.append(self.getDeviceStateDictForBoolYesNoType(b_key, b_key, b_key))
-                                elif value.lower() in ('true', 'false'):
-                                    state_list.append(self.getDeviceStateDictForBoolTrueFalseType(u_key, u_key, u_key))
-                                    state_list.append(self.getDeviceStateDictForBoolTrueFalseType(b_key, b_key, b_key))
-                                else:
-                                    state_list.append(self.getDeviceStateDictForStringType(u_key, u_key, u_key))
-                            except (AttributeError, TypeError, ValueError):
-                                state_list.append(self.getDeviceStateDictForStringType(u_key, u_key, u_key))
-
-        return state_list
+            return state_list
+        except Exception:
+            self.logger.exception("General exception.")
 
     # =============================================================================
-    def runConcurrentThread(self):
+    def wakeUp(self):  # noqa
+        """
+        Standard Indigo method called when Indigo receives a system wakeup call
+        """
+        self.logger.debug("wakeUp method called")
+        indigo.PluginBase.wakeUp(self)
+        self.prepare_to_sleep = False
 
-        self.sleep(5)
+    # =============================================================================
+    def prepareToSleep(self):  # noqa
+        """
+        Standard Indigo method called when Indigo receives a system sleep call
+        """
+        self.logger.debug("prepareToSleep method called")
+        indigo.PluginBase.prepareToSleep(self)
+        self.prepare_to_sleep = True
+
+    # =============================================================================
+    def runConcurrentThread(self):  # noqa
+        """
+        Standard Indigo method that runs continuously when plugin is enabled
+        """
+        self.sleep(1)
 
         try:
-            while not self.pluginIsShuttingDown:
+            while not self.plugin_is_shutting_down:
+                # If the dict of managed devices is not being changed.
+                if not self.changing_managed_devices and not self.prepare_to_sleep:
+                    # Iterate devices to see if an update is required.
+                    for dev_id in self.managed_devices:
+                        dev = self.managed_devices[dev_id].device
 
-                # Iterate devices to see if an update is required.
-                for devId in self.managedDevices:
-                    dev = self.managedDevices[devId].device
+                        # 2019-12-22 DaveL17
+                        # If device name has changed in Indigo, update the copy in managedDevices.
+                        # TODO - consider moving this to its own method and adding anything else
+                        #        that might need updating.
+                        if dev.name != indigo.devices[dev_id].name:
+                            self.managed_devices[dev_id].device.name = indigo.devices[dev_id].name
 
-                    # 2019-12-22 DaveL17
-                    # If device name has changed in Indigo, update the copy in managedDevices.
-                    # TODO: consider moving this to its own method and adding anything else that might need updating.
-                    if dev.name != indigo.devices[devId].name:
-                        self.managedDevices[devId].device.name = indigo.devices[devId].name
+                        # If a device has failed too many times, disable it and notify the user.
+                        retries = int(dev.pluginProps.get('maxRetries', 10))
+                        if self.managed_devices[dev_id].bad_calls >= retries:
+                            self._process_bad_calls(dev, retries)
 
-                    # If a device has failed too many times, disable it and notify the user.
-                    retries = int(dev.pluginProps.get('maxRetries', 10))
-                    if self.managedDevices[devId].bad_calls >= retries:
-                        self.process_bad_calls(dev, retries)
+                        # If _time_to_update returns True, add device to its queue.
+                        else:
+                            if self._time_to_update(dev):
+                                self.logger.debug(f"Time to update: [{dev.name}]")
+                                self.managed_devices[dev_id].queue.put(dev)
 
-                    # If time_to_update returns True, add device to its queue.
-                    else:
-                        if self.time_to_update(dev):
-                            self.managedDevices[devId].queue.put(dev)
-
-                self.process_triggers()
+                self._process_triggers()
                 self.sleep(2)
 
         except self.StopThread:
             self.indigo_log_handler.setLevel(20)
-            self.logger.info(u'Stopping main thread.')
-            self.indigo_log_handler.setLevel(self.debugLevel)
+            self.logger.info('Stopping main thread.')
+            self.indigo_log_handler.setLevel(self.debug_level)
+
+        except Exception:
+            self.logger.exception("General exception")
 
     # =============================================================================
-    def sendDevicePing(self, dev_id=0, suppress_logging=False):
+    def sendDevicePing(self, dev_id=0, suppress_logging=False):  # noqa
+        """
+        Standard Indigo method called when a plugin device receives a ping request
 
-        indigo.server.log(u"GhostXML Plugin devices do not support the ping function.")
+        :param int dev_id:
+        :param bool suppress_logging:
+        """
+        indigo.server.log("GhostXML Plugin devices do not support the ping function.")
         return {'result': 'Failure'}
 
     # =============================================================================
     def shutdown(self):
-
-        self.pluginIsShuttingDown = True
+        """
+        Standard Indigo method called when the plugin is disabled
+        """
+        self.plugin_is_shutting_down = True
         self.indigo_log_handler.setLevel(20)
-        self.logger.info(u'Shutdown complete.')
+        self.logger.info('Shutdown complete.')
 
     # =============================================================================
     def startup(self):
-
+        """
+        Standard Indigo method called when the plugin is first started
+        """
         # =========================== Audit Indigo Version ============================
-        min_ver = 7
+        min_ver = 2022
         ver     = self.versStrToTuple(indigo.server.version)
         if ver[0] < min_ver:
-            self.stopPlugin(u"The Matplotlib plugin requires Indigo version {0} or above.".format(min_ver),
-                            isError=True)
+            self.stopPlugin(
+                f"The GhostXML plugin requires Indigo version {min_ver} or  above.", isError=True
+            )
 
-        # Initialize all plugin devices to ensure that they're in the proper state.
-        # We can't use managedDevices here because they may not yet have showed up.
+        # Initialize all plugin devices to ensure that they're in the proper state. We can't use
+        # managedDevices here because they may not yet have showed up.
         for dev in indigo.devices.itervalues("self"):
             if not dev.enabled:
-                dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Disabled")
+                dev.updateStateOnServer(
+                    'deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Disabled"
+                )
             else:
-                dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Initialized")
+                dev.updateStateOnServer(
+                    'deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Initialized"
+                )
 
             dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
     # =============================================================================
-    def triggerStartProcessing(self, trigger):
+    def triggerStartProcessing(self, trigger):  # noqa
+        """
+        Standard Indigo method called when a plugin trigger is enabled
 
+        :param indigo.Trigger trigger:
+        """
+        self.logger.info(f"Trigger [{trigger.name}] started.")
         self.master_trigger_dict[trigger.pluginProps['disabledDevice']] = trigger.id
 
     # =============================================================================
-    def triggerStopProcessing(self, trigger):
+    def triggerStopProcessing(self, trigger):  # noqa
+        """
+        Standard Indigo method called when a plugin trigger is disabled
 
-        pass
+        :param indigo.Trigger trigger:
+        """
+        self.logger.info(f"Trigger [{trigger.name}] stopped.")
 
     # =============================================================================
-    def validateDeviceConfigUi(self, values_dict, type_id, dev_id):
+    def validateDeviceConfigUi(self, values_dict=None, type_id="", dev_id=0):  # noqa
+        """
+        Standard Indigo method called when device config dialog is closed
 
+        :param indigo.Dict values_dict:
+        :param str type_id:
+        :param int dev_id:
+        :return:
+        """
         error_msg_dict = indigo.Dict()
-        sub_list       = (('subA', '[A]'), ('subB', '[B]'), ('subC', '[C]'), ('subD', '[D]'), ('subE', '[E]'))
-        curl_sub_list  = (('curlSubA', '[A]'), ('curlSubB', '[B]'), ('curlSubC', '[C]'), ('curlSubD', '[D]'),
-                          ('curlSubE', '[E]'))
-        dev            = indigo.devices[dev_id]
-        token          = values_dict['token']
-        token_url      = values_dict['tokenUrl']
-        url            = values_dict['sourceXML']
-        url_list       = ('file:///', 'http://', 'https://', 'ftp://')
-        use_digest     = values_dict['useDigest']
-        var_list       = [var.id for var in indigo.variables]
+        sub_list = (
+            ('subA', '[A]'), ('subB', '[B]'), ('subC', '[C]'), ('subD', '[D]'), ('subE', '[E]')
+        )
+        curl_sub_list  = (
+            ('curlSubA', '[A]'), ('curlSubB', '[B]'), ('curlSubC', '[C]'), ('curlSubD', '[D]'),
+            ('curlSubE', '[E]')
+        )
+        dev        = indigo.devices[dev_id]
+        token      = values_dict['token']
+        token_url  = values_dict['tokenUrl']
+        url        = values_dict['sourceXML']
+        url_list   = ('file:///', 'http://', 'https://', 'ftp://')   # noqa
+        use_digest = values_dict['useDigest']
+        var_list   = [var.id for var in indigo.variables]
+
+        def are_subs_valid(subs, e_dict):
+            try:
+                # Ensure that values entered into the substitution fields are valid Indigo
+                # variable IDs.
+                if values_dict[subs[0]].isspace() or values_dict[subs[0]] == "":
+                    pass
+                elif int(values_dict[subs[0]]) not in var_list:
+                    e_dict[subs[0]] = "Please enter a valid variable ID."
+            except ValueError:
+                e_dict[subs[0]] = "Please enter a valid variable ID."
+
+            return e_dict
 
         # The timeout value must be a real number.
         try:
             _ = float(values_dict['timeout'])
         except ValueError:
-            error_msg_dict['timeout'] = u"The timeout value must be a real number."
+            error_msg_dict['timeout'] = "The timeout value must be a real number."
 
         # The timeout value must be less than the refresh frequency.
         try:
             refresh_freq = int(values_dict['refreshFreq'])
             # if int(values_dict['timeout']) >= refresh_freq and refresh_freq != 0:
             if int(values_dict['timeout']) >= refresh_freq != 0:
-                error_msg_dict['timeout'] = u"The timeout value cannot be greater than the refresh frequency."
-                error_msg_dict['refreshFreq'] = u"The refresh frequency cannot be greater than the timeout value."
+                error_msg_dict['timeout'] = (
+                    "The timeout value cannot be greater than the refresh frequency."
+                )
+                error_msg_dict['refreshFreq'] = (
+                    "The refresh frequency cannot be greater than the timeout value."
+                )
         except ValueError:
-            error_msg_dict['timeout'] = u"The timeout value must be a real number."
+            error_msg_dict['timeout'] = "The timeout value must be a real number."
 
         # Max retries must be an integer.
         try:
             _ = int(values_dict['maxRetries'])
         except ValueError:
-            error_msg_dict['maxRetries'] = u"The max retries value must be an integer."
+            error_msg_dict['maxRetries'] = "The max retries value must be an integer."
 
         # Test the source URL/Path for proper prefix.
         if not url.startswith(url_list):
-            error_msg_dict['sourceXML'] = u"Please enter a valid URL/Path."
+            error_msg_dict['sourceXML'] = "Please enter a valid URL/Path."
 
         # Test the token URL/Path for proper prefix.
         if use_digest == 'Token' and not token_url.startswith(url_list):
-            error_msg_dict['tokenUrl'] = u"You must supply a valid Token URL."
+            error_msg_dict['tokenUrl'] = "You must supply a valid Token URL."
 
         # Test the token URL/Path for proper prefix.
         if use_digest == 'Bearer' and token.replace(" ", "") == "":
-            error_msg_dict['token'] = u"You must supply a Token value. The plugin does not attempt to ensure that " \
-                                      u"the token is valid."
+            error_msg_dict['token'] = (
+                """You must supply a Token value. The plugin does not attempt to ensure that the
+                 token is valid."""
+            )
 
         # Test the variable substitution IDs and indexes for URL subs. If substitutions aren't
         # enabled, we can skip this bit.
-        # TODO: There is duplicated code in here that can be consolidated.
         if values_dict['doSubs']:
 
             for sub in sub_list:
-
-                try:
-                    # Ensure that the values entered in the substitution fields are valid Indigo variable IDs.
-                    if values_dict[sub[0]].isspace() or values_dict[sub[0]] == "":
-                        pass
-                    elif int(values_dict[sub[0]]) not in var_list:
-                        error_msg_dict[sub[0]] = u"Please enter a valid variable ID."
-                except ValueError:
-                    error_msg_dict[sub[0]] = u"Please enter a valid variable ID."
+                error_msg_dict = are_subs_valid(subs=sub, e_dict=error_msg_dict)
 
         # Test the variable substitution IDs and indexes for curl subs. If substitutions aren't
         # enabled, we can skip this bit.
         if values_dict['curlSubs']:
 
             for c_sub in curl_sub_list:
-
-                try:
-                    # Ensure that the values entered in the substitution fields are valid Indigo variable IDs.
-                    if values_dict[c_sub[0]].isspace() or values_dict[c_sub[0]] == "":
-                        pass
-                    elif int(values_dict[c_sub[0]]) not in var_list:
-                        error_msg_dict[c_sub[0]] = u"Please enter a valid variable ID."
-                except ValueError:
-                    error_msg_dict[c_sub[0]] = u"Please enter a valid variable ID."
+                error_msg_dict = are_subs_valid(subs=c_sub, e_dict=error_msg_dict)
 
         if len(error_msg_dict) > 0:
-            error_msg_dict['showAlertText'] = u"Configuration Errors\n\nThere are one or more settings that need to " \
-                                              u"be corrected. Fields requiring attention will be highlighted."
+            error_msg_dict['showAlertText'] = (
+                "Configuration Errors\n\nThere are one or more settings that need to be"
+                "corrected. Fields requiring attention will be highlighted."
+            )
             return False, values_dict, error_msg_dict
 
         # ===========================  Disable SQL Logging  ===========================
@@ -526,112 +683,90 @@ class Plugin(indigo.PluginBase):
     # =============================================================================
     # =============================== Plugin Methods ==============================
     # =============================================================================
-    def adjust_refresh_time(self, values_dict):
+    def adjust_refresh_time(self, values_dict=None):
         """
         Programmatically Adjust the refresh time for an individual device
 
-        The adjust_refresh_time method is used to adjust the refresh frequency of an
-        individual GhostXML device by calling an Indigo Action. For example, user
-        creates an Indigo Trigger that fires--based on some criteria like the value
-        of a GhostXML state, which in turn calls an Indigo Action Item to adjust the
-        refresh frequency. In other words, the user can increase/decrease the frequency
-        based on some condition.
+        The adjust_refresh_time method is used to adjust the refresh frequency of an individual
+        GhostXML device by calling an Indigo Action. For example, user creates an Indigo Trigger
+        that fires--based on some criteria like the value of a GhostXML state, which in turn calls
+        an Indigo Action Item to adjust the refresh frequency. In other words, the user can
+        increase/decrease the frequency based on some condition.
 
-        -----
-
-        :param indigo.Dict() values_dict:
+        :param indigo.Dict values_dict:
         :return:
         """
-        dev       = self.managedDevices[values_dict.deviceId].device
+        dev       = self.managed_devices[values_dict.deviceId].device
         new_props = dev.pluginProps
         new_props['refreshFreq'] = int(values_dict.props['new_refresh_freq'])
         dev.replacePluginPropsOnServer(new_props)
 
     # =============================================================================
-    def comms_kill_all(self):
+    @staticmethod
+    def comms_kill_all():
         """
         Disable communication of all plugin devices
 
         comms_kill_all() sets the enabled status of all plugin devices to False.
-
-        -----
-
         """
-
-        try:
-            for dev in indigo.devices.itervalues("self"):
-                if dev.enabled:
-                    indigo.device.enable(dev, value=False)
-            return True
-
-        except Exception as sub_error:
-            self.logger.critical(u"Exception when trying to disable all plugin devices. Error: {0} "
-                                 u"(Line {1})".format(sub_error, sys.exc_traceback.tb_lineno))
+        for dev in indigo.devices.itervalues("self"):
+            if dev.enabled:
+                indigo.device.enable(dev, value=False)
+        return True
 
     # =============================================================================
-    def comms_unkill_all(self):
+    @staticmethod
+    def comms_unkill_all():
         """
         Enable communication of all plugin devices
 
         comms_unkill_all() sets the enabled status of all plugin devices to True.
-
-        -----
-
         """
-
-        try:
-            for dev in indigo.devices.itervalues("self"):
-                if not dev.enabled:
-                    indigo.device.enable(dev, value=True)
-            return True
-
-        except Exception as sub_error:
-            self.logger.critical(u"Exception when trying to enable all plugin devices. Error: {0} "
-                                 u"(Line {1})".format(sub_error, sys.exc_traceback.tb_lineno))
+        for dev in indigo.devices.itervalues("self"):
+            if not dev.enabled:
+                indigo.device.enable(dev, value=True)
+        return True
 
     # =============================================================================
-    def get_device_list(self, filter="", type_id=0, values_dict=None, target_id=0):
+    @staticmethod
+    def get_device_list(filter="", type_id=0, values_dict=None, target_id=0):  # noqa
         """
         Return a list of plugin devices for use in dropdown menus
 
         Returns a list of plugin devices for use in dropdown menus in the form of
         [(dev.id, dev.name), (dev.id, dev.name)]
 
-        -----
-
-        :param string filter:
+        :param str filter:
         :param int type_id:
         :param indigo.Dict values_dict:
         :param int target_id:
         :return list:
         """
-
         return [(dev.id, dev.name) for dev in indigo.devices.itervalues(filter="self")]
 
     # =============================================================================
-    def log_environment_info(self):
+    def _log_environment_info(self):
         """
         Write interesting information to the log on startup.
         """
         self.indigo_log_handler.setLevel(20)
-        self.logger.info(u"")
-        self.logger.info(u"{0:{1}^130}".format(" Initializing New Plugin Session ", "="))
-        self.logger.info(u"{0:<30} {1}".format("Plugin name:", self.pluginDisplayName))
-        self.logger.info(u"{0:<30} {1}".format("Plugin version:", self.pluginVersion))
-        self.logger.info(u"{0:<30} {1}".format("Plugin ID:", self.pluginId))
-        self.logger.info(u"{0:<30} {1}".format("Indigo version:", indigo.server.version))
-        self.logger.info(u"{0:<30} {1}".format("Python version:", sys.version.replace('\n', '')))
-        self.logger.info(u"{0:<30} {1}".format("Flatdict version:", flatdict.__version__))
-        self.logger.info(u"{0:<30} {1}".format("Process ID:", os.getpid()))
-        self.logger.info(u"{0:{1}^130}".format("", "="))
-        self.indigo_log_handler.setLevel(self.debugLevel)
+        self.logger.info("")
+        self.logger.info(f"{' Initializing New Plugin Session ':{'='}^130}")
+        self.logger.info(f"{'Plugin name:':<30} {self.pluginDisplayName}")
+        self.logger.info(f"{'Plugin version:':<30} {self.pluginVersion}")
+        self.logger.info(f"{'Plugin ID:':<30} {self.pluginId}")
+        self.logger.info(f"{'Indigo version:':<30} {indigo.server.version}")
+        sys_version = sys.version.replace('\n', '')
+        self.logger.info(f"{'Python version:':<30} {sys_version}")
+        self.logger.info(f"{'Flatdict version:':<30} {flatdict.__version__}")
+        self.logger.info(f"{'Process ID:':<30} {os.getpid()}")
+        self.logger.info("=" * 130)
+        self.indigo_log_handler.setLevel(self.debug_level)
 
     # =============================================================================
-    def process_bad_calls(self, dev, retries):
+    def _process_bad_calls(self, dev=None, retries=0):
         """
         If a device has made too many unsuccessful attempts
-
-        -----
 
         :param indigo.Device dev:
         :param int retries:
@@ -641,18 +776,17 @@ class Plugin(indigo.PluginBase):
             # Add the device to the trigger queue and disable it.
             self.master_trigger_dict['disabled'].put(dev.id)
 
-            self.logger.critical(u"Disabling device: [{0}] {1} because it has failed {2} "
-                                 u"times.".format(dev.id, dev.name, retries))
+            self.logger.critical(
+                f"Disabling device: [{dev.id}] {dev.name} because it has failed {retries} times."
+            )
             indigo.device.enable(dev.id, value=False)
             dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
             return True
 
     # =============================================================================
-    def process_triggers(self):
+    def _process_triggers(self):
         """
         Process plugin triggers
-
-        -----
 
         :return:
         """
@@ -673,44 +807,39 @@ class Plugin(indigo.PluginBase):
         return True
 
     # =============================================================================
-    def refreshDataAction(self, values_dict):
+    def refreshDataAction(self, values_dict=None):  # noqa
         """
         Legacy callback to Refresh Data for All Devices
 
         This method supports the old callback name.
 
-        -----
-
+        :param indigo.Dict values_dict:
         :return:
         """
-        self.logger.warning(u"You are using an outdated plugin Action Item. Please update it.")
+        self.logger.warning("You are using an outdated plugin Action Item. Please update it.")
         self.refresh_data_action(values_dict)
 
     # =============================================================================
-    def refreshDataForDevAction(self, values_dict):
+    def refreshDataForDevAction(self, values_dict=None):  # noqa
         """
         Legacy callback to Refresh Data for a Specified Device
 
         This method supports the old callback name.
 
-        -----
-
+        :param indigo.Dict values_dict:
         :return:
         """
-        self.logger.warning(u"You are using an outdated plugin Action Item. Please update it.")
+        self.logger.warning("You are using an outdated plugin Action Item. Please update it.")
         self.refresh_data_for_dev_action(values_dict)
 
     # =============================================================================
-    def refresh_data_action(self, values_dict):
+    def refresh_data_action(self, values_dict=None):  # noqa
         """
         Initiate data refresh based on menu call
 
-        The refresh_data_action() method refreshes data for all devices based on a plugin
-        menu call.
+        The refresh_data_action() method refreshes data for all devices based on a plugin menu call.
 
-        -----
-
-        :param values_dict:
+        :param indigo.Dict values_dict:
         """
         self.refresh_data()
 
@@ -720,160 +849,146 @@ class Plugin(indigo.PluginBase):
         The refresh_data() method controls the updating of all plugin devices
 
         Initiate a data refresh based on a normal plugin cycle.
-
-        -----
-
         """
-
         # If there are no devices created or all devices are disabled.
-        if len(self.managedDevices) == 0:
-            self.logger.warning(u"No GhostXML devices to refresh.")
+        if len(self.managed_devices) == 0:
+            self.logger.warning("No GhostXML devices to refresh.")
             return True
 
         # Iterate devices to see if an update is required.
         try:
-            for devId in self.managedDevices:
-                dev = self.managedDevices[devId].device
-                self.managedDevices[devId].queue.put(dev)
+            for dev_id in self.managed_devices:
+                dev = self.managed_devices[dev_id].device
+                self.managed_devices[dev_id].queue.put(dev)
 
             return True
 
-        except Exception as sub_error:
-            self.logger.critical(u"Error refreshing devices. Please check settings.")
-            self.logger.critical(unicode(sub_error))
+        except KeyError:  # noqa
+            self.logger.exception("Error refreshing devices. Please check settings.")
             return False
 
     # =============================================================================
-    def refresh_data_for_dev_action(self, values_dict):
+    def refresh_data_for_dev_action(self, values_dict=None):
         """
         Initiate a device refresh based on an Indigo Action call
 
-        The refresh_data_for_dev_action() method refreshes data for a selected device
-        based on a plugin action call.
+        The refresh_data_for_dev_action() method refreshes data for a selected device based on a
+        plugin action call.
 
-        -----
-
-        :param values_dict:
+        :param indigo.Dict values_dict:
         """
-
-        dev = self.managedDevices[values_dict.deviceId].device
-        self.managedDevices[dev.id].queue.put(dev)
+        dev = self.managed_devices[values_dict.deviceId].device
+        self.managed_devices[dev.id].queue.put(dev)
 
     # =============================================================================
-    def time_to_update(self, dev):
+    @staticmethod
+    def _time_to_update(dev=None):  # noqa
         """
         Determine if a device is ready for a refresh
 
         Returns True if the device is ready to be updated, else returns False.
 
-        -----
-
-        :param dev:
+        :param indigo.Device dev:
         """
-        # If device has a deviceTimestamp key and is enabled.
-        if "deviceTimestamp" in dev.states.iterkeys() and dev.enabled:
+        # 2022-02-15 DaveL17 - Refactored for simplicity. See GitHub for prior code.
+        # If device has a deviceTimestamp key and is enabled, test to see if the device is ready
+        # for a refresh.
+        if "deviceTimestamp" in dev.states and dev.enabled:
+            t_since_upd = int(t.time() - float(dev.states["deviceTimestamp"]))
 
-            # If the refresh frequency is zero, the device is a manual only refresh.
-            if int(dev.pluginProps.get("refreshFreq", 300)) == 0:
-                return False
+            if int(t_since_upd) > int(dev.pluginProps.get("refreshFreq", 300)) > 0:
+                return True
 
-            # If the refresh frequency is not zero, test to see if the device is ready for a refresh.
-            else:
-                t_since_upd = int(t.time() - float(dev.states["deviceTimestamp"]))
-
-                # If it's time for the device to be updated.
-                if int(t_since_upd) > int(dev.pluginProps.get("refreshFreq", 300)):
-                    return True
-
-                # If it's not time for the device to be updated.
-                return False
-
-        # If the device does not have a timestamp key and/or is disabled.
-        else:
-            return False
+        # If the device does not have a timestamp key, is not ready for a refresh, or is disabled.
+        return False
 
 
-class PluginDevice(object):
+# =============================================================================
+class PluginDevice:
     """
     Create device object and corresponding queue
 
-    The PluginDevice class is used to create an object to store data related to each
-    enabled plugin device. The object contains an instance of the Indigo device and a
-    command queue.
+    The PluginDevice class is used to create an object to store data related to each enabled plugin
+    device. The object contains an instance of the Indigo device and a command queue.
     """
 
     # =============================================================================
     def __init__(self, plugin, device):
+        """
+        Title Placeholder
 
-        self.pluginDeviceIsInitializing = True
+        :param Plugin plugin:
+        :param indigo.Device device:
+        """
+        self.plugin_device_is_initializing = True
 
         self.device            = device
         self.host_plugin       = plugin
         self.bad_calls         = 0
-        self.finalDict         = {}
-        self.jsonRawData       = ''
-        self.rawData           = ''
+        self.final_dict        = {}
+        self.json_raw_data     = ''
+        self.raw_data          = ''
         self.old_device_states = {}
 
         self.queue      = Queue(maxsize=0)
-        self.dev_thread = threading.Thread(name=self.device.id, target=self.initiate_device_update, args=(self.queue,))
+        self.dev_thread = threading.Thread(
+            name=self.device.id, target=self._initiate_device_update, args=(self.queue,)
+        )
         self.dev_thread.start()
 
-        self.pluginDeviceIsInitializing = False
+        self.plugin_device_is_initializing = False
 
     # =============================================================================
     def __str__(self):
+        """
+        Title Placeholder
 
-        return u"[{0:>11}] {1:<46} {2:<40}".format(self.device.id, self.dev_thread, self.queue)
+        Body placeholder
+        """
+        return f"[{self.device.id:>11}] {self.dev_thread:<46} {self.queue:<40}"
 
     # =============================================================================
-    def initiate_device_update(self, q):
+    def _initiate_device_update(self, update_queue=None):
         """
         Initiate an update of the device
 
-        The initiate_device_update method keeps the device thread alive and is used as
-        a bridge between the Plugin class and the device class.
+        The _initiate_device_update method keeps the device thread alive and is used as a bridge
+        between the Plugin class and the device class.
 
-        -----
-
-        :param queue q:
+        :param Queue update_queue:
         :return:
         """
         try:
             while True:
                 t.sleep(1)
-                while not q.empty():
-                    task = q.get()
+                while not update_queue.empty():
+                    task = update_queue.get()
                     self.refresh_data_for_dev(task)
 
-        except Exception as subError:
-
+        except ValueError:  # noqa
             # Add wider exception testing to test errors
-            self.host_plugin.logger.exception(u'General exception: {0}'.format(subError))
+            self.host_plugin.logger.exception("General exception:")
 
     # =============================================================================
-    def get_the_data(self, dev):
+    def get_the_data(self, dev=None):
         """
         The get_the_data() method is used to retrieve target data files.
 
-        The get_the_data() method is used to construct the relevant API URL, sends
-        the call to the data source via curl, and returns the result. The URL can
-        be sent using auth as required (basic, digest) or without auth. In addition,
-        Indigo substitutions are processed as required such that the user can modify
-        the URL based on variable values.
+        The get_the_data() method is used to construct the relevant API URL, sends the call to the
+        data source via curl, and returns the result. The URL can be sent using auth as required
+        (basic, digest) or without auth. In addition, Indigo substitutions are processed as required
+        such that the user can modify the URL based on variable values.
 
-        -----
-
-        :param dev
-        :return result:
+        :param indigo.Device dev:
+        :return XML' or class 'JSON result:
         """
-
         try:
             curl_array = dev.pluginProps.get('curlArray', '')
             url        = dev.pluginProps['sourceXML']
             username   = dev.pluginProps.get('digestUser', '')
             password   = dev.pluginProps.get('digestPass', '')
             auth_type  = dev.pluginProps.get('useDigest', 'None')
+            subber     = self.host_plugin.substitute
 
             if dev.pluginProps.get('disableGlobbing', False):
                 glob_off = 'g'
@@ -882,88 +997,123 @@ class PluginDevice(object):
 
             # Format any needed URL substitutions
             if dev.pluginProps.get('doSubs', False):
-                self.host_plugin.logger.debug(u"[{0}] URL: {1}  (before substitution)".format(dev.name, url))
-                url = self.host_plugin.substitute(url.replace("[A]", "%%v:" + dev.pluginProps['subA'] + "%%"))
-                url = self.host_plugin.substitute(url.replace("[B]", "%%v:" + dev.pluginProps['subB'] + "%%"))
-                url = self.host_plugin.substitute(url.replace("[C]", "%%v:" + dev.pluginProps['subC'] + "%%"))
-                url = self.host_plugin.substitute(url.replace("[D]", "%%v:" + dev.pluginProps['subD'] + "%%"))
-                url = self.host_plugin.substitute(url.replace("[E]", "%%v:" + dev.pluginProps['subE'] + "%%"))
-                self.host_plugin.logger.debug(u"[{0}] URL: {1} (after substitution)".format(dev.name, url))
+                self.host_plugin.logger.debug(
+                    f"[{dev.name}] URL: {url} (before substitution)"
+                )
+                url = subber(url.replace("[A]", f"%%v:{dev.pluginProps['subA']}%%"))
+                url = subber(url.replace("[B]", f"%%v:{dev.pluginProps['subB']}%%"))
+                url = subber(url.replace("[C]", f"%%v:{dev.pluginProps['subC']}%%"))
+                url = subber(url.replace("[D]", f"%%v:{dev.pluginProps['subD']}%%"))
+                url = subber(url.replace("[E]", f"%%v:{dev.pluginProps['subE']}%%"))
+                self.host_plugin.logger.debug(
+                    f"[{dev.name}] URL: {url} (after substitution)"
+                )
 
             # Added by DaveL17 - 2020 10 09
             # Format any needed Raw Curl substitutions
             if dev.pluginProps.get('curlSubs', False):
-                self.host_plugin.logger.debug(u"[{0}] Raw Curl: {1}  (before substitution)".format(dev.name, curl_array))
-                curl_array = self.host_plugin.substitute(curl_array.replace("[A]", "%%v:" + dev.pluginProps['curlSubA'] + "%%"))
-                curl_array = self.host_plugin.substitute(curl_array.replace("[B]", "%%v:" + dev.pluginProps['curlSubB'] + "%%"))
-                curl_array = self.host_plugin.substitute(curl_array.replace("[C]", "%%v:" + dev.pluginProps['curlSubC'] + "%%"))
-                curl_array = self.host_plugin.substitute(curl_array.replace("[D]", "%%v:" + dev.pluginProps['curlSubD'] + "%%"))
-                curl_array = self.host_plugin.substitute(curl_array.replace("[E]", "%%v:" + dev.pluginProps['curlSubE'] + "%%"))
-                self.host_plugin.logger.debug(u"[{0}] Raw Curl: {1} (after substitution)".format(dev.name, curl_array))
+                self.host_plugin.logger.debug(
+                    f"[{dev.name}] Raw Curl: {curl_array} (before substitution)"
+                )
+                curl_array = subber(
+                    curl_array.replace("[A]", f"%%v:{dev.pluginProps['curlSubA']}%%")
+                )
+                curl_array = subber(
+                    curl_array.replace("[B]", f"%%v:{dev.pluginProps['curlSubB']}%%")
+                )
+                curl_array = subber(
+                    curl_array.replace("[C]", f"%%v:{dev.pluginProps['curlSubC']}%%")
+                )
+                curl_array = subber(
+                    curl_array.replace("[D]", f"%%v:{dev.pluginProps['curlSubD']}%%")
+                )
+                curl_array = subber(
+                    curl_array.replace("[E]", f"%%v:{dev.pluginProps['curlSubE']}%%")
+                )
+                self.host_plugin.logger.debug(
+                    f"[{dev.name}] Raw Curl: {curl_array} (after substitution)"
+                )
 
             # Initiate curl call to data source.
-
             # ================================  Curl Auth  ================================
             # GlennNZ
             if auth_type == "Raw":
-                self.host_plugin.logger.debug(u'/usr/bin/curl -vsk {0} {1}'.format(curl_array, url))
+                self.host_plugin.logger.debug(f'/usr/bin/curl -vsk {curl_array} {url}')
                 # v = [verbose] s = [silent] k = [insecure]
-                proc = subprocess.Popen('/usr/bin/curl -vsk' + glob_off + ' ' + curl_array + ' ' + url,
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.PIPE,
-                                        shell=True
-                                        )
+                proc = subprocess.Popen(
+                    '/usr/bin/curl -vsk' + glob_off + ' ' + curl_array + ' ' + url,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    shell=True
+                )
             # ===============================  Digest Auth  ===============================
             elif auth_type == 'Digest':
                 # v = [verbose] s = [silent] u = [--user <user:password>]
-                proc = subprocess.Popen(["curl", '-vs' + glob_off, '--digest', '-u', username + ':' + password, url],
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.PIPE
-                                        )
+                curl_list = [
+                    "/usr/bin/curl",
+                    '-vs' + glob_off,
+                    '--digest',
+                    '-u',
+                    username + ':' + password,
+                    url
+                ]
+                proc = subprocess.Popen(
+                    curl_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                )
             # ===============================  Basic Auth  ================================
             elif auth_type == 'Basic':
                 # v = [verbose] s = [silent] u = [--user <user:password>]
-                proc = subprocess.Popen(["curl", '-vs' + glob_off, '-u', username + ':' + password, url],
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.PIPE
-                                        )
+                proc = subprocess.Popen(
+                    ["/usr/bin/curl", '-vs' + glob_off, '-u', username + ':' + password, url],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE
+                )
             # ===============================  Bearer Auth  ===============================
             elif auth_type == 'Bearer':
                 token = dev.pluginProps['token']
                 # v = [verbose] s = [silent] k = [insecure] X = [--request <command>] H = [Header]
-                curl_arg = ('curl -vskX' + glob_off + ' GET ' + url +
+                curl_arg = ('/usr/bin/curl -vskX' + glob_off + ' GET ' + url +
                             ' -H "accept: application/json" -H "Authorization: Bearer "' + token
                             )
 
-                proc = subprocess.Popen(curl_arg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+                proc = subprocess.Popen(
+                    curl_arg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True
+                )
+
             # ===============================  Token Auth  ================================
             # berkinet and DaveL17
             elif auth_type == 'Token':
                 # We need to get a token to get started
                 a_url    = dev.pluginProps['tokenUrl']
                 # v = [verbose] s = [silent] k = [insecure] H = [Header] X = [--request <command>]
-                curl_arg = ("/usr/bin/curl -vsk" + glob_off +
-                            " -H 'Content-Type: application/json' -X POST --data-binary '{ \"pwd\": \"" +
-                            password + "\", \"remember\": 1 }' '} ' " + a_url
-                            )
+                curl_arg = (
+                        "/usr/bin/curl -vsk" + glob_off +
+                        " -H 'Content-Type: application/json' -X POST "
+                        "--data-binary '{ \"pwd\": \"" +
+                        password + "\", \"remember\": 1 }' '} ' " + a_url
+                )
 
-                proc     = subprocess.Popen(curl_arg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+                proc = subprocess.Popen(
+                    curl_arg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True
+                )
                 reply_in = proc.communicate()
-                reply    = simplejson.loads(reply_in[0])
+                reply    = json.loads(reply_in[0])
                 token    = (reply["access_token"])
 
                 # Now, add the token to the end of the url
-                url  = "{0}?access_token={1}".format(url, token)
-                proc = subprocess.Popen(["curl", '-vsk' + glob_off, url],
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.PIPE
-                                        )
+                url  = f"{url}?access_token={token}"
+                proc = subprocess.Popen(
+                    ["curl", '-vsk' + glob_off, url],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE
+                )
             # =================================  No Auth  =================================
             else:
-                proc = subprocess.Popen(["curl", '-vs' + glob_off, url],
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.PIPE
-                                        )
+                proc = subprocess.Popen(
+                    ["curl", '-vs' + glob_off, url],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE
+                )
 
             # =============================================================================
             # The following code adds a timeout function to the call.
@@ -983,269 +1133,261 @@ class PluginDevice(object):
             # from the man page.  See `curlcodes.py` for more information.
             if return_code != 0:
                 # for plugin log (verbose error)
-                self.host_plugin.logger.debug(u"[{0}] curl error {1}.".format(dev.name,
-                                                                              err.replace('\n', ' ')
-                                                                              )
-                                              )
+                curl_err = err.replace(b'\n', b' ')
+                self.host_plugin.logger.debug(f"[{dev.name}] curl error {curl_err}.")
+
                 # for Indigo event log
-                self.host_plugin.logger.warning(u"[{0}] - Return code: {1} - "
-                                                u"{2}]".format(dev.name,
-                                                               return_code,
-                                                               curl_code.get(str(return_code), "Unknown code message."))
-                                                )
+                err_msg = curl_code.get(f"{return_code}", "Unknown code message.")
+                self.host_plugin.logger.debug(
+                    f"[{dev.name}] - Return code: {return_code} - {err_msg}]"
+                )
             return result
 
         except IOError:
 
-            self.host_plugin.logger.warning(u"[{0}] IOError:  Skipping until next scheduled poll.".format(dev.name))
-            self.host_plugin.logger.debug(u"[{0}] Device is offline. No data to return. Returning dummy "
-                                          u"dict.".format(dev.name))
+            self.host_plugin.logger.warning(
+                f"[{dev.name}] IOError:  Skipping until next scheduled poll."
+            )
+            self.host_plugin.logger.debug(
+                f"[{dev.name}] Device is offline. No data to return. Returning dummy dict."
+            )
             dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No comm")
             return '{"GhostXML": "IOError"}'
 
-        except Exception as subError:
+        except Exception:  # noqa
             # Add wider exception testing to test errors
-            self.host_plugin.logger.exception(u'General exception: {0}'.format(subError))
+            self.host_plugin.logger.exception('General exception:')
 
     # =============================================================================
-    def clean_the_keys(self, input_data):
+    def _clean_the_keys(self, input_data=None):
         """
         Ensure that state names are valid for Indigo
 
-        Some dictionaries may have keys that contain problematic characters which
-        Indigo doesn't like as state names. Let's get those characters out of there.
+        Some dictionaries may have keys that contain problematic characters which Indigo doesn't
+        like as state names. Let's get those characters out of there.
 
-        -----
-
-        :param input_data:
+        :param dict input_data:
         """
-
         try:
-            # Some characters need to be replaced with a valid replacement value because
-            # simply deleting them could cause problems. Add additional k/v pairs to
-            # chars_to_replace as needed.
-            chars_to_replace = {'_ghostxml_': '_',
-                                '+': '_plus_',
-                                '-': '_minus_',
-                                'true': 'True',
-                                'false': 'False',
-                                ' ': '_',
-                                ':': '_colon_',
-                                '.': '_dot_',
-                                '@': 'at_'
-                                }
-            chars_to_replace = dict((re.escape(k), v) for k, v in chars_to_replace.iteritems())
-            pattern          = re.compile("|".join(chars_to_replace.keys()))
+            chars_to_replace = dict(
+                (re.escape(k), v) for k, v in CHARS_TO_REPLACE.items()
+            )
+            pattern     = re.compile("|".join(chars_to_replace))
+            output_dict = {}
 
-            for key in input_data.iterkeys():
-                new_key = pattern.sub(lambda m: chars_to_replace[re.escape(m.group(0))], key)
-                input_data[new_key] = input_data.pop(key)
+            for key in input_data:
+                # Some characters need to be replaced in keys because simply deleting them could
+                # cause problems. Add additional k/v pairs to chars_to_replace as needed.
+                # ['9@a(b)' --> '9_at_a(b)']
+                new_key = pattern.sub(lambda m: chars_to_replace[re.escape(m.group(0))], str(key))
 
-            # Some characters can simply be eliminated. If something here causes problems,
-            # remove the element from the set and add it to the replacement dict above.
-            chars_to_remove = {'/', '(', ')'}
+                # Some characters can simply be eliminated. If something here causes problems,
+                # remove the element from the set and add it to the replacement dict above.
+                # ['9_at_a(b)' --> '9_at_ab']
+                new_key = ''.join([c for c in new_key if c not in CHARS_TO_REMOVE])
 
-            for key in input_data.iterkeys():
-                new_key = ''.join([c for c in key if c not in chars_to_remove])
-                input_data[new_key] = input_data.pop(key)
+                # Indigo will not accept device state names that begin with a number, so inspect
+                # them and prepend any with the string "No_" to force them to something that Indigo
+                # will accept. ['9_at_ab' --> 'No_9_at_ab']
+                if new_key[0].isdigit():
+                    new_key = f'No_{new_key}'
 
-            # Indigo will not accept device state names that begin with a number, so
-            # inspect them and prepend any with the string "No_" to force them to
-            # something that Indigo will accept.
-            temp_dict = {}
+                output_dict[new_key] = input_data[key]
 
-            for key in input_data.keys():
-                if key[0].isdigit():
-                    temp_dict[u'No_{0}'.format(key)] = input_data[key]
-                else:
-                    temp_dict[key] = input_data[key]
-
-            input_data = temp_dict
-
-            self.jsonRawData = input_data
+            return output_dict
 
         except RuntimeError:
             pass
 
-        except ValueError as sub_error:
-            self.host_plugin.logger.critical(u'Error cleaning dictionary keys: {0}'.format(sub_error))
+        except ValueError:
+            self.host_plugin.logger.exception('Error cleaning dictionary keys:')
 
-        except Exception as subError:
+        except Exception:  # noqa
             # Add wider exception testing to test errors
-            self.host_plugin.logger.exception(u'General exception: {0}'.format(subError))
+            self.host_plugin.logger.exception('General exception:')
 
     # =============================================================================
-    def kill_curl(self, proc):
+    def kill_curl(self, proc=None):
         """
         Kill curl calls that have timed out
 
-        The kill_curl method will kill the passed curl call if it has timed out.
-        Added by GlennNZ and DaveL17 2018-07-19
+        The kill_curl method will kill the passed curl call if it has timed out. Added by GlennNZ
+        and DaveL17 2018-07-19
 
-        -----
-
-        :param proc:
+        :param subprocess.Popen proc:
         """
-
         try:
-            self.host_plugin.logger.debug(u'Timeout for Curl Subprocess. Killed by timer.')
+            self.host_plugin.logger.debug('Timeout for Curl Subprocess. Killed by timer.')
             proc.kill()
 
-        except Exception as subError:
+        except OSError as sub_error:
+            if "OSError: [Errno 3]" in str(sub_error):
+                self.host_plugin.logger.debug(
+                    "OSError No. 3: No such process. This is a result of the plugin trying to kill "
+                    "a process that is no longer running."
+                )
+            else:
+                self.host_plugin.logger.exception('General exception:')
+
+        except Exception:  # noqa
             # Add wider exception testing to test errors
-            self.host_plugin.logger.exception(u'General exception: {0}'.format(subError))
+            self.host_plugin.logger.exception('General exception:')
 
     # =============================================================================
-    def parse_the_json(self, dev, root):
+    def parse_the_json(self, dev=None, root=None):
         """
         Parse JSON data
 
-        The parse_the_json() method contains the steps to convert the JSON file into a
-        flat dict.
+        The parse_the_json() method contains the steps to convert the JSON file into a flat dict.
 
-        http://github.com/gmr/flatdict
+        https://github.com/gmr/flatdict
         class flatdict.FlatDict(value=None, delimiter=None, former_type=<type 'dict'>)
 
-        -----
-
-        :param dev:
-        :param root:
+        :param indigo.Device dev:
+        :param JSON root:
         :return self.jsonRawData:
         """
-
         self.old_device_states = dict(dev.states)
 
         # =============================  Drop UI States  ==============================
         # Drop the '.ui' states.
-        for key in self.old_device_states.keys():
+        keys = list(self.old_device_states)
+        for key in keys:
             if key.endswith('.ui'):
                 del self.old_device_states[key]
 
         try:
-            parsed_simplejson = simplejson.loads(root)
+            parsed_json = json.loads(root)
 
-            # If List flattens once - with addition of No_ to the beginning (Indigo appears
-            # to not allow DeviceNames to start with Numbers) then flatDict runs - and
-            # appears to run correctly (as no longer list - dict) if isinstance(list) then
-            # will flatten list down to dict.
+            # If List flattens once - with addition of No_ to the beginning (Indigo does not allow
+            # DeviceNames to start with numbers) then flatDict runs - and appears to run correctly
+            # (as no longer list - dict) if isinstance(list) then will flatten list down to dict.
 
-            if isinstance(parsed_simplejson, list):
+            if isinstance(parsed_json, list):
 
-                parsed_simplejson = dict((u"No_" + unicode(i), v) for (i, v) in enumerate(parsed_simplejson))
+                parsed_json = dict(("No_" + f"{i}", v) for (i, v) in enumerate(parsed_json))
 
-            self.jsonRawData = flatdict.FlatDict(parsed_simplejson, delimiter='_ghostxml_')
+            self.json_raw_data = flatdict.FlatDict(parsed_json, delimiter='_ghostxml_')
 
             dev.updateStateOnServer('parse_error', value=False)
 
-            return self.jsonRawData
+            return self.json_raw_data
 
-        except ValueError as sub_error:
-            self.host_plugin.logger.debug(u"[{0}] Parse Error: {1}".format(dev.name, sub_error))
-            self.host_plugin.logger.debug(u"[{0}] jsonRawData {1}".format(dev.name, self.jsonRawData))
+        except (ValueError, json.decoder.JSONDecodeError):
+            self.host_plugin.logger.exception(f"[{dev.name}] Parse Error:")
+            self.host_plugin.logger.debug(f"[{dev.name}] jsonRawData { self.json_raw_data}")
 
-            # If we let it, an exception here will kill the device's thread. Therefore, we
-            # have to return something that the device can use in order to keep the thread
-            # alive.
-            self.host_plugin.logger.warning("There was a parse error. Will continue to poll.")
+            # If we let it, an exception here will kill the device's thread. Therefore, we have to
+            # return something that the device can use in order to keep the thread alive.
+            self.host_plugin.logger.warning(
+                f"[{dev.name}] There was a parse error. Will continue to poll. Check the  plugin "
+                f"log for more information."
+            )
             self.old_device_states['parse_error'] = True
             return self.old_device_states
 
-        except Exception as subError:
+        except Exception:  # noqa
             # Add wider exception testing to test errors
-            self.host_plugin.logger.exception(u'General exception: {0}'.format(subError))
+            self.host_plugin.logger.exception('General exception:')
+            return self.old_device_states
 
     # =============================================================================
-    def parse_state_values(self, dev):
+    def parse_state_values(self, dev=None):
         """
         Parse data values to device states
 
-        The parse_state_values() method walks through the dict and assigns the
-        corresponding value to each device state.
+        The parse_state_values() method walks through the dict and assigns the corresponding value
+        to each device state.
 
-        -----
-
-        :param dev:
+        :param indigo.Device dev:
         """
         state_list  = []
-        sorted_list = [_ for _ in sorted(self.finalDict.iterkeys()) if _ not in ('deviceIsOnline', 'parse_error')]
+        sorted_list = [
+            _ for _ in sorted(self.final_dict.keys()) if _ not in ('deviceIsOnline', 'parse_error')
+        ]
 
         try:
             if dev.deviceTypeId == 'GhostXMLdeviceTrue':
                 # Parse all values into states as true type.
                 for key in sorted_list:
-                    value = self.finalDict[key]
-                    if isinstance(value, (str, unicode)):
+                    value = self.final_dict[key]
+                    if isinstance(value, str):
                         if value.lower() in ('armed', 'locked', 'on', 'open', 'true', 'up', 'yes'):
-                            self.finalDict[u"{0}_bool".format(key)] = True
-                            state_list.append({'key': u"{0}_bool".format(key), 'value': True})
-                        elif value.lower() in ('closed', 'disarmed', 'down', 'false', 'no', 'off',  'unlocked'):
-                            self.finalDict[u"{0}_bool".format(key)] = False
-                            state_list.append({'key': u"{0}_bool".format(key), 'value': False})
-                    state_list.append({'key': unicode(key),
-                                       'value': self.finalDict[key],
-                                       'uiValue': self.finalDict[key]
-                                       }
-                                      )
+                            self.final_dict[f"{key}_bool"] = True
+                            state_list.append({'key': f"{key}_bool", 'value': True})
+                        elif value.lower() in (
+                                'closed', 'disarmed', 'down', 'false', 'no', 'off',  'unlocked'
+                        ):
+                            self.final_dict[f"{key}_bool"] = False
+                            state_list.append({'key': f"{key}_bool", 'value': False})
+                    state_list.append(
+                        {'key': key,
+                         'value': self.final_dict[key],
+                         'uiValue': self.final_dict[key]
+                         }
+                    )
             else:
                 # Parse all values into states as strings.
                 for key in sorted_list:
-                    state_list.append({'key': unicode(key),
-                                       'value': unicode(self.finalDict[key]),
-                                       'uiValue': unicode(self.finalDict[key])
-                                       }
-                                      )
+                    state_list.append(
+                        {'key': key,
+                         'value': str(self.final_dict[key]),
+                         'uiValue': str(self.final_dict[key])
+                         }
+                    )
 
         except ValueError as sub_error:
-            self.host_plugin.logger.critical(u"[{0}] Error parsing state values.\n{1}\nReason: "
-                                             u"{2}".format(dev.name, self.finalDict, sub_error))
+            self.host_plugin.logger.critical(
+                f"[{dev.name}] Error parsing state values.\n{self.final_dict}\n"
+                f"Reason: {sub_error}"
+            )
             dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
             state_list.append({'key': 'deviceIsOnline', 'value': False, 'uiValue': "Error"})
 
         except Exception as subError:
             # Add wider exception testing to test errors
-            self.host_plugin.logger.exception(u'General exception: {0}'.format(subError))
+            self.host_plugin.logger.exception(f'General exception: {subError}')
 
         dev.updateStatesOnServer(state_list)
 
     # =============================================================================
-    def refresh_data_for_dev(self, dev):
+    def refresh_data_for_dev(self, dev=None):
         """
         Initiate refresh of device as required
 
         If a device is both configured and enabled, initiate a refresh.
 
-        -----
-
-        :param dev:
+        :param indigo.Device dev:
         """
-
         try:
             if dev.configured and dev.enabled:
 
                 # Get the data.
-                self.rawData = self.get_the_data(dev)
+                self.raw_data = self.get_the_data(dev)
 
-                dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Processing")
+                dev.updateStateOnServer(
+                    'deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Processing"
+                )
 
                 update_time = t.strftime("%m/%d/%Y at %H:%M")
                 dev.updateStateOnServer('deviceLastUpdated', value=update_time)
                 dev.updateStateOnServer('deviceTimestamp', value=t.time())
 
-                # TODO: why do we call clean_the_keys() for JSON and not for XML?
                 # Throw the data to the appropriate module to flatten it.
                 if dev.pluginProps['feedType'] == "XML":
-                    self.rawData = self.strip_namespace(dev, self.rawData)
-                    self.finalDict = iterateXML.iterateMain(self.rawData)
+                    self.raw_data = self.strip_namespace(dev, self.raw_data)
+                    self.final_dict = iterateXML.iterate_main(self.raw_data)
 
                 elif dev.pluginProps['feedType'] == "JSON":
-                    self.finalDict = self.parse_the_json(dev, self.rawData)
-                    self.clean_the_keys(self.finalDict)
+                    self.final_dict = self.parse_the_json(dev, self.raw_data)
+                    self.final_dict = self._clean_the_keys(self.final_dict)
 
                 else:
-                    self.host_plugin.logger.warning(u"{0}: The plugin only supports XML and JSON data "
-                                                    u"sources.".format(dev.name))
+                    self.host_plugin.logger.warning(
+                        f"{dev.name}: The plugin only supports XML and JSON data sources."
+                    )
 
-                if self.finalDict is not None:
+                if self.final_dict is not None:
                     # Create the device states.
                     dev.stateListOrDisplayStateIdChanged()
 
@@ -1253,7 +1395,11 @@ class PluginDevice(object):
                     self.parse_state_values(dev)
 
                     if "GhostXML" in dev.states:
-                        dev.updateStateOnServer('deviceIsOnline', value=False, uiValue=dev.states['GhostXML'])
+                        dev.updateStateOnServer(
+                            'deviceIsOnline',
+                            value=False,
+                            uiValue=dev.states.get('GhostXML', 'G')
+                        )
                         dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
                         self.bad_calls += 1
                     elif dev.states.get("parse_error", False):
@@ -1266,13 +1412,14 @@ class PluginDevice(object):
                         self.bad_calls += 1
                     else:
                         dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Updated")
+                        self.host_plugin.logger.info(f"{dev.name} updated.")
                         dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
                         dev.setErrorStateOnServer(None)
                         self.bad_calls = 0
 
                 else:
                     # Set the Timestamp so that the seconds-since-update code doesn't keep checking
-                    # a dead link / invalid URL every 5 seconds - it will keep checking on it's
+                    # a dead link / invalid URL every 5 seconds - it will keep checking on its
                     # normal schedule. BUT don't set the "lastUpdated" value so humans can see when
                     # it last successfully updated.
                     dev.updateStateOnServer('deviceTimestamp', value=t.time())
@@ -1280,30 +1427,33 @@ class PluginDevice(object):
                     self.bad_calls += 1
 
             else:
-                self.host_plugin.logger.debug(u"[{0}] Device not available for update [Enabled: {1}, Configured: "
-                                              u"{2}]".format(dev.name, dev.enabled, dev.configured))
+                self.host_plugin.logger.debug(
+                    f"[{dev.name}] Device not available for update [Enabled: {dev.enabled}, "
+                    f"Configured: {dev.configured}]"
+                )
                 dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
-        except Exception as subError:
+        except KeyError:  # noqa
             # Add wider exception testing to test errors
-            self.host_plugin.logger.exception(u'General exception: {0}'.format(subError))
+            self.host_plugin.logger.exception(f"General exception: {dev.name}")
 
     # =============================================================================
-    def strip_namespace(self, dev, root):
+    def strip_namespace(self, dev=None, root=None):
         """
         Strip XML namespace from payload
 
-        The strip_namespace() method strips any XML namespace values, and loads into
-        self.rawData.
+        The strip_namespace() method strips any XML namespace values, and loads into self.rawData.
 
-        -----
-
-        :param dev:
-        :param root:
+        :param indigo.Device dev:
+        :param JSON root:
         :return self.rawData:
         """
-
-        d_root = '<?xml version="1.0" encoding="UTF-8"?><Emptydict><Response>No data to return.</Response></Emptydict>'
+        d_root = (
+            "<?xml version='1.0' encoding='UTF-8'?>"
+            "<Emptydict>"
+            "<Response>No data to return.</Response>"
+            "</Emptydict>"
+        )
 
         try:
             if root == "":
@@ -1311,22 +1461,25 @@ class PluginDevice(object):
 
             # Remove namespace stuff if it's in there. There's probably a more
             # comprehensive re.sub() that could be run, but it also could do *too* much.
-            self.rawData = ''
-            self.rawData = re.sub(' xmlns="[^"]+"', '', root)
-            self.rawData = re.sub(' xmlns:xsi="[^"]+"', '', self.rawData)
-            self.rawData = re.sub(' xmlns:xsd="[^"]+"', '', self.rawData)
-            self.rawData = re.sub(' xsi:noNamespaceSchemaLocation="[^"]+"', '', self.rawData)
+            self.raw_data = ''
+            self.raw_data = re.sub(' xmlns="[^"]+"', '', root.decode('utf-8'))
+            self.raw_data = re.sub(' xmlns:xsi="[^"]+"', '', self.raw_data)
+            self.raw_data = re.sub(' xmlns:xsd="[^"]+"', '', self.raw_data)
+            self.raw_data = re.sub(' xsi:noNamespaceSchemaLocation="[^"]+"', '', self.raw_data)
 
-            return self.rawData
+            return self.raw_data
 
         except ValueError as sub_error:
-            self.host_plugin.logger.warning(u"[{0}] Error parsing source data: {1}. Skipping until next scheduled "
-                                            u"poll.".format(dev.name, unicode(sub_error)))
-            self.rawData = d_root
+            self.host_plugin.logger.warning(
+                f"[{dev.name}] Error parsing source data: {sub_error}.  Skipping until  next "
+                f"scheduled poll."
+            )
+            self.raw_data = d_root
             dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No data")
-            return self.rawData
+            return self.raw_data
 
-        except Exception as subError:
+        except Exception:  # noqa
             # Add wider exception testing to test errors
-            self.host_plugin.logger.exception(u'General exception: {0}'.format(subError))
+            self.host_plugin.logger.exception('General exception:')
+            return self.raw_data
     # =============================================================================

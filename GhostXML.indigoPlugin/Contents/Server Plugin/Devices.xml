@@ -160,7 +160,7 @@
             </Field>
 
             <Field id="subExample" type="label" fontSize="small" alignWithControl="true" visibleBindingId="doSubs" visibleBindingValue="true">
-                <Label>URL Examples:&#xA;URL: http://www.ip_address.com/[A].xml&#xA;Local file: file:///[A]/[B].json</Label>
+                <Label>URL Examples:&#xA;URL: https://www.ip_address.com/[A].xml&#xA;Local file: file:///[A]/[B].json</Label>
             </Field>
 
             <!-- Curl Substitutions -->
@@ -383,7 +383,7 @@
             </Field>
 
             <Field id="subExample" type="label" fontSize="small" alignWithControl="true" visibleBindingId="doSubs" visibleBindingValue="true">
-                <Label>Examples:&#xA;URL: http://www.ip_address.com/[A].xml&#xA;Local file: file:///[A]/[B].json</Label>
+                <Label>Examples:&#xA;URL: https://www.ip_address.com/[A].xml&#xA;Local file: file:///[A]/[B].json</Label>
             </Field>
 
             <!-- Curl Substitutions -->

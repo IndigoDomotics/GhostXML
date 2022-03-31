@@ -1,5 +1,9 @@
 GhostXML Change Log
 
+2022.0.1
+- Updates plugin for Indigo 2022.1 and Python 3.
+- Updates FlatDict to 4.0.0
+
 v0.5.15
 - Code refinements
 
@@ -360,7 +364,7 @@ v0.2.06
   loop (ie 5 seconds)
 
 v0.2.05
-- Adds a method, clean_the_keys() which removes certain characters from
+- Adds a method, _clean_the_keys() which removes certain characters from
   dictionary key names that Indigo cannot use for device state names.
 
 v0.2.04
