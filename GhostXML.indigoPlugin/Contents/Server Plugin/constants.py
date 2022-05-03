@@ -15,4 +15,10 @@ CHARS_TO_REPLACE = {'_ghostxml_': '_', '+': '_plus_', '-': '_minus_', 'true': 'T
 
 CHARS_TO_REMOVE = ['/', '(', ')']
 
-CURRENT_DEBUG_LEVEL = {10: 'Debug', 20: 'Info', 30: 'Warning', 40: 'Error', 50: 'Critical'}
+DEBUG_LABELS = {
+    10: "Debugging Messages",
+    20: "Informational Messages",
+    30: "Warning Messages",
+    40: "Error Messages",
+    50: "Critical Errors Only"
+}

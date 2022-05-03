@@ -3,6 +3,7 @@ GhostXML Change Log
 2022.0.1
 - Updates plugin for Indigo 2022.1 and Python 3.
 - Updates FlatDict to 4.0.0
+- Standardizes Indigo method implementation.
 
 v0.5.15
 - Code refinements
@@ -12,24 +13,21 @@ v0.5.14
 - Code refinements
 
 v0.5.13
-- Better traps OS error where plugin attempts to kill a process that is no
-  longer running.
+- Better traps OS error where plugin attempts to kill a process that is no longer running.
 - Debug logging refinements.
 
 v0.5.12
 - Sync
 
 v0.5.11
-- Removes code marked for deletion. Refer to v0.5.10 if any needs to be
-  restored.
+- Removes code marked for deletion. Refer to v0.5.10 if any needs to be restored.
 - Adds flat_dict_license.txt
 - Updates ghostXML license.
 - code refinements.
 
 v0.5.10
-- Prepares old 'sqlLoggerIgnoreStates' that's saved to pluginProps for
-  deletion. Should run in this state for a bit in case something needs to be
-  put back.
+- Prepares old 'sqlLoggerIgnoreStates' that's saved to pluginProps for deletion. Should run in this state for a bit in
+  case something needs to be put back.
 
 v0.5.09
 - Fixes typo in deviceStartComm.
@@ -44,8 +42,7 @@ v0.5.06
 - Adds reminders to various curl options in comments.
 
 v0.5.05
-- Adds curl return code definitions to provide more human-friendly reporting
-  of curl errors.
+- Adds curl return code definitions to provide more human-friendly reporting of curl errors.
 
 v0.5.04
 - Refines saving of device preferences changes.
@@ -81,12 +78,11 @@ v0.4.51
 - Fixes device validation bug that precluded setting manual refresh rate.
 
 v0.4.50
-- Fixes bug where offline JSON sources would result in a cascading key name
-  (changing '.ui' to '_dot_ui_' with each plugin cycle.
+- Fixes bug where offline JSON sources would result in a cascading key name (changing '.ui' to '_dot_ui_' with each
+  plugin cycle.
 
 v0.4.49
-- Fixes bug where a device with a parse error would not be taken offline after
-  max retries exceeded.
+- Fixes bug where a device with a parse error would not be taken offline after max retries exceeded.
 
 v0.4.48
 - Adds wider exception trapping to plugin device object class.
@@ -95,26 +91,22 @@ v0.4.47
 - Fixes bug where devices could not be brought back from error state.
 
 v0.4.46
-- Fixes bug where string type device still received some true type state
-  values.
+- Fixes bug where string type device still received some true type state values.
 
 v0.4.45
-- Updates to device name in Indigo now properly reflected in
-  self.managedDevices.
+- Updates to device name in Indigo now properly reflected in self.managedDevices.
 
 v0.4.44
 - Fixes bug that caused all secondary boolean states to be set to False.
 
 v0.4.42
-- Implements second device type that tries to coerce custom device states that
-  reflect the data type (bool, integer, float, etc.)
+- Implements second device type that tries to coerce custom device states that reflect the data type (bool, integer,
+  float, etc.)
 
 v0.4.41
-- Removes timeout setting in plugin preferences since timeouts are now
-  handled within each device independently.
+- Removes timeout setting in plugin preferences since timeouts are now handled within each device independently.
 - Improvements to device configuration validation.
-- Improved image state handling when errored device is disabled (retain the
-  state but clear the icon).
+- Improved image state handling when errored device is disabled (retain the state but clear the icon).
 - Code refinements.
 
 v0.4.40
@@ -134,8 +126,7 @@ v0.4.36
 - Increases compliance with PEP 8.
 
 v0.4.35
-- Adds trigger that fires when a device has been automatically disabled by the
-  plugin due to failed attempts.
+- Adds trigger that fires when a device has been automatically disabled by the plugin due to failed attempts.
 
 v0.4.34
 - Bug fixes.
@@ -146,12 +137,10 @@ v0.4.34
 
 v0.4.33
 - Fixes key 'deviceIsOnline.ui' does not exist bug.
-- Makes device state 'parse-error' a permanent state (rather than dynamically
-  generated).
+- Makes device state 'parse-error' a permanent state (rather than dynamically generated).
 
 v0.4.32
-- Revises device initialization code to allow existing device states to persist
-  when plugin is restarted.
+- Revises device initialization code to allow existing device states to persist when plugin is restarted.
 
 v0.4.31
 - Adds user-configurable setting for device auto-disable feature.
@@ -202,11 +191,10 @@ v0.4.16
 - Adds raw curl support.
 
 v0.4.14
-- When device refresh frequency set to custom level (using GhostXML Action)
-  number of seconds is added to the refresh frequency menu in the device
-  configuration UI -- i.e., "Custom" becomes "Custom (123 seconds)"
-- Fixes bug that resulted in duplicate control page and trigger entries for
-  'deviceIsOnline', 'deviceLastUpdated', and 'deviceTimestamp'.
+- When device refresh frequency set to custom level (using GhostXML Action) number of seconds is added to the refresh
+  frequency menu in the device configuration UI -- i.e., "Custom" becomes "Custom (123 seconds)"
+- Fixes bug that resulted in duplicate control page and trigger entries for 'deviceIsOnline', 'deviceLastUpdated', and
+  'deviceTimestamp'.
 - Adds process ID to initial logging when plugin enabled.
 
 v0.4.13
@@ -229,17 +217,15 @@ v0.4.08
 - Fixes bug in setting of debug level for new installs.
 
 v0.4.07
-- Completes refactoring of plugin methods. Indigo methods remain camelCase,
-  plugin methods become 'refresh_data_for_dev_action'.
+- Completes refactoring of plugin methods. Indigo methods remain camelCase, plugin methods become
+  'refresh_data_for_dev_action'.
 
 v0.4.06
-- Adds new Action Item to adjust the refresh frequency of a specified GhostXML
-  device.
+- Adds new Action Item to adjust the refresh frequency of a specified GhostXML device.
 - Improves device configuration validation and help bubble text.
 
 v0.4.05
-- Adds feature to automatically disable a device if it has failed to refresh
-  10 times.
+- Adds feature to automatically disable a device if it has failed to refresh 10 times.
 
 v0.4.04
 - Adds option for sites that require token authentication.
@@ -251,9 +237,8 @@ v0.4.04
 - Fixes bug where curl reported error when completed successfully.
 
 flatdict.py
-- Adds trap for dict values that are empty lists or empty dicts. The trap
-  replaces the list or dict with 'None'. This allows the plugin to retain
-  and show the key as a device state.
+- Adds trap for dict values that are empty lists or empty dicts. The trap  replaces the list or dict with 'None'. This
+  allows the plugin to retain and show the key as a device state.
 
 v0.4.02
 - Migrates writing of device states to API 2.0 [ dev.updateStatesOnServer() ].
@@ -271,8 +256,7 @@ v0.3.17
 - Code clean up.
 
 v0.3.16
-- Updates plugin update checker to use curl to overcome outdated security of
-  Apple's Python install.
+- Updates plugin update checker to use curl to overcome outdated security of Apple's Python install.
 
 v0.3.15
 - Adds basic authentication.
@@ -293,13 +277,11 @@ v0.3.13
 - Converts last string operations to Unicode.
 
 v0.3.12
-- Fixes bug where plugin was using too many system resources while waiting
-  for device update request.
+- Fixes bug where plugin was using too many system resources while waiting for device update request.
 
 v0.3.11
-- Implements self.managedDevices where a dict of plugin devices will be
-  maintained by the plugin (instead of making a server call to
-  indigo.devices.itervalues('self')
+- Implements self.managedDevices where a dict of plugin devices will be maintained by the plugin (instead of making a
+  server call to indigo.devices.itervalues('self')
 - Code cleanup.
 - Configures for IPS distribution.
 
@@ -311,16 +293,14 @@ v0.3.09
 
 v0.3.08
 - Moved GhostXML Action Refresh Data For Device to the Device Actions Group.
-  Moved GhostXML Action Refresh Data For All Devices to the Device Actions Group.
+- Moved GhostXML Action Refresh Data For All Devices to the Device Actions Group.
   (Select New Action Group --> Device Actions --> GhostXML Controls)
-- Migrated processing of device updates to multiprocessing pool. This change
-  lays the groundwork for devices to update individually and without having to
-  wait for other devices to finish updating.
+- Migrated processing of device updates to multiprocessing pool. This change lays the groundwork for devices to update
+  individually and without having to wait for other devices to finish updating.
 - Added dict.get() to certain dev.pluginProps for robustness.
 - Fixes bug in establishment of logFile write under certain exceptions.
-- Standardizes plugin menu item styles. Menu items with an ellipsis (...)
-  denote that a dialog box will open. Menu items without an ellipsis denote
-  that the plugin will take immediate action.
+- Standardizes plugin menu item styles. Menu items with an ellipsis (...) denote that a dialog box will open. Menu
+  items without an ellipsis denote that the plugin will take immediate action.
 
 v0.3.07
 - Stylistic changes to Indigo Plugin Update Checker module.
@@ -334,11 +314,9 @@ v0.3.06
 
 v0.3.05
 - Adds capacity to work with more data sources:
-  - Adds digest authentication option.
-  - Converts JSON arrays to JSON objects when needed (when arrays are
-    delivered.
-  - Converts JSON key names that start with a number so that Indigo will accept
-    them.
+  . Adds digest authentication option.
+  . Converts JSON arrays to JSON objects when needed (when arrays are delivered.
+  . Converts JSON key names that start with a number so that Indigo will accept them.
 
 v0.3.02
 - Fixes bug where 'refreshFreq' is not a valid device property.
@@ -346,30 +324,25 @@ v0.3.02
 - Cleans up plugin configuration menu.
 
 v0.3.01
-- Increases the plugin's ability to contend with certain characters that may be
-  present in JSON keys.
+- Increases the plugin's ability to contend with certain characters that may be present in JSON keys.
 
 v0.3.00
-- Introduces a new feature to allow Indigo substitutions into URLs (added by
-  Howartp.)
+- Introduces a new feature to allow Indigo substitutions into URLs (added by Howartp.)
 - Adds device refresh Action item (added by Howartp.)
 - Code stability enhancements.
 
 v0.2.06
-- Moves device refresh timing to the device config menu so that each device
-  refreshes at its own rate
+- Moves device refresh timing to the device config menu so that each device refreshes at its own rate
 - Adds action to allow refresh of individual feeds
 - Adds option for manually refreshing feeds (ie no timed auto-refresh)
-- Adds refresh when a new device is added - runs at next runConcurrentThread()
-  loop (ie 5 seconds)
+- Adds refresh when a new device is added - runs at next runConcurrentThread() loop (ie 5 seconds)
 
 v0.2.05
-- Adds a method, _clean_the_keys() which removes certain characters from
-  dictionary key names that Indigo cannot use for device state names.
+- Adds a method, _clean_the_keys() which removes certain characters from dictionary key names that Indigo cannot use
+  for device state names.
 
 v0.2.04
-- Fixes bug where some Unicode sources could cause data download error ('ascii'
-  codec can't decode).
+- Fixes bug where some Unicode sources could cause data download error ('ascii' codec can't decode).
 - Deprecates _toDo.txt file over embedded TODOs in the code.
 
 v0.2.03

@@ -29,7 +29,7 @@ import time as t
 import flatdict  # https://github.com/gmr/flatdict - flatdict deprecated Python 2 in v4.0.0
 import iterateXML
 try:
-    import indigo  # noqa - only needed for IDE syntax checking
+    import indigo  # noqa
     # import pydevd  # noqa
 except ImportError:
     pass
@@ -50,15 +50,13 @@ __version__   = "2022.0.1"
 # =============================================================================
 class Plugin(indigo.PluginBase):
     """
-    The Indigo plugin class
+    Standard Indigo Plugin Class
 
     :param indigo.PluginBase:
     """
-
-    # =============================================================================
     def __init__(self, plugin_id="", plugin_display_name="", plugin_version="", plugin_prefs=None):
         """
-        Called when the plugin is initialized
+        Plugin initialization
 
         :param str plugin_id:
         :param str plugin_display_name:
@@ -91,13 +89,16 @@ class Plugin(indigo.PluginBase):
         # ==========================  Log Environment Info  ===========================
         self._log_environment_info()
 
-        # Adding support for remote debugging in PyCharm. Other remote debugging facilities can be
-        # added, but only one can be run at a time.
+        # ============================= Remote Debugging ==============================
         # try:
         #     pydevd.settrace(
-        #         'localhost', port=5678, stdoutToServer=True, stderrToServer=True, suspend=False
+        #         'localhost',
+        #         port=5678,
+        #         stdoutToServer=True,
+        #         stderrToServer=True,
+        #         suspend=False
         #     )
-        # except ImportError:
+        # except:
         #     pass
 
         self.plugin_is_initializing = False
@@ -131,34 +132,30 @@ class Plugin(indigo.PluginBase):
     # =============================================================================
     def closedPrefsConfigUi(self, values_dict=None, user_cancelled=False):  # noqa
         """
-        Standard Indigo method called when the plugin configuration dialog is closed
+        Standard Indigo method called when plugin preferences dialog is closed.
 
         :param indigo.Dict values_dict:
         :param bool user_cancelled:
+        :return:
         """
         if not user_cancelled:
-
             # Ensure that self.pluginPrefs includes any recent changes.
             for k in values_dict:
                 self.pluginPrefs[k] = values_dict[k]
 
+            # Debug Logging
             self.debug_level = int(values_dict.get('showDebugLevel', "30"))
             self.indigo_log_handler.setLevel(self.debug_level)
-
             indigo.server.log(
-                f"Debugging on (Level: {CURRENT_DEBUG_LEVEL[self.debug_level]} "
-                f"({self.debug_level})"
+                f"Debugging on (Level: {DEBUG_LABELS[self.debug_level]} ({self.debug_level})"
             )
 
-            if self.debug_level == 10:
-                self.logger.debug(f"values_dict: {values_dict}")
-
-            self.logger.debug("User prefs saved.")
+            self.logger.debug("Plugin prefs saved.")
 
         else:
-            self.logger.debug("User prefs dialog cancelled.")
+            self.logger.debug("Plugin prefs cancelled.")
 
-        return True
+        return values_dict
 
     # =============================================================================
     def deviceStartComm(self, dev=None):  # noqa
