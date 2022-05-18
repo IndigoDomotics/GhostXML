@@ -1,8 +1,13 @@
 GhostXML Change Log
 
+2022.1.1
+- Ensure that a device's ID is removed from managed devices when the device is deleted (even if the device has not been
+  fully configured.
+- Improves error logging when WAN/LAN not present.
+
 2022.0.1
 - Updates plugin for Indigo 2022.1 and Python 3.
-- Updates FlatDict to 4.0.0
+- Updates FlatDict to v4.0.0
 - Standardizes Indigo method implementation.
 
 v0.5.15

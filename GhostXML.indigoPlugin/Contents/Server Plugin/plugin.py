@@ -158,6 +158,11 @@ class Plugin(indigo.PluginBase):
         return values_dict
 
     # =============================================================================
+    def device_deleted(self, dev=None):
+        self.logger.debug(f"{dev.name} [{dev.id}] deleted.")
+        del self.managed_devices[dev.id]
+
+    # =============================================================================
     def deviceStartComm(self, dev=None):  # noqa
         """
         Standard Indigo method called when the device is enabled
@@ -463,6 +468,7 @@ class Plugin(indigo.PluginBase):
                 # If the dict of managed devices is not being changed.
                 if not self.changing_managed_devices and not self.prepare_to_sleep:
                     # Iterate devices to see if an update is required.
+
                     for dev_id in self.managed_devices:
                         dev = self.managed_devices[dev_id].device
 
@@ -491,6 +497,9 @@ class Plugin(indigo.PluginBase):
             self.indigo_log_handler.setLevel(20)
             self.logger.info('Stopping main thread.')
             self.indigo_log_handler.setLevel(self.debug_level)
+
+        except RuntimeError:
+            self.logger.warning("Timed out waiting for the Indigo server. Will continue to try.")
 
         except Exception:
             self.logger.exception("General exception")
@@ -1271,7 +1280,7 @@ class PluginDevice:
             return self.json_raw_data
 
         except (ValueError, json.decoder.JSONDecodeError):
-            self.host_plugin.logger.exception(f"[{dev.name}] Parse Error:")
+            self.host_plugin.logger.debug(f"[{dev.name}] Parse Error:")
             self.host_plugin.logger.debug(f"[{dev.name}] jsonRawData { self.json_raw_data}")
 
             # If we let it, an exception here will kill the device's thread. Therefore, we have to
