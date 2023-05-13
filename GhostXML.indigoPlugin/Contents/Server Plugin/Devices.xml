@@ -68,7 +68,7 @@
             </Field>
 
             <Field id="label1" type="label" fontSize="small" alignWithControl="true">
-                <Label>Examples:&#xA;URL: http://www.ip_address.com/filename.xml&#xA;URL: https://www.ip_address.com/filename.xml&#xA;URL: ftp://www.ip_address.com/filename.xml&#xA;Local file: file:///folder_path/filename.json</Label>
+                <Label>Examples:&#xA;URL: http://www.ip_address.com/filename.xml&#xA;URL: https://www.ip_address.com/filename.xml&#xA;URL: ftp://www.ip_address.com/filename.xml&#xA;Local file: file:///folder_path/filename.json&#xA;Local file: file:///folder_path/filename%20with%20spaces.json</Label>
             </Field>
 
             <!-- Authentication -->
@@ -290,7 +290,7 @@
             </Field>
 
             <Field id="label1" type="label" fontSize="small" alignWithControl="true">
-                <Label>Examples:&#xA;URL: http://www.ip_address.com/filename.xml&#xA;URL: https://www.ip_address.com/filename.xml&#xA;URL: ftp://www.ip_address.com/filename.xml&#xA;Local file: file:///folder_path/filename.json</Label>
+                <Label>Examples:&#xA;URL: http://www.ip_address.com/filename.xml&#xA;URL: https://www.ip_address.com/filename.xml&#xA;URL: ftp://www.ip_address.com/filename.xml&#xA;Local file: file:///folder_path/filename.json&#xA;Local file: file:///folder_path/filename%20with%20spaces.json</Label>
             </Field>
 
             <!-- Authentication -->
@@ -383,7 +383,7 @@
             </Field>
 
             <Field id="subExample" type="label" fontSize="small" alignWithControl="true" visibleBindingId="doSubs" visibleBindingValue="true">
-                <Label>Examples:&#xA;URL: https://www.ip_address.com/[A].xml&#xA;Local file: file:///[A]/[B].json</Label>
+                <Label>Examples:&#xA;URL: http://www.ip_address.com/filename.xml&#xA;URL: https://www.ip_address.com/filename.xml&#xA;URL: ftp://www.ip_address.com/filename.xml&#xA;Local file: file:///folder_path/filename.json&#xA;Local file: file:///folder_path/filename%20with%20spaces.json</Label>
             </Field>
 
             <!-- Curl Substitutions -->

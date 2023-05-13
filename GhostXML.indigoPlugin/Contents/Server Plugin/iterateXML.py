@@ -7,7 +7,6 @@ Credit for XmlDictConfig(): https://code.activestate.com/recipes/410469-xml-as-d
 Credit for update_shim(): https://stackoverflow.com/users/3871670/adam-clark
 Credit for flatten_dict(): https://codereview.stackexchange.com/users/1659/winston-ewert
 """
-# import xml.etree.ElementTree as ElementTree  # FIXME - delete
 from xml.etree import ElementTree
 
 try:
@@ -41,8 +40,8 @@ class XmlDictConfig(dict):
                 # This line modded to use new element.tag + '_Attribs'.
                 self.update_shim({element_tag_attribs: dict(element.items())})
             else:
-                # WAS: _self.update_shim({element.tag: element.text.strip()})_ with strip(),
-                # the function will choke on some XML. 'NoneType' object has no attribute 'strip'.
+                # WAS: _self.update_shim({element.tag: element.text.strip()})_ with strip(), the function will choke on
+                # some XML. 'NoneType' object has no attribute 'strip'.
                 self.update_shim({element.tag: element.text})
 
     def update_shim(self, a_dict):  # noqa
@@ -94,53 +93,46 @@ def iterate_main(root):  # noqa
 
             final_dict[key] = value
 
-            # See if any 'value' is another list. These lists may contain information for more
-            # values we want--for example, when there are multiple instances of the same tag
-            # (with different attributes or values.)
+            # See if any 'value' is another list. These lists may contain information for more values we want--for
+            # example, when there are multiple instances of the same tag (with different attributes or values.)
             if isinstance(value, list):
 
-                # If any lists found contain a dictionary, iterate over that dictionary and make
-                # more key/value pairs. Also, this may need more counters depending on the
-                # depth of the source XML data.  Right now it only goes so deep.
+                # If any lists found contain a dictionary, iterate over that dictionary and make more key/value pairs.
+                # Also, this may need more counters depending on the depth of the source XML data.  Right now it only
+                # goes so deep.
                 counter = 1
                 for value_item in value:
 
                     if isinstance(value_item, dict):
                         for (value_key1, value1) in value_item.items():
-                            # new_key1 = u'%s_%s_%s' % (key, counter, value_key1)  # FIXME - delete
                             new_key1 = f"{key}_{counter}_{value_key1}"
                             final_dict[new_key1] = value1
 
                             if isinstance(value1, dict):
                                 for (value_key2, value2) in value1.items():
-                                    # new_key2 = u'%s_%s_%s_%s' % (key, counter, value_key1, value_key2)  # FIXME - delete
                                     new_key2 = f"{key}_{counter}_{value_key1}_{value_key2}"
                                     final_dict[new_key2] = value2
 
                                 if isinstance(value2, dict):
                                     for (value_key3, value3) in value2.items():
-                                        # new_key3 = u'%s_%s_%s_%s' % (key, counter, value_key2, value_key3)  # FIXME - delete
                                         new_key3 = f"{key}_{counter}_{value_key2}_{value_key3}"
                                         final_dict[new_key3] = value3
                     counter += 1
 
-        # We may be left with values that contain lists of duplicates. Take the first one
-        # and leave the rest.
+        # We may be left with values that contain lists of duplicates. Take the first one and leave the rest.
         for (key, value) in final_dict.items():
             if isinstance(value, list):
                 final_dict[key] = value[0]
 
-        # Find any remaining dicts, and delete them. This operation should ultimately
-        # determine if all the dict items have already been pulled out to ensure that we
-        # don't lose anything.
+        # Find any remaining dicts, and delete them. This operation should ultimately determine if all the dict items
+        # have already been pulled out to ensure that we don't lose anything.
         iter_dict = final_dict.copy()
         for (key, value) in iter_dict.items():
             if isinstance(value, dict):
 
                 del final_dict[key]
 
-        # Now that we're done, get rid of the placeholder Attribs tag component since we don't
-        # need it anymore.
+        # Now that we're done, get rid of the placeholder Attribs tag component since we don't need it anymore.
         iter_dict = final_dict.copy()
         for (key, value) in iter_dict.items():
             del final_dict[key]
