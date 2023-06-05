@@ -1,6 +1,12 @@
+### V2022.3.0
+- Updates most communication to use the `requests` library instead of `curl`.
+- Fixes bug where debug level might not be honored on startup.
+- Wiki updates. 
+
 ### v2022.2.1
 - Adds foundation for API `3.2`.
-- Adds some clarity on how to handle filenames with spaces in them.
+- Adds some examples on how to handle filenames with spaces in them to device config dialog.
+- Adds httpcodes lookup library for later use.
 - Code cleanup.
 
 ### v2022.1.2

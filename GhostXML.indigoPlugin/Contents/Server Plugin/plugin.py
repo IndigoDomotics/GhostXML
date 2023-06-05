@@ -1,25 +1,26 @@
-# noqa pylint: disable=too-many-lines, line-too-long, invalid-name, unused-argument, redefined-builtin, broad-except, fixme
+# noqa pylint: disable=too-many-lines, line-too-long, invalid-name, unused-argument, redefined-builtin, broad-except, logging-fstring-interpolation, wildcard-import
 
 """
 GhostXML Indigo Plugin
 Authors: See (repo)
 
-This plugin provides an engine which parses tag/value pairs into transitive Indigo plugin device
-states.
+This plugin provides an engine which parses tag/value pairs into transitive Indigo plugin device states.
 """
 
 # =============================== Stock Imports ===============================
-import xml.etree.ElementTree as Etree
+import json
 import logging
 import os
 import platform
 from queue import Queue  # import queue
 import re
-import json
 import subprocess
 import sys
 import threading
 import time as t
+import xml.etree.ElementTree as Etree
+import requests
+from requests.auth import HTTPBasicAuth, HTTPDigestAuth
 
 # ============================ Third-party Imports ============================
 import flatdict  # https://github.com/gmr/flatdict - flatdict deprecated Python 2 in v4.0.0
@@ -33,6 +34,7 @@ except ImportError:
 # ===============================Custom Imports================================
 from constants import *  # noqa
 from curlcodes import codes as curl_code  # noqa
+from httpcodes import codes as http_code  # noqa
 from plugin_defaults import kDefaultPluginPrefs  # noqa
 
 __author__    = "berkinet, DaveL17, GlennNZ, howartp"
@@ -40,7 +42,7 @@ __build__     = ""
 __copyright__ = "There is no copyright for the GhostXML code base."
 __license__   = "MIT"
 __title__     = "GhostXML Plugin for Indigo Home Control"
-__version__   = "2022.2.1"
+__version__   = "2022.3.0"
 
 
 # =============================================================================
@@ -63,7 +65,7 @@ class Plugin(indigo.PluginBase):
 
         # ============================ Instance Attributes =============================
         self.plugin_is_initializing   = True
-        self.debug_level              = int(self.pluginPrefs['showDebugLevel'])
+        self.debug_level              = int(self.pluginPrefs.get('showDebugLevel', '30'))
         self.master_trigger_dict      = {'disabled': Queue()}
         self.plugin_is_shutting_down  = False
         self.managed_devices          = {}  # Managed list of plugin devices
@@ -79,12 +81,13 @@ class Plugin(indigo.PluginBase):
 
         log_format = '%(asctime)s.%(msecs)03d\t%(levelname)-10s\t%(name)s.%(funcName)-28s %(message)s'
         self.plugin_file_handler.setFormatter(logging.Formatter(log_format, datefmt='%Y-%m-%d %H:%M:%S'))
+        self.indigo_log_handler.setLevel(self.debug_level)
 
         # ============================= Remote Debugging ==============================
-        try:
-            pydevd.settrace('localhost', port=5678, stdoutToServer=True, stderrToServer=True, suspend=False)
-        except:
-            pass
+        # try:
+        #     pydevd.settrace('localhost', port=5678, stdoutToServer=True, stderrToServer=True, suspend=False)
+        # except:
+        #     pass
 
         self.plugin_is_initializing = False
 
@@ -119,7 +122,7 @@ class Plugin(indigo.PluginBase):
     # =============================================================================
     # =============================== Indigo Methods ==============================
     # =============================================================================
-    def closedDeviceConfigUi(self, values_dict=None, user_cancelled=False, type_id="", dev_id=0):  # noqa
+    def closedDeviceConfigUi(self, values_dict: indigo.Dict=None, user_cancelled: bool=False, type_id: str="", dev_id: int=0):  # noqa
         """
         Standard Indigo method called when the device configuration dialog is closed
 
@@ -242,11 +245,9 @@ class Plugin(indigo.PluginBase):
 
         :param indigo.Device dev:
         """
-        # Join the related thread. There must be a timeout set because the threads may never terminate on their own.
-        self.logger.debug(f"[{dev.name}] Communication stopped.")
-
         # =============================================================================
         try:
+            # Join the related thread. There must be a timeout set because the threads may never terminate on their own.
             self.managed_devices[dev.id].dev_thread.join(0.25)
 
             # Delete the device from the list of managed devices.
@@ -260,8 +261,12 @@ class Plugin(indigo.PluginBase):
 
             dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Disabled")
 
+            self.logger.debug(f"[{dev.name}] communication stopped.")
+
         except KeyError:
-            pass
+            self.logger.warning(
+                f"{dev.name} - Problem removing device from managed device list. Consider restarting the plugin."
+            )
 
     # =============================================================================
     def getDeviceConfigUiXml(self, type_id="", dev_id=0):  # noqa
@@ -425,8 +430,6 @@ class Plugin(indigo.PluginBase):
 
                         # 2019-12-22 DaveL17
                         # If device name has changed in Indigo, update the copy in managedDevices.
-                        # TODO - consider moving this to its own method and adding anything else that might need
-                        #        updating.
                         if dev.name != indigo.devices[dev_id].name:
                             self.managed_devices[dev_id].device.name = indigo.devices[dev_id].name
 
@@ -601,8 +604,10 @@ class Plugin(indigo.PluginBase):
 
         if len(error_msg_dict) > 0:
             error_msg_dict['showAlertText'] = (
-                "Configuration Errors\n\nThere are one or more settings that need to be" "corrected. Fields requiring "
-                "attention will be highlighted."
+                """
+                Configuration Errors\n\nThere are one or more settings that need to be" "corrected. Fields requiring 
+                attention will be highlighted.
+                """
             )
             return False, values_dict, error_msg_dict
 
@@ -870,6 +875,7 @@ class PluginDevice:
         self.dev_thread.start()
 
         self.plugin_device_is_initializing = False
+        self.logger = logging.getLogger("Plugin")
 
     # =============================================================================
     def __str__(self):
@@ -893,16 +899,17 @@ class PluginDevice:
         """
         try:
             while True:
-                t.sleep(1)
+                t.sleep(0.25)
                 while not update_queue.empty():
+                    # Set the class' debug level to the level set for the main plugin thread--otherwise, it will stay
+                    # initiated at 5. We do this here in case the main plugin logger level has changed.
+                    self.logger.setLevel(self.host_plugin.debug_level)
                     task = update_queue.get()
-                    # Set the class' debug level to the level set for the main plugin thread.
-                    self.host_plugin.logger.setLevel(self.host_plugin.debug_level)
                     self.refresh_data_for_dev(task)
 
         except ValueError:  # noqa
             # Add wider exception testing to test errors
-            self.host_plugin.logger.exception("General exception:")
+            self.logger.exception("General exception:")
 
     # =============================================================================
     def get_the_data(self, dev=None):
@@ -917,13 +924,16 @@ class PluginDevice:
         :param indigo.Device dev:
         :return XML' or class 'JSON result:
         """
+        return_code = 0
+        result      = ""
+        err         = ""
         try:
-            curl_array = dev.pluginProps.get('curlArray', '')
-            url        = dev.pluginProps['sourceXML']
-            username   = dev.pluginProps.get('digestUser', '')
-            password   = dev.pluginProps.get('digestPass', '')
-            auth_type  = dev.pluginProps.get('useDigest', 'None')
-            subber     = self.host_plugin.substitute
+            auth_type   = dev.pluginProps.get('useDigest', 'None')
+            curl_array  = dev.pluginProps.get('curlArray', '')
+            password    = dev.pluginProps.get('digestPass', '')
+            subber      = self.host_plugin.substitute
+            url         = dev.pluginProps['sourceXML']
+            username    = dev.pluginProps.get('digestUser', '')
 
             if dev.pluginProps.get('disableGlobbing', False):
                 glob_off = 'g'
@@ -932,163 +942,132 @@ class PluginDevice:
 
             # Format any needed URL substitutions
             if dev.pluginProps.get('doSubs', False):
-                self.host_plugin.logger.debug(f"[{dev.name}] URL: {url} (before substitution)")
+                self.logger.debug(f"[{dev.name}] URL: {url} (before substitution)")
                 url = subber(url.replace("[A]", f"%%v:{dev.pluginProps['subA']}%%"))
                 url = subber(url.replace("[B]", f"%%v:{dev.pluginProps['subB']}%%"))
                 url = subber(url.replace("[C]", f"%%v:{dev.pluginProps['subC']}%%"))
                 url = subber(url.replace("[D]", f"%%v:{dev.pluginProps['subD']}%%"))
                 url = subber(url.replace("[E]", f"%%v:{dev.pluginProps['subE']}%%"))
-                self.host_plugin.logger.debug(f"[{dev.name}] URL: {url} (after substitution)")
+                self.logger.debug(f"[{dev.name}] URL: {url} (after substitution)")
 
             # Added by DaveL17 - 2020 10 09
             # Format any needed Raw Curl substitutions
             if dev.pluginProps.get('curlSubs', False):
-                self.host_plugin.logger.debug(f"[{dev.name}] Raw Curl: {curl_array} (before substitution)")
+                self.logger.debug(f"[{dev.name}] Raw Curl: {curl_array} (before substitution)")
                 curl_array = subber(curl_array.replace("[A]", f"%%v:{dev.pluginProps['curlSubA']}%%"))
                 curl_array = subber(curl_array.replace("[B]", f"%%v:{dev.pluginProps['curlSubB']}%%"))
                 curl_array = subber(curl_array.replace("[C]", f"%%v:{dev.pluginProps['curlSubC']}%%"))
                 curl_array = subber(curl_array.replace("[D]", f"%%v:{dev.pluginProps['curlSubD']}%%"))
                 curl_array = subber(curl_array.replace("[E]", f"%%v:{dev.pluginProps['curlSubE']}%%"))
-                self.host_plugin.logger.debug(f"[{dev.name}] Raw Curl: {curl_array} (after substitution)")
-
-            # FIXME: format URL
-
+                self.logger.debug(f"[{dev.name}] Raw Curl: {curl_array} (after substitution)")
 
             # Initiate curl call to data source.
             # ================================  Curl Auth  ================================
             # GlennNZ
             match auth_type:
                 case "Raw":
-                    self.host_plugin.logger.debug(f'/usr/bin/curl -vsk {curl_array} {url}')
+                    # Since this option is processing raw curl commands, it will need to remain a curl call via
+                    # subprocess().
                     # v = [verbose] s = [silent] k = [insecure]
+                    call_type = "curl"
                     proc = subprocess.Popen(
                         f'/usr/bin/curl -vsk{glob_off} {curl_array} {url}',
-                        # TODO: delete the following if above construction works.
-                        # '/usr/bin/curl -vsk' + glob_off + ' ' + curl_array + ' ' + url,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
                         shell=True
                     )
                 # ===============================  Digest Auth  ===============================
                 case 'Digest':
-                    # v = [verbose] s = [silent] u = [--user <user:password>]
-                    # curl_list = ["/usr/bin/curl",
-                    #              f'-vs{glob_off}',
-                    #              '--digest',
-                    #              '-u',
-                    #              f'{username}:{password}',
-                    #              url
-                    #              ]
-                    # TODO: delete the following if above construction works.
-                    curl_list = [
-                        "/usr/bin/curl",
-                        '-vs' + glob_off,
-                        '--digest',
-                        '-u',
-                        username + ':' + password,
-                        url
-                    ]
-                    proc = subprocess.Popen(curl_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    call_type = 'request'
+                    proc = requests.get(url, auth=HTTPDigestAuth(username, password))
                 # ===============================  Basic Auth  ================================
                 case 'Basic':
-                    # v = [verbose] s = [silent] u = [--user <user:password>]
-                    proc = subprocess.Popen(
-                        ["/usr/bin/curl", f'-vs{glob_off}', '-u', f'{username}:{password}', url],
-                        # TODO: delete the following if above construction works.
-                        # ["/usr/bin/curl", '-vs' + glob_off, '-u', username + ':' + password, url],
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE
-                    )
-                # ===============================  Bearer Auth  ===============================
+                    call_type = 'request'
+                    basic = HTTPBasicAuth(username, password)
+                    proc = requests.get(url, auth=basic)
+            # ===============================  Bearer Auth  ===============================
                 case 'Bearer':
+                    call_type = 'request'
                     token = dev.pluginProps['token']
-                    # v = [verbose] s = [silent] k = [insecure] X = [--request <command>] H = [Header]
-                    curl_arg = (
-                        f'/usr/bin/curl -vskX{glob_off} GET {url} -H "accept: application/json" -H '
-                        f'"Authorization: Bearer {token}"'
-                    )
-                    # TODO: delete the following if above construction works.
-                    # curl_arg = ('/usr/bin/curl -vskX' + glob_off + ' GET ' + url +
-                    #             ' -H "accept: application/json" -H "Authorization: Bearer "' + token
-                    #             )
-
-                    proc = subprocess.Popen(curl_arg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-
+                    proc = requests.get(url, headers={'Authorization': f'Bearer {token}'})
                 # ===============================  Token Auth  ================================
                 # berkinet and DaveL17
                 case 'Token':
-                    # We need to get a token to get started
-                    a_url    = dev.pluginProps['tokenUrl']
-                    # v = [verbose] s = [silent] k = [insecure] H = [Header] X = [--request <command>]
-                    curl_arg = (
-                        f"/usr/bin/curl -vsk{glob_off} -H 'Content-Type: application/json' -X POST --data-binary "
-                        f"'{{\"pwd\": \"{password}\", \"remember\": 1}}' {a_url}"
-                    )
-                    # TODO: delete the following if above construction works.
-                    # curl_arg = (
-                    #         "/usr/bin/curl -vsk" + glob_off +
-                    #         " -H 'Content-Type: application/json' -X POST "
-                    #         "--data-binary '{ \"pwd\": \"" +
-                    #         password + "\", \"remember\": 1 }' '} ' " + a_url
-                    # )
+                    a_url     = dev.pluginProps['tokenUrl']
+                    call_type = 'request'
+                    data = {"pwd": password, "remember": 1}
+                    headers = {'Content-Type': 'application/json'}
 
-                    proc = subprocess.Popen(curl_arg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-                    reply_in = proc.communicate()
-                    reply    = json.loads(reply_in[0])
-                    token    = (reply["access_token"])
+                    # Get the token
+                    response = requests.post(a_url, json=data, headers=headers)
+                    reply = response.json()
+                    token = reply["access_token"]
 
-                    # Now, add the token to the end of the url
-                    url  = f"{url}?access_token={token}"
-                    proc = subprocess.Popen(
-                        ["curl", f'-vsk{glob_off}', url],
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE
-                    )
-
+                    url = f"{a_url}?access_token={token}"
+                    proc = requests.get(url)
                 # =================================  No Auth  =================================
                 case _:
-                    proc = subprocess.Popen(
-                        ["curl", f'-vs{glob_off}', url],
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE
-                    )
+                    if url.startswith('file'):
+                        # If the locator is a reference to a file, requests won't handle it.
+                        call_type = 'file'
+                        url = url.replace('file://', '')
+                        url = url.replace('%20', ' ')
+                        with open(url, 'r') as infile:
+                            proc = bytes(infile.read(), 'utf-8')
+                    else:
+                        call_type = 'request'
+                        proc = requests.get(url, timeout=5)
 
             # =============================================================================
             # The following code adds a timeout function to the call.
             # Added by GlennNZ and DaveL17 2018-07-18
             duration   = int(dev.pluginProps.get('timeout', '5'))
             timer_kill = threading.Timer(duration, self.kill_curl, [proc])
-            try:
-                timer_kill.start()
-                result, err = proc.communicate()
-                return_code = proc.returncode
-
-            finally:
-                timer_kill.cancel()
+            match call_type:
+                case "file":
+                    # Cases that used a local file as a source land here.
+                    result = proc
+                case "curl":
+                    try:
+                        # Cases that used the curl method land here.
+                        timer_kill.start()
+                        result, err = proc.communicate()
+                        return_code = proc.returncode
+                    finally:
+                        timer_kill.cancel()
+                case "request":
+                    # Cases that used the requests library land here.
+                    result = proc.text
+                    return_code = proc.status_code
 
             # =============================================================================
-            # 2021-01-03 DaveL17: Did a little more digging on exit codes and pulled codes  from the man page.  See
+            # 2021-01-03 DaveL17: Did a little more digging on exit codes and pulled codes from the man page. See
             # `curlcodes.py` for more information.
-            if return_code != 0:
-                # for plugin log (verbose error)
-                curl_err = err.replace(b'\n', b' ')
-                self.host_plugin.logger.debug(f"[{dev.name}] curl error {curl_err}.")
+            match call_type:
+                case "curl":
+                    if return_code != 0:
+                        # for plugin log (verbose error)
+                        curl_err = err.replace(b'\n', b' ')
+                        self.host_plugin.logger.debug(f"[{dev.name}] curl error {curl_err}.")
 
-                # for Indigo event log
-                err_msg = curl_code.get(f"{return_code}", "Unknown code message.")
-                self.host_plugin.logger.debug(f"[{dev.name}] - Return code: {return_code} - {err_msg}]")
+                        # for Indigo event log
+                        err_msg = curl_code.get(f"{return_code}", "Unknown code message.")
+                        self.host_plugin.logger.debug(f"[{dev.name}] - Return code: {return_code} - {err_msg}]")
+                case "request":
+                    if return_code != 200:
+                        self.logger.warning(f"{dev.name} - [{return_code}] {http_code[return_code]}")
             return result
 
         except IOError:
-
-            self.host_plugin.logger.warning(f"[{dev.name}] IOError:  Skipping until next scheduled poll.")
-            self.host_plugin.logger.debug(f"[{dev.name}] Device is offline. No data to return. Returning dummy dict.")
+            self.logger.warning(f"[{dev.name}] IOError:  Skipping until next scheduled poll.")
+            self.logger.debug(f"[{dev.name}] Device is offline. No data to return. Returning dummy dict.")
             dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No comm")
             return '{"GhostXML": "IOError"}'
 
         except Exception:  # noqa
             # Add wider exception testing to test errors
-            self.host_plugin.logger.exception('General exception:')
+            self.logger.exception(f"General exception: {return_code}")
+            return '{"GhostXML": "General Exception"}'
 
     # =============================================================================
     def _clean_the_keys(self, input_data=None):
@@ -1127,11 +1106,11 @@ class PluginDevice:
             pass
 
         except ValueError:
-            self.host_plugin.logger.exception('Error cleaning dictionary keys:')
+            self.logger.exception('Error cleaning dictionary keys:')
 
         except Exception:  # noqa
             # Add wider exception testing to test errors
-            self.host_plugin.logger.exception('General exception:')
+            self.logger.exception('General exception:')
 
     # =============================================================================
     def kill_curl(self, proc=None):
@@ -1143,21 +1122,21 @@ class PluginDevice:
         :param subprocess.Popen proc:
         """
         try:
-            self.host_plugin.logger.debug('Timeout for Curl Subprocess. Killed by timer.')
+            self.logger.debug('Timeout for Curl Subprocess. Killed by timer.')
             proc.kill()
 
         except OSError as sub_error:
             if "OSError: [Errno 3]" in str(sub_error):
-                self.host_plugin.logger.debug(
+                self.logger.debug(
                     "OSError No. 3: No such process. This is a result of the plugin trying to kill a process that is no "
                     "longer running."
                 )
             else:
-                self.host_plugin.logger.exception('General exception:')
+                self.logger.exception('General exception:')
 
         except Exception:  # noqa
             # Add wider exception testing to test errors
-            self.host_plugin.logger.exception('General exception:')
+            self.logger.exception('General exception:')
 
     # =============================================================================
     def parse_the_json(self, dev=None, root=None):
@@ -1199,13 +1178,13 @@ class PluginDevice:
             return self.json_raw_data
 
         except (ValueError, json.decoder.JSONDecodeError):
-            self.host_plugin.logger.debug(f"[{dev.name}] Parse Error:")
-            self.host_plugin.logger.debug(f"[{dev.name}] jsonRawData { self.json_raw_data}")
+            self.logger.debug(f"[{dev.name}] Parse Error:")
+            self.logger.debug(f"[{dev.name}] jsonRawData { self.json_raw_data}")
 
             # If we let it, an exception here will kill the device's thread. Therefore, we have to return something
             # that the device can use in order to keep the thread alive.
-            self.host_plugin.logger.warning(
-                f"[{dev.name}] There was a parse error. Will continue to poll. Check the plugin log for more "
+            self.logger.warning(
+                f"{dev.name} - There was a parse error. Will continue to poll. Check the plugin log for more "
                 f"information."
             )
             self.old_device_states['parse_error'] = True
@@ -1213,7 +1192,7 @@ class PluginDevice:
 
         except Exception:  # noqa
             # Add wider exception testing to test errors
-            self.host_plugin.logger.exception('General exception:')
+            self.logger.exception('General exception:')
             return self.old_device_states
 
     # =============================================================================
@@ -1250,7 +1229,7 @@ class PluginDevice:
                     )
 
         except ValueError as sub_error:
-            self.host_plugin.logger.critical(
+            self.logger.critical(
                 f"[{dev.name}] Error parsing state values.\n{self.final_dict}\nReason: {sub_error}"
             )
             dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
@@ -1258,7 +1237,7 @@ class PluginDevice:
 
         except Exception as subError:
             # Add wider exception testing to test errors
-            self.host_plugin.logger.exception(f'General exception: {subError}')
+            self.logger.exception(f'General exception: {subError}')
 
         dev.updateStatesOnServer(state_list)
 
@@ -1293,7 +1272,8 @@ class PluginDevice:
                     self.final_dict = self._clean_the_keys(self.final_dict)
 
                 else:
-                    self.host_plugin.logger.warning(f"{dev.name}: The plugin only supports XML and JSON data sources.")
+                    self.logger.warning(f"{dev.name}: The plugin only supports XML and JSON data sources.")
+                    return
 
                 if self.final_dict is not None:
                     # Create the device states.
@@ -1320,7 +1300,7 @@ class PluginDevice:
                         self.bad_calls += 1
                     else:
                         dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Updated")
-                        self.host_plugin.logger.info(f"{dev.name} updated.")
+                        self.logger.info(f"{dev.name} updated.")
                         dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
                         dev.setErrorStateOnServer(None)
                         self.bad_calls = 0
@@ -1334,7 +1314,7 @@ class PluginDevice:
                     self.bad_calls += 1
 
             else:
-                self.host_plugin.logger.debug(
+                self.logger.debug(
                     f"[{dev.name}] Device not available for update [Enabled: {dev.enabled}, Configured: "
                     f"{dev.configured}]"
                 )
@@ -1342,7 +1322,7 @@ class PluginDevice:
 
         except KeyError:  # noqa
             # Add wider exception testing to test errors
-            self.host_plugin.logger.exception(f"General exception: {dev.name}")
+            self.logger.exception(f"General exception: {dev.name}")
 
     # =============================================================================
     def strip_namespace(self, dev=None, root=None):
@@ -1366,10 +1346,18 @@ class PluginDevice:
             if root == "":
                 root = d_root
 
-            # Remove namespace stuff if it's in there. There's probably a more
-            # comprehensive re.sub() that could be run, but it also could do *too* much.
+            # root may be a bytes object or a string when it gets here. We want a string.
+            if not isinstance(root, str):
+                try:
+                    root = root.decode('utf-8')
+                except UnicodeDecodeError:
+                    self.logger.warning(f"{dev.name} - There was a problem decoding the payload object.")
+
+            # Remove namespace stuff if it's in there. There's probably a more comprehensive re.sub() that could be
+            # run, but it also could do *too* much.
             self.raw_data = ''
-            self.raw_data = re.sub(' xmlns="[^"]+"', '', root.decode('utf-8'))
+            # self.raw_data = re.sub(' xmlns="[^"]+"', '', root.decode('utf-8'))
+            self.raw_data = re.sub(' xmlns="[^"]+"', '', root)
             self.raw_data = re.sub(' xmlns:xsi="[^"]+"', '', self.raw_data)
             self.raw_data = re.sub(' xmlns:xsd="[^"]+"', '', self.raw_data)
             self.raw_data = re.sub(' xsi:noNamespaceSchemaLocation="[^"]+"', '', self.raw_data)
@@ -1377,7 +1365,7 @@ class PluginDevice:
             return self.raw_data
 
         except ValueError as sub_error:
-            self.host_plugin.logger.warning(
+            self.logger.warning(
                 f"[{dev.name}] Error parsing source data: {sub_error}.  Skipping until  next  scheduled poll."
             )
             self.raw_data = d_root
@@ -1386,5 +1374,5 @@ class PluginDevice:
 
         except Exception:  # noqa
             # Add wider exception testing to test errors
-            self.host_plugin.logger.exception('General exception:')
+            self.logger.exception('General exception:')
             return self.raw_data
