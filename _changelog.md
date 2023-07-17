@@ -1,4 +1,7 @@
-### V2022.3.0
+### v2022.3.1
+- Takes v2022.3.0 out of beta.
+
+### v2022.3.0
 - Updates most communication to use the `requests` library instead of `curl`.
 - Fixes bug where debug level might not be honored on startup.
 - Wiki updates. 
