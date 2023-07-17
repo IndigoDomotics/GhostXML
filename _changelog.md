@@ -1,3 +1,6 @@
+### v2022.3.2
+- Bumps version number.
+ 
 ### v2022.3.1
 - Takes v2022.3.0 out of beta.
 
