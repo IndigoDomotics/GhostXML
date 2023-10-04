@@ -1294,10 +1294,20 @@ class PluginDevice:
                         dev.updateStateOnServer('deviceIsOnline', value=False, uiValue='Error')
                         dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
                         self.bad_calls += 1
-                    elif dev.states.get("Response", "") == "No data to return.":
+                    # 2023-10-04 DaveL17 - update to include XML parse error.
+                    elif dev.states.get("Response", "") in ["No data to return.", "Parse error. Check XML source."]:
                         dev.updateStateOnServer('deviceIsOnline', value=False, uiValue='Error')
                         dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
                         self.bad_calls += 1
+                    # TODO: the following block can be deleted if the above block continues to run without errors.
+                    # elif dev.states.get("Response", "") == "No data to return.":
+                    #     dev.updateStateOnServer('deviceIsOnline', value=False, uiValue='Error')
+                    #     dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
+                    #     self.bad_calls += 1
+                    # elif dev.states.get("Response", "") == "Parse error. Check XML source.":
+                    #     dev.updateStateOnServer('deviceIsOnline', value=False, uiValue='Error')
+                    #     dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
+                    #     self.bad_calls += 1
                     else:
                         dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Updated")
                         self.logger.info(f"{dev.name} updated.")

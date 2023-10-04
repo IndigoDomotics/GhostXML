@@ -1,3 +1,6 @@
+### v2022.3.3
+- Fixes a bug where devices displaying an `IOError` state incorrectly report as being online.
+ 
 ### v2022.3.2
 - Bumps version number.
  
