@@ -1,5 +1,5 @@
 ### v2023.0.1
-- Code enhancements
+- Code enhancements.
 
 ### v2022.3.3
 - Fixes a bug where devices displaying an `IOError` state incorrectly report as being online.
