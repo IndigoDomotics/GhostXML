@@ -3,4 +3,4 @@
   event log. How to reduce to one?
 - Additional auth types: Oauth2, WSSE
 - If URL/Path for device is empty, raise exception
-- Consider converting curl calls to `requests()`.  See [Curl Converter](https://curlconverter.com/python/)
+- Consider ramping back down on the minimum server API version to 3.0 (based on user feedback). Will require testing

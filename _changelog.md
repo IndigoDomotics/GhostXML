@@ -1,3 +1,6 @@
+### v2023.0.1
+- Code enhancements
+
 ### v2022.3.3
 - Fixes a bug where devices displaying an `IOError` state incorrectly report as being online.
  
@@ -61,7 +64,7 @@
   case something needs to be put back.
 
 ### v0.5.09
-- Fixes typo in deviceStartComm.
+- Fixes typo in device_start_comm.
 
 ### v0.5.08
 - Fixes bug in setting to ignore SQL logging.
@@ -198,7 +201,7 @@
 - Fixes KeyError: key updaterEmail not found in dict error.
 
 ### v0.4.23
-- Synchronize self.pluginPrefs in closedPrefsConfigUi().
+- Synchronize self.pluginPrefs in closed_prefs_config_ui().
 
 ### v0.4.22
 - Audits kDefaultPluginPrefs.
@@ -301,7 +304,7 @@ flatdict.py
 - Adds proc.returncode 37 and explicit trap for data download.
 - Adds more descriptive response for failed data downloads.
 - Adds 'self.pluginIsShuttingDown' to make plugin shutdown more politely.
-- Adds timeout to deviceStopComm to force threads to join after 0.5 seconds.
+- Adds timeout to device_stop_comm to force threads to join after 0.5 seconds.
 - Improves PEP 8 compliance for iterateXML.py.
 
 ### v0.3.13
@@ -366,7 +369,7 @@ flatdict.py
 - Moves device refresh timing to the device config menu so that each device refreshes at its own rate
 - Adds action to allow refresh of individual feeds
 - Adds option for manually refreshing feeds (ie no timed auto-refresh)
-- Adds refresh when a new device is added - runs at next runConcurrentThread() loop (ie 5 seconds)
+- Adds refresh when a new device is added - runs at next run_concurrent_thread() loop (ie 5 seconds)
 
 ### v0.2.05
 - Adds a method, _clean_the_keys() which removes certain characters from dictionary key names that Indigo cannot use

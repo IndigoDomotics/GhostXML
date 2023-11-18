@@ -198,7 +198,7 @@
 
         <States>
 
-<!-- IMPORTANT! If a new device state is added here, it must also be added to deviceStartComm (Audit Device States) -->
+<!-- IMPORTANT! If a new device state is added here, it must also be added to device_start_comm (Audit Device States) -->
             <State id="deviceIsOnline">
                 <ValueType>Boolean</ValueType>
                 <TriggerLabel>Device Online?</TriggerLabel>
@@ -421,7 +421,7 @@
 
         <States>
 
-<!-- IMPORTANT! If a new device state is added here, it must also be added to deviceStartComm (Audit Device States) -->
+<!-- IMPORTANT! If a new device state is added here, it must also be added to device_start_comm (Audit Device States) -->
             <State id="deviceIsOnline">
                 <ValueType>Boolean</ValueType>
                 <TriggerLabel>Device Online?</TriggerLabel>
