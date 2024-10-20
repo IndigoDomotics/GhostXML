@@ -11,7 +11,7 @@
         <CallbackMethod>comms_unkill_all</CallbackMethod>
     </MenuItem>
 
-    <MenuItem id="print_environment_info" uiPath="plugin_tools">
+    <MenuItem id="print_environment_info">
         <Name>Display Plugin Information</Name>
         <CallbackMethod>log_plugin_environment</CallbackMethod>
     </MenuItem>

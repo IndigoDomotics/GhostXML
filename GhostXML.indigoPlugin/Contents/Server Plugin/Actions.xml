@@ -27,4 +27,9 @@
         <CallbackMethod>refresh_data_for_dev_action</CallbackMethod>
     </Action>
 
+    <Action id="my_tests" deviceFilter="self" uiPath="hidden">
+        <Name>My Tests</Name>
+        <CallbackMethod>my_tests</CallbackMethod>
+    </Action>
+
 </Actions>

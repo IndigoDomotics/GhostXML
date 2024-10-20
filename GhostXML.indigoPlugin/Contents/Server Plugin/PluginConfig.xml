@@ -9,31 +9,6 @@
         <Label>Developed by: Indigo Users</Label>
     </Field>
 
-<!-- TODO: since device timeouts are handled within each device, this code can probably be deleted.  DaveL17 2019-12-13 -->
-<!--    <Field id="space4" type="label" fontColor="black" alignText="right">-->
-<!--        <Label>Server Timeout:</Label>-->
-<!--    </Field>-->
-
-<!--    <Field id="sep2" type="separator"/>-->
-
-<!--    <Field id="space5" type="label" fontSize="small" fontColor="black">-->
-<!--        <Label>The amount of time that the plugin will wait for each source to respond.</Label>-->
-<!--    </Field>-->
-
-<!--    <Field id="configMenuServerTimeout" type="menu" defaultValue="15" tooltip="Select preference for how long the plugin waits for the server to respond.">-->
-<!--        <Label>Server Timeout:</Label>-->
-<!--        <List>-->
-<!--            <Option value="5">5 Seconds</Option>-->
-<!--            <Option value="10">10 Seconds</Option>-->
-<!--            <Option value="15">15 Seconds</Option>-->
-<!--            <Option value="20">20 Seconds</Option>-->
-<!--            <Option value="25">25 Seconds</Option>-->
-<!--            <Option value="30">30 Seconds</Option>-->
-<!--        </List>-->
-<!--    </Field>-->
-
-<!--    <Field id="space6" type="label"/>-->
-
     <Field id="debugLabel" type="label" fontColor="black" alignText="right">
         <Label>Debugging (optional)</Label>
     </Field>
@@ -65,6 +40,7 @@ Critical Errors Only - Critical errors should probably be reported.
         </Label>
     </Field>
 
+    <!-- This is a legacy setting for backwards compatability and should probably come out at some point. -->
     <Field id="oldDebugLevel" type="textfield" defaultValue="20" hidden="true">
     </Field>
 

@@ -1,5 +1,11 @@
+### v2024.1.0
+- Reduces Indigo plugin API requirement to 3.0 (latest version should be compatible with Indigo 2022.1 and later.)
+- Code refinements.
+- Introduces new plugin unit tests.
+- Fixes bug in Devices.xml substitutions example.
+ 
 ### v2023.0.2
-- 
+- Minor code refinements.
  
 ### v2023.0.1
 - Code enhancements.

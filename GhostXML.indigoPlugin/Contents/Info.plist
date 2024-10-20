@@ -3,18 +3,16 @@
 <plist version="1.0">
 <dict>
 	<key>PluginVersion</key>
-	<string>2023.0.1</string>
+	<string>2024.1.0</string>
 	<key>ServerApiVersion</key>
-	<string>3.2</string>
-	<key>IwsApiVersion</key>
-	<string>1.0.0</string>
+	<string>3.0</string>
 	<key>LoadPriority</key>
 	<integer>105</integer>
 	<key>CFBundleDisplayName</key>
 	<string>GhostXML</string>
 	<key>CFBundleName</key>
 	<string>GhostXML</string>
-        <key>CFBundleIdentifier</key>
+	<key>CFBundleIdentifier</key>
 	<string>com.fogbert.indigoplugin.GhostXML</string>
 	<key>CFBundleVersion</key>
 	<string>1.0.0</string>
@@ -25,5 +23,5 @@
 			<string>https://github.com/IndigoDomotics/GhostXML/wiki</string>
 		</dict>
 	</array>
-</dict>
+	</dict>
 </plist>

@@ -10,8 +10,10 @@ def __init__():
     pass
 
 
-CHARS_TO_REPLACE = {'_ghostxml_': '_', '+': '_plus_', '-': '_minus_', 'true': 'True', 'false':
-                    'False', ' ': '_', ':': '_colon_', '.': '_dot_', '@': 'at_'}
+CHARS_TO_REPLACE = {
+    '_ghostxml_': '_', '+': '_plus_', '-': '_minus_', 'true': 'True', 'false': 'False', ' ': '_', ':': '_colon_',
+    '.': '_dot_', '@': 'at_'
+}
 
 CHARS_TO_REMOVE = ['/', '(', ')']
 

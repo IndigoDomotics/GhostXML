@@ -27,7 +27,7 @@ import flatdict  # https://github.com/gmr/flatdict - flatdict deprecated Python 
 import iterateXML
 try:
     import indigo  # noqa
-    import pydevd  # noqa
+    # import pydevd  # noqa
 except ImportError:
     pass
 
@@ -42,7 +42,9 @@ __build__     = ""
 __copyright__ = "There is no copyright for the GhostXML code base."
 __license__   = "MIT"
 __title__     = "GhostXML Plugin for Indigo Home Control"
-__version__   = "2023.0.1"
+__version__   = "2024.1.0"
+
+LOG_FORMAT = '%(asctime)s.%(msecs)03d\t%(levelname)-10s\t%(name)s.%(funcName)-28s %(message)s'
 
 
 # =============================================================================
@@ -52,8 +54,8 @@ class Plugin(indigo.PluginBase):
 
     :param indigo.PluginBase:
     """
-    def __init__(self, plugin_id: str="", plugin_display_name: str="", plugin_version: str="",
-                 plugin_prefs: indigo.Dict=None):
+    def __init__(self, plugin_id: str = "", plugin_display_name: str = "", plugin_version: str = "",
+                 plugin_prefs: indigo.Dict = None):
         """
         Plugin initialization
 
@@ -80,8 +82,7 @@ class Plugin(indigo.PluginBase):
         except ValueError:
             self.debug_level = 30
 
-        log_format = '%(asctime)s.%(msecs)03d\t%(levelname)-10s\t%(name)s.%(funcName)-28s %(message)s'
-        self.plugin_file_handler.setFormatter(logging.Formatter(log_format, datefmt='%Y-%m-%d %H:%M:%S'))
+        self.plugin_file_handler.setFormatter(logging.Formatter(LOG_FORMAT, datefmt='%Y-%m-%d %H:%M:%S'))
         self.indigo_log_handler.setLevel(self.debug_level)
 
         # ============================= Remote Debugging ==============================
@@ -138,7 +139,7 @@ class Plugin(indigo.PluginBase):
         self.managed_devices[dev.id] = PluginDevice(self, dev)
 
     # =============================================================================
-    def closed_prefs_config_ui(self, values_dict: indigo.Dict=None, user_cancelled: bool=False):  # noqa
+    def closed_prefs_config_ui(self, values_dict: indigo.Dict=None, user_cancelled: bool=False) -> indigo.Dict:  # noqa
         """
         Standard Indigo method called when plugin preferences dialog is closed.
 
@@ -163,7 +164,7 @@ class Plugin(indigo.PluginBase):
         return values_dict
 
     # =============================================================================
-    def device_deleted(self, dev: indigo.Device=None):
+    def device_deleted(self, dev: indigo.Device = None):
         """
         Remove deleted device from managed list of devices
 
@@ -270,7 +271,7 @@ class Plugin(indigo.PluginBase):
             )
 
     # =============================================================================
-    def get_device_config_ui_xml(self, type_id: str= "", dev_id: int=0):  # noqa
+    def get_device_config_ui_xml(self, type_id: str= "", dev_id: int=0) -> Etree:  # noqa
         """
         Standard Indigo method called when device config dialog is opened
 
@@ -306,7 +307,7 @@ class Plugin(indigo.PluginBase):
             return Etree.tostring(root)
 
     # =============================================================================
-    def get_device_state_list(self, dev: indigo.Device=None):  # noqa
+    def get_device_state_list(self, dev: indigo.Device=None) -> list:  # noqa
         """
         Assign data keys to device state names (Indigo)
 
@@ -461,7 +462,7 @@ class Plugin(indigo.PluginBase):
 
     # =============================================================================
     @staticmethod
-    def sendDevicePing(dev_id: int=0, suppress_logging: bool=False):  # noqa
+    def sendDevicePing(dev_id: int=0, suppress_logging: bool=False) -> dict:  # noqa
         """
         Standard Indigo method called when a plugin device receives a ping request
 
@@ -522,7 +523,7 @@ class Plugin(indigo.PluginBase):
 
     # =============================================================================
     @staticmethod
-    def validate_device_config_ui(values_dict: indigo.Dict=None, type_id: str="", dev_id: int=0):  # noqa
+    def validate_device_config_ui(values_dict: indigo.Dict = None, type_id: str = "", dev_id: int = 0):  # noqa
         """
         Standard Indigo method called when device config dialog is closed
 
@@ -542,7 +543,8 @@ class Plugin(indigo.PluginBase):
         url        = values_dict['sourceXML']
         url_list   = ('file:///', 'http://', 'https://', 'ftp://')   # noqa
         use_digest = values_dict['useDigest']
-        var_list   = [var.id for var in indigo.variables]
+        # var_list   = [var.id for var in indigo.variables]  # TODO: unnecessary list comprehension
+        var_list   = indigo.variables
 
         def are_subs_valid(subs: tuple, e_dict: indigo.Dict):
             """ Test if various indigo substitutions are valid
@@ -570,10 +572,9 @@ class Plugin(indigo.PluginBase):
         # The timeout value must be less than the refresh frequency.
         try:
             refresh_freq = int(values_dict['refreshFreq'])
-            # if int(values_dict['timeout']) >= refresh_freq and refresh_freq != 0:
             if int(values_dict['timeout']) >= refresh_freq != 0:
                 error_msg_dict['timeout'] = "The timeout value cannot be greater than the refresh frequency."
-                error_msg_dict['refreshFreq'] = "The refresh frequency cannot be greater than the timeout value."
+                error_msg_dict['refreshFreq'] = "The refresh frequency must be less than or equal to the timeout value."
         except ValueError:
             error_msg_dict['timeout'] = "The timeout value must be a real number."
 
@@ -591,7 +592,7 @@ class Plugin(indigo.PluginBase):
         if use_digest == 'Token' and not token_url.startswith(url_list):
             error_msg_dict['tokenUrl'] = "You must supply a valid Token URL."
 
-        # Test the token URL/Path for proper prefix.
+        # Test the bearer token value to ensure it's not empty.
         if use_digest == 'Bearer' and token.replace(" ", "") == "":
             error_msg_dict['token'] = (
                 "You must supply a Token value. The plugin does not attempt to ensure that the token is valid."
@@ -635,7 +636,7 @@ class Plugin(indigo.PluginBase):
     # =============================================================================
     # =============================== Plugin Methods ==============================
     # =============================================================================
-    def adjust_refresh_time(self, values_dict: indigo.Dict=None):
+    def adjust_refresh_time(self, values_dict: indigo.Dict = None):
         """
         Programmatically Adjust the refresh time for an individual device
 
@@ -654,7 +655,7 @@ class Plugin(indigo.PluginBase):
 
     # =============================================================================
     @staticmethod
-    def comms_kill_all():
+    def comms_kill_all() -> bool:
         """
         Disable communication of all plugin devices
 
@@ -667,7 +668,7 @@ class Plugin(indigo.PluginBase):
 
     # =============================================================================
     @staticmethod
-    def comms_unkill_all():
+    def comms_unkill_all() -> bool:
         """
         Enable communication of all plugin devices
 
@@ -680,7 +681,7 @@ class Plugin(indigo.PluginBase):
 
     # =============================================================================
     @staticmethod
-    def get_device_list(filter: str="", type_id: int=0, values_dict: indigo.Dict=None, target_id: int=0):  # noqa
+    def get_device_list(filter: str="", type_id: int=0, values_dict: indigo.Dict=None, target_id: int=0) -> list:  # noqa
         """
         Return a list of plugin devices for use in dropdown menus
 
@@ -715,7 +716,7 @@ class Plugin(indigo.PluginBase):
         self.indigo_log_handler.setLevel(self.debug_level)
 
     # =============================================================================
-    def _process_bad_calls(self, dev: indigo.Device=None, retries: int=0):
+    def _process_bad_calls(self, dev: indigo.Device = None, retries: int = 0) -> bool:
         """
         If a device has made too many unsuccessful attempts
 
@@ -793,7 +794,7 @@ class Plugin(indigo.PluginBase):
         self.refresh_data()
 
     # =============================================================================
-    def refresh_data(self):
+    def refresh_data(self) -> bool:
         """
         The refresh_data() method controls the updating of all plugin devices
 
@@ -817,7 +818,7 @@ class Plugin(indigo.PluginBase):
             return False
 
     # =============================================================================
-    def refresh_data_for_dev_action(self, values_dict: indigo.Dict=None):
+    def refresh_data_for_dev_action(self, values_dict: indigo.Dict = None):
         """
         Initiate a device refresh based on an Indigo Action call
 
@@ -830,7 +831,7 @@ class Plugin(indigo.PluginBase):
 
     # =============================================================================
     @staticmethod
-    def _time_to_update(dev: indigo.Device=None):  # noqa
+    def _time_to_update(dev: indigo.Device=None) -> bool:  # noqa
         """
         Determine if a device is ready for a refresh
 
@@ -849,6 +850,38 @@ class Plugin(indigo.PluginBase):
 
         # If the device does not have a timestamp key, is not ready for a refresh, or is disabled.
         return False
+
+    def my_tests(self, action: indigo.PluginAction = None) -> None:
+        """
+        The main unit test method
+
+        The my_tests method is called from a plugin action item and, when called, imports all unit tests and runs them.
+        If the unit test module returns True, then all tests have passed.
+        """
+        from Tests import iom_tests  # test_devices
+        tests = iom_tests.TestPlugin()
+
+        def process_test_result(result, name):
+            if result[0] is True:
+                self.logger.warning(f"{name} tests passed.")
+            else:
+                self.logger.warning(f"{result[1]}")
+
+        # ===================================== Plugin Action =====================================
+        # test = tests.test_plugin_actions(self)
+        # process_test_result(test, "Plugin Actions")
+
+        # ===================================== Plugin Action =====================================
+        # test = tests.test_plugin_triggers(self)
+        # process_test_result(test, "Plugin Triggers")
+
+        # ===================================== Indigo Methods =====================================
+        test = tests.test_indigo_methods(self)
+        process_test_result(test, "Indigo Methods")
+
+        # ===================================== Plugin Methods =====================================
+        test = tests.test_plugin_methods(self)
+        process_test_result(test, "Plugin Methods")
 
 
 # =============================================================================
@@ -886,7 +919,7 @@ class PluginDevice:
         self.logger = logging.getLogger("Plugin")
 
     # =============================================================================
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Title Placeholder
 
@@ -895,7 +928,7 @@ class PluginDevice:
         return f"[{self.device.id:>11}] {self.dev_thread:<46} {self.queue:<40}"
 
     # =============================================================================
-    def _initiate_device_update(self, update_queue: Queue=None):
+    def _initiate_device_update(self, update_queue: Queue = None):
         """
         Initiate an update of the device
 
@@ -920,7 +953,7 @@ class PluginDevice:
             self.logger.exception("General exception:")
 
     # =============================================================================
-    def get_the_data(self, dev: indigo.Device=None):
+    def get_the_data(self, dev: indigo.Device = None):
         """
         The get_the_data() method is used to retrieve target data files.
 
@@ -942,6 +975,7 @@ class PluginDevice:
             subber      = self.host_plugin.substitute
             url         = dev.pluginProps['sourceXML']
             username    = dev.pluginProps.get('digestUser', '')
+            timeout     = int(dev.pluginProps.get('timeout', 5))
 
             if dev.pluginProps.get('disableGlobbing', False):
                 glob_off = 'g'
@@ -987,17 +1021,17 @@ class PluginDevice:
                 # ===============================  Digest Auth  ===============================
                 case 'Digest':
                     call_type = 'request'
-                    proc = requests.get(url, auth=HTTPDigestAuth(username, password))
+                    proc = requests.get(url, auth=HTTPDigestAuth(username, password), timeout=timeout)
                 # ===============================  Basic Auth  ================================
                 case 'Basic':
                     call_type = 'request'
                     basic = HTTPBasicAuth(username, password)
-                    proc = requests.get(url, auth=basic)
+                    proc = requests.get(url, auth=basic, timeout=timeout)
             # ===============================  Bearer Auth  ===============================
                 case 'Bearer':
                     call_type = 'request'
                     token = dev.pluginProps['token']
-                    proc = requests.get(url, headers={'Authorization': f'Bearer {token}'})
+                    proc = requests.get(url, headers={'Authorization': f'Bearer {token}'}, timeout=timeout)
                 # ===============================  Token Auth  ================================
                 # berkinet and DaveL17
                 case 'Token':
@@ -1007,12 +1041,12 @@ class PluginDevice:
                     headers = {'Content-Type': 'application/json'}
 
                     # Get the token
-                    response = requests.post(a_url, json=data, headers=headers)
+                    response = requests.post(a_url, json=data, headers=headers, timeout=timeout)
                     reply = response.json()
                     token = reply["access_token"]
 
                     url = f"{a_url}?access_token={token}"
-                    proc = requests.get(url)
+                    proc = requests.get(url, timeout=timeout)
                 # =================================  No Auth  =================================
                 case _:
                     if url.startswith('file'):
@@ -1020,17 +1054,18 @@ class PluginDevice:
                         call_type = 'file'
                         url = url.replace('file://', '')
                         url = url.replace('%20', ' ')
-                        with open(url, 'r') as infile:
+                        with open(url, 'r', encoding="utf-8") as infile:
                             proc = bytes(infile.read(), 'utf-8')
                     else:
                         call_type = 'request'
-                        proc = requests.get(url, timeout=5)
+                        proc = requests.get(url, timeout=timeout)
 
             # =============================================================================
             # The following code adds a timeout function to the call.
             # Added by GlennNZ and DaveL17 2018-07-18
-            duration   = int(dev.pluginProps.get('timeout', '5'))
-            timer_kill = threading.Timer(duration, self.kill_curl, [proc])
+            # duration   = int(dev.pluginProps.get('timeout', '5'))
+            # timer_kill = threading.Timer(duration, self.kill_curl, [proc])
+            timer_kill = threading.Timer(timeout, self.kill_curl, [proc])
             match call_type:
                 case "file":
                     # Cases that used a local file as a source land here.
@@ -1078,7 +1113,7 @@ class PluginDevice:
             return '{"GhostXML": "General Exception"}'
 
     # =============================================================================
-    def _clean_the_keys(self, input_data: dict=None):
+    def _clean_the_keys(self, input_data: dict = None) -> dict:
         """
         Ensure that state names are valid for Indigo
 
@@ -1121,7 +1156,7 @@ class PluginDevice:
             self.logger.exception('General exception:')
 
     # =============================================================================
-    def kill_curl(self, proc: subprocess.Popen=None):
+    def kill_curl(self, proc: subprocess.Popen = None):
         """
         Kill curl calls that have timed out
 
@@ -1136,8 +1171,8 @@ class PluginDevice:
         except OSError as sub_error:
             if "OSError: [Errno 3]" in str(sub_error):
                 self.logger.debug(
-                    "OSError No. 3: No such process. This is a result of the plugin trying to kill a process that is no "
-                    "longer running."
+                    "OSError No. 3: No such process. This is a result of the plugin trying to kill a process that is "
+                    "no longer running."
                 )
             else:
                 self.logger.exception('General exception:')
@@ -1147,7 +1182,7 @@ class PluginDevice:
             self.logger.exception('General exception:')
 
     # =============================================================================
-    def parse_the_json(self, dev: indigo.Device=None, root: json=""):
+    def parse_the_json(self, dev: indigo.Device = None, root: json = "") -> json:
         """
         Parse JSON data
 
@@ -1204,7 +1239,7 @@ class PluginDevice:
             return self.old_device_states
 
     # =============================================================================
-    def parse_state_values(self, dev: indigo.Device=None):
+    def parse_state_values(self, dev: indigo.Device = None):
         """
         Parse data values to device states
 
@@ -1250,7 +1285,7 @@ class PluginDevice:
         dev.updateStatesOnServer(state_list)
 
     # =============================================================================
-    def refresh_data_for_dev(self, dev: indigo.Device=None):
+    def refresh_data_for_dev(self, dev: indigo.Device = None):
         """
         Initiate refresh of device as required
 
@@ -1334,7 +1369,7 @@ class PluginDevice:
             self.logger.exception(f"General exception: {dev.name}")
 
     # =============================================================================
-    def strip_namespace(self, dev: indigo.Device=None, root: (bytes, str)=""):
+    def strip_namespace(self, dev: indigo.Device = None, root: (bytes, str) = "") -> re.sub:
         """
         Strip XML namespace from payload
 
