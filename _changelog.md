@@ -2,7 +2,7 @@
 - Adds menu item to Manage Plugin Devices (enable/disable select devices).
 - Updates flatdict module to v4.0.0 and most recent license.
 - Reduces Indigo plugin API requirement to 3.0 (latest version should be compatible with Indigo 2022.1 and later.)
-- Fixes bug in Devices.xml substitutions example.
+- Fixes bug in device config substitutions example.
 - Introduces new plugin unit tests.
 - Code refinements.
  
