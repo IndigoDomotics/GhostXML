@@ -193,6 +193,19 @@ class TestPlugin(TestCase):
             # Dev is not enabled
             test_dev.enabled = False
             test_case.assertFalse(plugin._time_to_update(test_dev), "Plugin should have handled a disabled device.")
+
+            # ===================================== get_device_list() =====================================
+            result = plugin.get_device_list()
+            test_case.assertIsInstance(result, list, "Method did not return a list.")
+            test_case.assertTrue(result, "Method returned an empty list.")
+            for dev in result:
+                test_case.assertIsInstance(dev[0], int, "Device list contains invalid dev.id.")
+                test_case.assertIsInstance(dev[1], str, "Device list contains invalid dev.name.")
+
+            # ===================================== _log_environment_info() =====================================
+            result = plugin._log_environment_info()
+            test_case.assertIsNone(result, "Method did not complete successfully.")
+
             return True, None
         except AssertionError as error:
             return False, error

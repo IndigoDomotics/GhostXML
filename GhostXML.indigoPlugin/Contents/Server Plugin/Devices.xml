@@ -236,7 +236,6 @@
             <SupportURL>https://github.com/IndigoDomotics/GhostXML/wiki/devices</SupportURL>
 
             <!-- FeedType -->
-
             <Field id="settingsLabel" type="label" fontSize="small">
                 <Label>Provide the feed type (XML or JSON), the frequency of data refreshes, and the source URL.</Label>
             </Field>

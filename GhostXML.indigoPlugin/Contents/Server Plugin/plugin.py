@@ -27,7 +27,6 @@ import flatdict  # https://github.com/gmr/flatdict - flatdict deprecated Python 
 import iterateXML
 try:
     import indigo  # noqa
-    # import pydevd  # noqa
 except ImportError:
     pass
 
@@ -43,8 +42,6 @@ __copyright__ = "There is no copyright for the GhostXML code base."
 __license__   = "MIT"
 __title__     = "GhostXML Plugin for Indigo Home Control"
 __version__   = "2024.1.0"
-
-LOG_FORMAT = '%(asctime)s.%(msecs)03d\t%(levelname)-10s\t%(name)s.%(funcName)-28s %(message)s'
 
 
 # =============================================================================
@@ -85,12 +82,6 @@ class Plugin(indigo.PluginBase):
         self.plugin_file_handler.setFormatter(logging.Formatter(LOG_FORMAT, datefmt='%Y-%m-%d %H:%M:%S'))
         self.indigo_log_handler.setLevel(self.debug_level)
 
-        # ============================= Remote Debugging ==============================
-        # try:
-        #     pydevd.settrace('localhost', port=5678, stdoutToServer=True, stderrToServer=True, suspend=False)
-        # except:
-        #     pass
-
         self.plugin_is_initializing = False
 
     # =============================================================================
@@ -124,7 +115,7 @@ class Plugin(indigo.PluginBase):
     # =============================================================================
     # =============================== Indigo Methods ==============================
     # =============================================================================
-    def closed_device_config_ui(self, values_dict: indigo.Dict=None, user_cancelled: bool=False, type_id: str= "", dev_id: int=0):  # noqa
+    def closed_device_config_ui(self, values_dict: indigo.Dict = None, user_cancelled: bool = False, type_id: str = "", dev_id: int = 0):  # noqa
         """
         Standard Indigo method called when the device configuration dialog is closed
 
@@ -139,7 +130,7 @@ class Plugin(indigo.PluginBase):
         self.managed_devices[dev.id] = PluginDevice(self, dev)
 
     # =============================================================================
-    def closed_prefs_config_ui(self, values_dict: indigo.Dict=None, user_cancelled: bool=False) -> indigo.Dict:  # noqa
+    def closed_prefs_config_ui(self, values_dict: indigo.Dict = None, user_cancelled: bool = False) -> indigo.Dict:  # noqa
         """
         Standard Indigo method called when plugin preferences dialog is closed.
 
@@ -271,7 +262,7 @@ class Plugin(indigo.PluginBase):
             )
 
     # =============================================================================
-    def get_device_config_ui_xml(self, type_id: str= "", dev_id: int=0) -> Etree:  # noqa
+    def get_device_config_ui_xml(self, type_id: str = "", dev_id: int = 0) -> Etree:  # noqa
         """
         Standard Indigo method called when device config dialog is opened
 
@@ -397,6 +388,61 @@ class Plugin(indigo.PluginBase):
             self.logger.exception("General exception.")
 
     # =============================================================================
+    @staticmethod
+    def manage_plugin_devices(values_dict: indigo.Dict = None, menu_id: str = "") -> tuple:
+        """
+        User executes the "Manage Plugin Devices" menu item
+
+        This menu item is used to enable/disable plugin devices per user's request. If the user selects "Cancel", no
+        action is taken.
+        """
+        # Iterate values_dict
+        for dev in values_dict:
+            # If dev starts with 'd_', it's a device field.
+            if dev.startswith('d_'):
+                # Convert key to dev_id
+                dev_id = int(dev.replace('d_', ''))
+                dev_enabled: bool = values_dict[dev]
+                # Enable/Disable device as requested.
+                if dev_enabled:
+                    indigo.device.enable(dev_id, True)
+                else:
+                    indigo.device.enable(dev_id, False)
+
+        return True, values_dict
+
+    # =============================================================================
+    def get_menu_action_config_ui_xml(self, menu_id):
+
+        if menu_id == "manage_plugin_devices":
+            my_devs = [dev for dev in indigo.devices.iter("self")]
+
+            # Main '<ConfigUI>' node
+            config_ui = Etree.Element("ConfigUI")
+
+            # Dialog instructions
+            field = Etree.SubElement(config_ui, "Field", id=f"instructions", type="label")
+            label = Etree.SubElement(field, "Label")
+            label.text = "Enable/disable individual plugin devices. Only GhostXML devices are shown."
+
+            # Separator
+            field = Etree.SubElement(config_ui, "Field", id=f"sep01", type="separator")
+
+            # List the checkbox followed by the device name - [x] My GhostXML Device
+            for dev in my_devs:
+                field = Etree.SubElement(config_ui, "Field", id=f"d_{dev.id}", type="checkbox", defaultValue=f"{dev.enabled}")
+                label = Etree.SubElement(field, "Label")
+                label.text = ""
+                description = Etree.SubElement(field, "Description")
+                description.text = f"{dev.name}"
+
+            # Convert the tree to a string
+            return Etree.tostring(config_ui, encoding='utf-8', xml_declaration=True).decode()
+
+        else:
+            pass
+
+    # =============================================================================
     def wake_up(self):  # noqa
         """
         Standard Indigo method called when Indigo receives a system wakeup call
@@ -462,7 +508,7 @@ class Plugin(indigo.PluginBase):
 
     # =============================================================================
     @staticmethod
-    def sendDevicePing(dev_id: int=0, suppress_logging: bool=False) -> dict:  # noqa
+    def sendDevicePing(dev_id: int = 0, suppress_logging: bool = False) -> dict:  # noqa
         """
         Standard Indigo method called when a plugin device receives a ping request
 
@@ -636,7 +682,7 @@ class Plugin(indigo.PluginBase):
     # =============================================================================
     # =============================== Plugin Methods ==============================
     # =============================================================================
-    def adjust_refresh_time(self, values_dict: indigo.Dict = None):
+    def adjust_refresh_time(self, values_dict: indigo.Dict = None) -> None:
         """
         Programmatically Adjust the refresh time for an individual device
 
@@ -681,7 +727,7 @@ class Plugin(indigo.PluginBase):
 
     # =============================================================================
     @staticmethod
-    def get_device_list(filter: str="", type_id: int=0, values_dict: indigo.Dict=None, target_id: int=0) -> list:  # noqa
+    def get_device_list(filter: str = "", type_id: int = 0, values_dict: indigo.Dict = None, target_id: int = 0) -> list:  # noqa
         """
         Return a list of plugin devices for use in dropdown menus
 
@@ -697,7 +743,7 @@ class Plugin(indigo.PluginBase):
         return [(dev.id, dev.name) for dev in indigo.devices.iter(filter="self")]
 
     # =============================================================================
-    def _log_environment_info(self):
+    def _log_environment_info(self) -> None:
         """
         Write interesting information to the log on startup.
         """
@@ -734,7 +780,7 @@ class Plugin(indigo.PluginBase):
             return True
 
     # =============================================================================
-    def _process_triggers(self):
+    def _process_triggers(self) -> bool:
         """
         Process plugin triggers
 
@@ -757,7 +803,7 @@ class Plugin(indigo.PluginBase):
         return True
 
     # =============================================================================
-    def refreshDataAction(self, values_dict: indigo.Dict=None):  # noqa
+    def refreshDataAction(self, values_dict: indigo.Dict = None) -> None:  # noqa
         """
         Legacy callback to Refresh Data for All Devices
 
@@ -770,7 +816,7 @@ class Plugin(indigo.PluginBase):
         self.refresh_data_action(values_dict)
 
     # =============================================================================
-    def refreshDataForDevAction(self, values_dict: indigo.Dict=None):  # noqa
+    def refreshDataForDevAction(self, values_dict: indigo.Dict = None) -> None:  # noqa
         """
         Legacy callback to Refresh Data for a Specified Device
 
@@ -783,7 +829,7 @@ class Plugin(indigo.PluginBase):
         self.refresh_data_for_dev_action(values_dict)
 
     # =============================================================================
-    def refresh_data_action(self, values_dict: indigo.Dict=None):  # noqa
+    def refresh_data_action(self, values_dict: indigo.Dict = None) -> None:  # noqa
         """
         Initiate data refresh based on menu call
 
@@ -818,7 +864,7 @@ class Plugin(indigo.PluginBase):
             return False
 
     # =============================================================================
-    def refresh_data_for_dev_action(self, values_dict: indigo.Dict = None):
+    def refresh_data_for_dev_action(self, values_dict: indigo.Dict = None) -> None:
         """
         Initiate a device refresh based on an Indigo Action call
 
@@ -861,19 +907,19 @@ class Plugin(indigo.PluginBase):
         from Tests import iom_tests  # test_devices
         tests = iom_tests.TestPlugin()
 
-        def process_test_result(result, name):
+        def process_test_result(result: list, name: str) -> None:
             if result[0] is True:
                 self.logger.warning(f"{name} tests passed.")
             else:
                 self.logger.warning(f"{result[1]}")
 
         # ===================================== Plugin Action =====================================
-        # test = tests.test_plugin_actions(self)
-        # process_test_result(test, "Plugin Actions")
+        test = tests.test_plugin_actions(self)
+        process_test_result(test, "Plugin Actions")
 
         # ===================================== Plugin Action =====================================
-        # test = tests.test_plugin_triggers(self)
-        # process_test_result(test, "Plugin Triggers")
+        test = tests.test_plugin_triggers(self)
+        process_test_result(test, "Plugin Triggers")
 
         # ===================================== Indigo Methods =====================================
         test = tests.test_indigo_methods(self)
@@ -894,7 +940,7 @@ class PluginDevice:
     """
 
     # =============================================================================
-    def __init__(self, plugin: Plugin, device: indigo.Device):
+    def __init__(self, plugin: Plugin, device: indigo.Device) -> None:
         """
         Title Placeholder
 
@@ -928,7 +974,7 @@ class PluginDevice:
         return f"[{self.device.id:>11}] {self.dev_thread:<46} {self.queue:<40}"
 
     # =============================================================================
-    def _initiate_device_update(self, update_queue: Queue = None):
+    def _initiate_device_update(self, update_queue: Queue = None) -> None:
         """
         Initiate an update of the device
 
@@ -1156,7 +1202,7 @@ class PluginDevice:
             self.logger.exception('General exception:')
 
     # =============================================================================
-    def kill_curl(self, proc: subprocess.Popen = None):
+    def kill_curl(self, proc: subprocess.Popen = None) -> None:
         """
         Kill curl calls that have timed out
 
@@ -1239,7 +1285,7 @@ class PluginDevice:
             return self.old_device_states
 
     # =============================================================================
-    def parse_state_values(self, dev: indigo.Device = None):
+    def parse_state_values(self, dev: indigo.Device = None) -> None:
         """
         Parse data values to device states
 
@@ -1285,7 +1331,7 @@ class PluginDevice:
         dev.updateStatesOnServer(state_list)
 
     # =============================================================================
-    def refresh_data_for_dev(self, dev: indigo.Device = None):
+    def refresh_data_for_dev(self, dev: indigo.Device = None) -> None:
         """
         Initiate refresh of device as required
 

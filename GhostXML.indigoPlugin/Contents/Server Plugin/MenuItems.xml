@@ -6,6 +6,18 @@
         <CallbackMethod>comms_kill_all</CallbackMethod>
     </MenuItem>
 
+<!-- Note that the ConfigUI node below will be replaced by -->
+    <MenuItem id="manage_plugin_devices">
+        <Name>Manage Plugin Devices</Name>
+        <ConfigUI>
+            <Field id="label1" type="label">
+                <Label>This is a label.</Label>
+            </Field>
+        </ConfigUI>
+        <CallbackMethod>manage_plugin_devices</CallbackMethod>
+    </MenuItem>
+
+
     <MenuItem id="comms_unkill_all">
         <Name>Enable All Plugin Devices</Name>
         <CallbackMethod>comms_unkill_all</CallbackMethod>

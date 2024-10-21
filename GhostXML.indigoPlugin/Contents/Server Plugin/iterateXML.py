@@ -1,7 +1,6 @@
 """
-This module receives the XML data as a string and returns a dictionary (finalDict)
-which contains key/value pairs which represent the source XML. It is an amalgam of
-bits and pieces across the web.
+This module receives the XML data as a string and returns a dictionary (finalDict) which contains key/value pairs which
+represent the source XML. It is an amalgam of bits and pieces across the web.
 
 Credit for XmlDictConfig(): https://code.activestate.com/recipes/410469-xml-as-dictionary/
 Credit for update_shim(): https://stackoverflow.com/users/3871670/adam-clark
