@@ -140,7 +140,7 @@ class TestFlatDict(unittest.TestCase):
     def test_flat_dict(self):
         """ Test flat_dict module """
         import flatdict  # noqa
-        self.assertIsInstance(flatdict.FlatDict(self.test_dict), dict,
+        self.assertIsInstance(flatdict.FlatDict(self.test_dict), flatdict.FlatDict,
                               "The flatdict module did not return a valid dict object.")
 
 
