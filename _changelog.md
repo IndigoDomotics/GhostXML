@@ -1,3 +1,6 @@
+### v2024.1.1
+- Fixes bug in 2024.1.0 that caused some JSON payloads to cause the device to stick on "processing".
+
 ### v2024.1.0
 - Adds menu item to Manage Plugin Devices (enable/disable select devices).
 - Updates flatdict module to v4.0.0 and most recent license.
