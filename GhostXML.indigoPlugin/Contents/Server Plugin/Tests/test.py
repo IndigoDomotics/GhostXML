@@ -20,12 +20,12 @@ import unittest
 import xml.etree.ElementTree as ET  # noqa
 import httpx
 import dotenv
-sys.path.insert(1, '../')  # Server Plugin folder
 import constants  # noqa
 from curlcodes import codes as curlcodes  # noqa
 from httpcodes import codes as httpcodes # noqa
 import plugin_defaults  # noqa
 from indigo_devices_filters import DEVICE_FILTERS  # noqa
+sys.path.insert(1, '../')  # Server Plugin folder
 
 
 class TestApiCommands(unittest.TestCase):
@@ -34,12 +34,14 @@ class TestApiCommands(unittest.TestCase):
     """
     @classmethod
     def setUpClass(cls):
+        """ Docstring placeholder """
         dotenv.load_dotenv()
         cls.api_secret: str = os.environ["API_SECRET"]
         cls.api_url: str = os.environ["SERVER_API_URL"]
         cls.api_base: str = os.environ["SERVER_API_BASE"]
 
     def send_api_command(self, msg: dict) -> httpx.Response:
+        """ Docstring placeholder """
         headers = {'Authorization': f'Bearer {self.api_secret}'}
         return httpx.post(self.api_url, headers=headers, json=msg, verify=False)
 
@@ -52,6 +54,7 @@ class TestApiCommands(unittest.TestCase):
         return httpx.get(url, headers=headers, verify=False)
 
     def test_refresh_data_for_device_action(self):
+        """ Docstring placeholder """
         obj_id = 515336428
         message = {
             "id": self._testMethodName,
@@ -67,6 +70,7 @@ class TestApiCommands(unittest.TestCase):
         # TODO: test that action actually ran.
 
     def test_refresh_data_for_all_devices_action(self):
+        """ Docstring placeholder """
         obj_id = 99288135
         message = {
             "id": self._testMethodName,
@@ -80,6 +84,7 @@ class TestApiCommands(unittest.TestCase):
         # TODO: test that action actually ran.
 
     def test_adjust_device_refresh_time_action(self):
+        """ Docstring placeholder """
         obj_id = 433890464
         message = {
             "id": self._testMethodName,
@@ -163,6 +168,7 @@ class TestPluginDefaults(unittest.TestCase):
     The `plugin_defaults.py` file contains the plugin's `kDefaultPluginPrefs` defaults.
     """
     def test_plugin_defaults(self):
+        """ Docstring placeholder """
         prefs = plugin_defaults.kDefaultPluginPrefs
         self.assertIsInstance(prefs, dict, "Imported element is not a dict.")
         for key in prefs:
@@ -200,10 +206,12 @@ class TestXml(unittest.TestCase):
 
     @staticmethod
     def get_item_name(xml_file: str, item_id: int):
+        """ Docstring placeholder """
         tree = ET.parse(xml_file)
         return tree.getroot()
 
     def test_xml_files(self):
+        """ Docstring placeholder """
         try:
             for file_type in self.xml_files:
                 try:

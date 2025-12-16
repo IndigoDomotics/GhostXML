@@ -392,7 +392,7 @@ class Plugin(indigo.PluginBase):
 
     # =============================================================================
     @staticmethod
-    def manage_plugin_devices(values_dict: indigo.Dict = None, menu_id: str = "") -> tuple:
+    def manage_plugin_devices(values_dict: indigo.Dict = None, menu_id: str = "") -> tuple:  # noqa
         """
         User executes the "Manage Plugin Devices" menu item
 
@@ -415,7 +415,8 @@ class Plugin(indigo.PluginBase):
         return True, values_dict
 
     # =============================================================================
-    def get_menu_action_config_ui_xml(self, menu_id):
+    @staticmethod
+    def get_menu_action_config_ui_xml(menu_id):
         """PLACEHOLDER"""
         if menu_id == "manage_plugin_devices":
             my_devs = [dev for dev in indigo.devices.iter("self")]
@@ -442,8 +443,7 @@ class Plugin(indigo.PluginBase):
             # Convert the tree to a string
             return Etree.tostring(config_ui, encoding='utf-8', xml_declaration=True).decode()
 
-        else:
-            return None
+        return None
 
     # =============================================================================
     def wake_up(self):  # noqa
@@ -902,7 +902,7 @@ class Plugin(indigo.PluginBase):
         # If the device does not have a timestamp key, is not ready for a refresh, or is disabled.
         return False
 
-    def my_tests(self, action: indigo.PluginAction = None) -> None:
+    def my_tests(self, action: indigo.PluginAction = None) -> None:  # noqa
         """
         The main unit test method
 
@@ -1020,13 +1020,14 @@ class PluginDevice:
         result      = ""
         err         = ""
         try:
-            auth_type   = dev.pluginProps.get('useDigest', 'None')
-            curl_array  = dev.pluginProps.get('curlArray', '')
-            password    = dev.pluginProps.get('digestPass', '')
-            subber      = self.host_plugin.substitute
-            url         = dev.pluginProps['sourceXML']
-            username    = dev.pluginProps.get('digestUser', '')
-            timeout     = int(dev.pluginProps.get('timeout', 5))
+            auth_type  = dev.pluginProps.get('useDigest', 'None')
+            call_type  = ""
+            curl_array = dev.pluginProps.get('curlArray', '')
+            password   = dev.pluginProps.get('digestPass', '')
+            subber     = self.host_plugin.substitute
+            url        = dev.pluginProps['sourceXML']
+            username   = dev.pluginProps.get('digestUser', '')
+            timeout    = int(dev.pluginProps.get('timeout', 5))
 
             if dev.pluginProps.get('disableGlobbing', False):
                 glob_off = 'g'
@@ -1233,7 +1234,7 @@ class PluginDevice:
             self.logger.exception('General exception:')
 
     # =============================================================================
-    def parse_the_json(self, dev: indigo.Device = None, root: json = "") -> json:
+    def parse_the_json(self, dev: indigo.Device = None, root: str = "") -> flatdict:
         """
         Parse JSON data
 
@@ -1410,7 +1411,8 @@ class PluginDevice:
 
             else:
                 self.logger.debug(
-                    "[%s] Device not available for update [Enabled: %s, Configured: %s]" % (dev.name, dev.enabled, dev.configured)
+                    "[%s] Device not available for update "
+                    "[Enabled: %s, Configured: %s]" % (dev.name, dev.enabled, dev.configured)
                 )
                 dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 

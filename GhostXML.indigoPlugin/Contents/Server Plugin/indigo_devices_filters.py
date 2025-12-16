@@ -1,3 +1,6 @@
+"""
+Docstring placeholder
+"""
 DEVICE_FILTERS = [
     "com.somePlugin.devTypeId" 
     "com.somePlugin",  # all device types defined by some other plugin

@@ -18,12 +18,12 @@ tests, developers should create an Indigo Action item that calls the hidden acti
 
 """
 from datetime import datetime
-import dotenv
 import indigo  # noqa
 import logging
 import os
 from unittest import TestCase
 from unittest.mock import MagicMock
+import dotenv
 
 dotenv.load_dotenv()
 LOGGER = logging.getLogger("Plugin")
@@ -36,12 +36,13 @@ test_case = TestCase()
 
 
 class TestPlugin(TestCase):
+    """ Docstring placeholder"""
     def __init__(self):
         super().__init__()
 
     # =============================================================================
     @staticmethod
-    def test_plugin_actions(plugin):
+    def test_plugin_actions(plugin):  # noqa
         """
         Test plugin actions to ensure the actions execute successfully.
 
@@ -63,7 +64,7 @@ class TestPlugin(TestCase):
 
     # =============================================================================
     @staticmethod
-    def test_plugin_triggers(plugin):
+    def test_plugin_triggers(plugin):  # noqa
         """
         Test plugin triggers to ensure the triggers execute successfully.
 
@@ -209,4 +210,3 @@ class TestPlugin(TestCase):
             return True, None
         except AssertionError as error:
             return False, error
-
