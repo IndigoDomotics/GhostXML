@@ -41,7 +41,7 @@ __build__     = ""
 __copyright__ = "There is no copyright for the GhostXML code base."
 __license__   = "MIT"
 __title__     = "GhostXML Plugin for Indigo Home Control"
-__version__   = "2024.1.1"
+__version__   = "2025.2.0"
 
 
 # =============================================================================
@@ -162,7 +162,8 @@ class Plugin(indigo.PluginBase):
         =====
         :param indigo.Device dev:
         """
-        self.logger.debug(f"{dev.name} [{dev.id}] deleted.")
+        self.logger.debug("%s %s deleted." % (dev.name, dev.id))
+        self.managed_devices.pop(dev.id, None)
         if dev.id in self.managed_devices:
             del self.managed_devices[dev.id]
 
@@ -173,7 +174,8 @@ class Plugin(indigo.PluginBase):
 
         :param indigo.Device dev:
         """
-        self.logger.debug(f"{dev.name} communication starting.")
+        self.logger.debug("%s communication starting." % dev.name)
+        self.managed_devices[dev.id] = PluginDevice(self, dev)
 
         dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Starting")
 
@@ -212,7 +214,7 @@ class Plugin(indigo.PluginBase):
             if dev.pluginProps['sourceXML'] == "":
                 raise KeyError
         except KeyError:
-            self.logger.debug(f"{dev.name} does not have a URL/Path value set. Disabling.")
+            self.logger.debug("%s does not have a URL/Path value set. Disabling." % dev.name)
             indigo.device.enable(dev, value=False)
 
         dev.replaceSharedPropsOnServer(shared_props)
@@ -229,7 +231,7 @@ class Plugin(indigo.PluginBase):
         else:
             dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Started")
 
-        self.logger.debug(f"[{dev.name}] communication started.")
+        self.logger.debug("[%s] communication started." % dev.name)
 
     # =============================================================================
     def device_stop_comm(self, dev: indigo.Device=None):  # noqa
@@ -254,11 +256,11 @@ class Plugin(indigo.PluginBase):
 
             dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Disabled")
 
-            self.logger.debug(f"[{dev.name}] communication stopped.")
+            self.logger.debug("[%s] communication stopped." % dev.name)
 
         except KeyError:
             self.logger.warning(
-                f"{dev.name} - Problem removing device from managed device list. Consider restarting the plugin."
+                "%s - Problem removing device from managed device list. Consider restarting the plugin." % dev.name
             )
 
     # =============================================================================
@@ -296,6 +298,7 @@ class Plugin(indigo.PluginBase):
                                 child.append(option)
 
             return Etree.tostring(root)
+        return None
 
     # =============================================================================
     def get_device_state_list(self, dev: indigo.Device=None) -> list:  # noqa
@@ -350,7 +353,7 @@ class Plugin(indigo.PluginBase):
         # itself, but the structure was recommended by Matt:
         # https://forums.indigodomo.com/viewtopic.php?f=108&t=12898#p87456
         # 2021-02-19 DaveL17 disabled logging message as it's only useful for development debugging.
-        # self.logger.debug(f"self.managedDevices: {self.managedDevices}")
+        # self.logger.debug("self.managedDevices: %s" % self.managedDevices)
         state_list = indigo.PluginBase.get_device_state_list(self, dev)
 
         # ========================= Custom States as Strings ==========================
@@ -369,7 +372,7 @@ class Plugin(indigo.PluginBase):
 
         # ======================== Custom States as True Type =========================
         try:
-            self.logger.debug(f"[get_device_state_list / self.managed_devices] = {self.managed_devices}")
+            self.logger.debug("[get_device_state_list / self.managed_devices] = %s" % self.managed_devices)
             if dev.deviceTypeId == 'GhostXMLdeviceTrue':
                 # If there are no managed devices, return the existing states.
                 if dev.id not in self.managed_devices:
@@ -413,7 +416,7 @@ class Plugin(indigo.PluginBase):
 
     # =============================================================================
     def get_menu_action_config_ui_xml(self, menu_id):
-
+        """PLACEHOLDER"""
         if menu_id == "manage_plugin_devices":
             my_devs = [dev for dev in indigo.devices.iter("self")]
 
@@ -421,12 +424,12 @@ class Plugin(indigo.PluginBase):
             config_ui = Etree.Element("ConfigUI")
 
             # Dialog instructions
-            field = Etree.SubElement(config_ui, "Field", id=f"instructions", type="label")
+            field = Etree.SubElement(config_ui, "Field", id="instructions", type="label")
             label = Etree.SubElement(field, "Label")
             label.text = "Enable/disable individual plugin devices. Only GhostXML devices are shown."
 
             # Separator
-            field = Etree.SubElement(config_ui, "Field", id=f"sep01", type="separator")
+            field = Etree.SubElement(config_ui, "Field", id="sep01", type="separator")
 
             # List the checkbox followed by the device name - [x] My GhostXML Device
             for dev in my_devs:
@@ -440,7 +443,7 @@ class Plugin(indigo.PluginBase):
             return Etree.tostring(config_ui, encoding='utf-8', xml_declaration=True).decode()
 
         else:
-            pass
+            return None
 
     # =============================================================================
     def wake_up(self):  # noqa
@@ -489,7 +492,7 @@ class Plugin(indigo.PluginBase):
                         # If _time_to_update returns True, add device to its queue.
                         else:
                             if self._time_to_update(dev):
-                                self.logger.debug(f"Time to update: [{dev.name}]")
+                                self.logger.debug("Time to update: [%s]" % dev.name)
                                 self.managed_devices[dev_id].queue.put(dev)
 
                 self._process_triggers()
@@ -555,7 +558,7 @@ class Plugin(indigo.PluginBase):
 
         :param indigo.Trigger trigger:
         """
-        self.logger.info(f"Trigger [{trigger.name}] started.")
+        self.logger.info("Trigger [%s] started." % trigger.name)
         self.master_trigger_dict[trigger.pluginProps['disabledDevice']] = trigger.id
 
     # =============================================================================
@@ -565,7 +568,7 @@ class Plugin(indigo.PluginBase):
 
         :param indigo.Trigger trigger:
         """
-        self.logger.info(f"Trigger [{trigger.name}] stopped.")
+        self.logger.info("Trigger [%s] stopped." % trigger.name)
 
     # =============================================================================
     @staticmethod
@@ -589,7 +592,6 @@ class Plugin(indigo.PluginBase):
         url        = values_dict['sourceXML']
         url_list   = ('file:///', 'http://', 'https://', 'ftp://')   # noqa
         use_digest = values_dict['useDigest']
-        # var_list   = [var.id for var in indigo.variables]  # TODO: unnecessary list comprehension
         var_list   = indigo.variables
 
         def are_subs_valid(subs: tuple, e_dict: indigo.Dict):
@@ -762,7 +764,7 @@ class Plugin(indigo.PluginBase):
         self.indigo_log_handler.setLevel(self.debug_level)
 
     # =============================================================================
-    def _process_bad_calls(self, dev: indigo.Device = None, retries: int = 0) -> bool:
+    def _process_bad_calls(self, dev: indigo.Device = None, retries: int = 0) -> bool | None:
         """
         If a device has made too many unsuccessful attempts
 
@@ -774,10 +776,13 @@ class Plugin(indigo.PluginBase):
             # Add the device to the trigger queue and disable it.
             self.master_trigger_dict['disabled'].put(dev.id)
 
-            self.logger.critical(f"Disabling device: [{dev.id}] {dev.name} because it has failed {retries} times.")
+            self.logger.critical(
+                "Disabling device: [%s] %s because it has failed %s times." % (dev.id, dev.name, retries)
+            )
             indigo.device.enable(dev.id, value=False)
             dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
             return True
+        return None
 
     # =============================================================================
     def _process_triggers(self) -> bool:
@@ -909,9 +914,9 @@ class Plugin(indigo.PluginBase):
 
         def process_test_result(result: list, name: str) -> None:
             if result[0] is True:
-                self.logger.warning(f"{name} tests passed.")
+                self.logger.warning("%s tests passed." % name)
             else:
-                self.logger.warning(f"{result[1]}")
+                self.logger.warning("%s tests failed." % result[1])
 
         # ===================================== Plugin Action =====================================
         test = tests.test_plugin_actions(self)
@@ -1030,24 +1035,24 @@ class PluginDevice:
 
             # Format any needed URL substitutions
             if dev.pluginProps.get('doSubs', False):
-                self.logger.debug(f"[{dev.name}] URL: {url} (before substitution)")
+                self.logger.debug("[%s] URL: %s (before substitution)" % (dev.name, url))
                 url = subber(url.replace("[A]", f"%%v:{dev.pluginProps['subA']}%%"))
                 url = subber(url.replace("[B]", f"%%v:{dev.pluginProps['subB']}%%"))
                 url = subber(url.replace("[C]", f"%%v:{dev.pluginProps['subC']}%%"))
                 url = subber(url.replace("[D]", f"%%v:{dev.pluginProps['subD']}%%"))
                 url = subber(url.replace("[E]", f"%%v:{dev.pluginProps['subE']}%%"))
-                self.logger.debug(f"[{dev.name}] URL: {url} (after substitution)")
+                self.logger.debug("[%s] URL: %s (after substitution)" % (dev.name, url))
 
             # Added by DaveL17 - 2020 10 09
             # Format any needed Raw Curl substitutions
             if dev.pluginProps.get('curlSubs', False):
-                self.logger.debug(f"[{dev.name}] Raw Curl: {curl_array} (before substitution)")
+                self.logger.debug("[%s] Raw Curl: %s (before substitution)" % (dev.name, curl_array))
                 curl_array = subber(curl_array.replace("[A]", f"%%v:{dev.pluginProps['curlSubA']}%%"))
                 curl_array = subber(curl_array.replace("[B]", f"%%v:{dev.pluginProps['curlSubB']}%%"))
                 curl_array = subber(curl_array.replace("[C]", f"%%v:{dev.pluginProps['curlSubC']}%%"))
                 curl_array = subber(curl_array.replace("[D]", f"%%v:{dev.pluginProps['curlSubD']}%%"))
                 curl_array = subber(curl_array.replace("[E]", f"%%v:{dev.pluginProps['curlSubE']}%%"))
-                self.logger.debug(f"[{dev.name}] Raw Curl: {curl_array} (after substitution)")
+                self.logger.debug("[%s] Raw Curl: %s (after substitution)" % (dev.name, curl_array))
 
             # Initiate curl call to data source.
             # ================================  Curl Auth  ================================
@@ -1137,29 +1142,29 @@ class PluginDevice:
                     if return_code != 0:
                         # for plugin log (verbose error)
                         curl_err = err.replace(b'\n', b' ')
-                        self.host_plugin.logger.debug(f"[{dev.name}] curl error {curl_err}.")
+                        self.host_plugin.logger.debug("[%s] curl error %s." % (dev.name, curl_err))
 
                         # for Indigo event log
                         err_msg = curl_code.get(f"{return_code}", "Unknown code message.")
-                        self.host_plugin.logger.debug(f"[{dev.name}] - Return code: {return_code} - {err_msg}]")
+                        self.host_plugin.logger.debug("[%s] - Return code: %s - %s]" % (dev.name, return_code, err_msg))
                 case "request":
                     if return_code != 200:
-                        self.logger.warning(f"{dev.name} - [{return_code}] {http_code[return_code]}")
+                        self.logger.warning("%s - [%s] %s", dev.name, return_code, http_code[return_code])
             return result
 
         except IOError:
-            self.logger.warning(f"[{dev.name}] IOError:  Skipping until next scheduled poll.")
-            self.logger.debug(f"[{dev.name}] Device is offline. No data to return. Returning dummy dict.")
+            self.logger.warning("[%s] IOError:  Skipping until next scheduled poll." % dev.name)
+            self.logger.debug("[%s] Device is offline. No data to return. Returning dummy dict." % dev.name)
             dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No comm")
             return '{"GhostXML": "IOError"}'
 
         except Exception:  # noqa
             # Add wider exception testing to test errors
-            self.logger.exception(f"General exception: {return_code}")
+            self.logger.exception("General exception: %s" % return_code)
             return '{"GhostXML": "General Exception"}'
 
     # =============================================================================
-    def _clean_the_keys(self, input_data: dict = None) -> dict:
+    def _clean_the_keys(self, input_data: dict = None) -> dict | None:
         """
         Ensure that state names are valid for Indigo
 
@@ -1267,14 +1272,14 @@ class PluginDevice:
             return self.json_raw_data
 
         except (ValueError, json.decoder.JSONDecodeError):
-            self.logger.debug(f"[{dev.name}] Parse Error:")
-            self.logger.debug(f"[{dev.name}] jsonRawData { self.json_raw_data}")
+            self.logger.debug("[%s] Parse Error:" % dev.name)
+            self.logger.debug("[%s] jsonRawData %s" % (dev.name, self.json_raw_data))
 
             # If we let it, an exception here will kill the device's thread. Therefore, we have to return something
             # that the device can use in order to keep the thread alive.
             self.logger.warning(
-                f"{dev.name} - There was a parse error. Will continue to poll. Check the plugin log for more "
-                f"information."
+                "%s - There was a parse error. Will continue to poll. "
+                "Check the plugin log for more information." % dev.name
             )
             self.old_device_states['parse_error'] = True
             return self.old_device_states
@@ -1319,14 +1324,14 @@ class PluginDevice:
 
         except ValueError as sub_error:
             self.logger.critical(
-                f"[{dev.name}] Error parsing state values.\n{self.final_dict}\nReason: {sub_error}"
+                "[%s] Error parsing state values.\n%s\nReason: %s" % (dev.name, self.final_dict, sub_error)
             )
             dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
             state_list.append({'key': 'deviceIsOnline', 'value': False, 'uiValue': "Error"})
 
         except Exception as subError:
             # Add wider exception testing to test errors
-            self.logger.exception(f'General exception: {subError}')
+            self.logger.exception("General exception: %s" % subError)
 
         dev.updateStatesOnServer(state_list)
 
@@ -1361,7 +1366,7 @@ class PluginDevice:
                     self.final_dict = self._clean_the_keys(self.final_dict)
 
                 else:
-                    self.logger.warning(f"{dev.name}: The plugin only supports XML and JSON data sources.")
+                    self.logger.warning("%s: The plugin only supports XML and JSON data sources." % dev.name)
                     return
 
                 if self.final_dict is not None:
@@ -1390,7 +1395,7 @@ class PluginDevice:
                         self.bad_calls += 1
                     else:
                         dev.updateStateOnServer('deviceIsOnline', value=True, uiValue="Updated")
-                        self.logger.info(f"{dev.name} updated.")
+                        self.logger.info("%s updated." % dev.name)
                         dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
                         dev.setErrorStateOnServer(None)
                         self.bad_calls = 0
@@ -1405,14 +1410,13 @@ class PluginDevice:
 
             else:
                 self.logger.debug(
-                    f"[{dev.name}] Device not available for update [Enabled: {dev.enabled}, Configured: "
-                    f"{dev.configured}]"
+                    "[%s] Device not available for update [Enabled: %s, Configured: %s]" % (dev.name, dev.enabled, dev.configured)
                 )
                 dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
         except KeyError:  # noqa
             # Add wider exception testing to test errors
-            self.logger.exception(f"General exception: {dev.name}")
+            self.logger.exception("General exception: %s" % dev.name)
 
     # =============================================================================
     def strip_namespace(self, dev: indigo.Device = None, root: (bytes, str) = "") -> re.sub:
@@ -1441,7 +1445,7 @@ class PluginDevice:
                 try:
                     root = root.decode('utf-8')
                 except UnicodeDecodeError:
-                    self.logger.warning(f"{dev.name} - There was a problem decoding the payload object.")
+                    self.logger.warning("%s - There was a problem decoding the payload object." % dev.name)
 
             # Remove namespace stuff if it's in there. There's probably a more comprehensive re.sub() that could be
             # run, but it also could do *too* much.
@@ -1456,7 +1460,7 @@ class PluginDevice:
 
         except ValueError as sub_error:
             self.logger.warning(
-                f"[{dev.name}] Error parsing source data: {sub_error}.  Skipping until  next  scheduled poll."
+                "[%s] Error parsing source data: %s. Skipping until next scheduled poll." % (dev.name, sub_error)
             )
             self.raw_data = d_root
             dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No data")

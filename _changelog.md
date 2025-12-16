@@ -1,3 +1,6 @@
+### v2025.1.0
+- Stability and performance enhancements.
+
 ### v2024.1.1
 - Fixes bug in 2024.1.0 that caused some JSON payloads to cause the device to stick on "processing".
 
