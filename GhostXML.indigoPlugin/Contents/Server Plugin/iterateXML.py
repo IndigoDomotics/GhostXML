@@ -15,7 +15,12 @@ except ImportError:
 
 
 class XmlDictConfig(dict):
-    """ placeholder docstring """
+    """Converts an XML ElementTree element into a nested dictionary.
+
+    Recursively walks the XML tree, mapping element tags to their text content or nested
+    XmlDictConfig instances. When duplicate tags are encountered, their values are collected
+    into a list. Element attributes are stored under a key suffixed with '_A_t_t_r_i_b_s'.
+    """
 
     def __init__(self, parent_element):
         super().__init__()
@@ -44,7 +49,14 @@ class XmlDictConfig(dict):
                 self.update_shim({element.tag: element.text})
 
     def update_shim(self, a_dict):  # noqa
-        """ placeholder docstring """
+        """Update the dictionary while handling duplicate keys by collecting values into lists.
+
+        When a key already exists in the dictionary, the existing value and the new value are
+        combined into a list. If the existing value is already a list, the new value is appended.
+
+        Args:
+            a_dict (dict): The dictionary whose key/value pairs will be merged into this instance.
+        """
 
         temp_dict = a_dict.copy()
 
@@ -66,7 +78,17 @@ class XmlDictConfig(dict):
 
 
 def flatten_dict(d_to_flatten):
-    """ placeholder docstring """
+    """Recursively flatten a nested dictionary into a single-level dictionary.
+
+    Nested keys are joined with an underscore separator. For example, a nested structure of
+    ``{'a': {'b': 1}}`` becomes ``{'a_b': 1}``.
+
+    Args:
+        d_to_flatten (dict): The nested dictionary to flatten.
+
+    Returns:
+        dict: A flat dictionary with underscore-joined keys.
+    """
 
     def expand(key, value):
 
@@ -80,7 +102,19 @@ def flatten_dict(d_to_flatten):
 
 
 def iterate_main(root):  # noqa
-    """ placeholder docstring """
+    """Parse an XML string into a flat key/value dictionary.
+
+    Converts an XML string into a flat dictionary by first building a nested dict via
+    XmlDictConfig, then flattening it. Handles duplicate tags, nested lists, and element
+    attributes. Attribute keys (suffixed '_A_t_t_r_i_b_s') are cleaned up in the final pass.
+    If a parse error occurs, returns a dictionary with a single error-state entry.
+
+    Args:
+        root (str): A string containing the raw XML payload.
+
+    Returns:
+        dict: A flat dictionary of key/value pairs derived from the XML structure.
+    """
 
     try:
         root         = ElementTree.fromstring(root)

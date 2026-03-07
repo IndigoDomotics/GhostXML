@@ -1,5 +1,8 @@
 """
-Docstring placeholder
+Indigo Device Filters
+
+Provides a reference list of Indigo device filter strings used in device configuration UI dropdowns. These filter
+strings control which device types are displayed in device-picker fields within plugin configuration dialogs.
 """
 DEVICE_FILTERS = [
     "com.somePlugin.devTypeId" 

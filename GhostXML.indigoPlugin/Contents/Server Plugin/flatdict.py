@@ -602,10 +602,10 @@ class FlatDict(dict):
         return self._delimiter.join([parent, child])
 
     def as_dict(self):
-        """Return the flat dictionary as a dictionary.
+        """Return the flat dictionary as a standard dictionary.
 
-        :rtype: dict
-
+        Returns:
+            dict: A standard nested dictionary representation of the flat dictionary.
         """
         dict_out = {}
         for key in self._values.keys():
@@ -624,14 +624,15 @@ class FlatDict(dict):
         return dict_out
 
     def clear(self):
-        """Remove all items from the flat dictionary."""
+        """Remove all items from the flat dictionary.
+        """
         self._values.clear()
 
     def copy(self):
         """Return a shallow copy of the flat dictionary.
 
-        :rtype: flatdict.FlatDict
-
+        Returns:
+            dict: A shallow copy of the flat dictionary's key/value pairs.
         """
         values = {}
         for key in self.keys():
@@ -639,39 +640,43 @@ class FlatDict(dict):
         return values
 
     def get(self, key, d=None):
-        """Return the value for key if key is in the flat dictionary, else
-        default. If default is not given, it defaults to ``None``, so that this
-        method never raises a ``KeyError``.
+        """Return the value for key if present, otherwise return a default.
 
-        :param mixed key: The key to get
-        :param mixed d: The default value
-        :rtype: mixed
+        If the default is not given it defaults to ``None``, so that this method never
+        raises a ``KeyError``.
 
+        Args:
+            key: The key to look up.
+            d: The default value to return if the key is not found.
+
+        Returns:
+            The value associated with key, or d if the key is not found.
         """
         if key not in self.keys():
             return self._values.get(key, d)
         return self.__getitem__(key)
 
     def has_key(self, key):
-        """Check to see if the flat dictionary has a specific key.
+        """Check whether the flat dictionary contains a specific key.
 
-        :param mixed key: The key to check for
-        :rtype: bool
+        Args:
+            key: The key to check for.
 
+        Returns:
+            bool: True if the key exists, False otherwise.
         """
         return key in self.keys()
 
     def items(self):
-        """Return a copy of the flat dictionary's list of ``(key, value)``
-        pairs.
+        """Return a copy of the flat dictionary's list of ``(key, value)`` pairs.
 
-        .. note:: CPython implementation detail: Keys and values are listed in \
-        an arbitrary order which is non-random, varies across Python \
-        implementations, and depends on the flat dictionary's history of \
-        insertions and deletions.
+        Note:
+            CPython implementation detail: Keys and values are listed in an arbitrary order
+            which is non-random, varies across Python implementations, and depends on the flat
+            dictionary's history of insertions and deletions.
 
-        :rtype: list
-
+        Returns:
+            list: A list of ``(key, value)`` tuples.
         """
         items = list()
         for key in self.keys():
@@ -679,57 +684,59 @@ class FlatDict(dict):
         return items
 
     def iteritems(self):
-        """Return an iterator over the flat dictionary's (key, value) pairs.
-        See the note for :py:class:`FlatDict.items() <flatdict.FlatDict.items>`.
+        """Return an iterator over the flat dictionary's ``(key, value)`` pairs.
 
-        Using ``iteritems()`` while adding or deleting entries in the flat
-        dictionary may raise a ``RuntimeError`` or fail to iterate over all
-        entries.
+        Using ``iteritems()`` while adding or deleting entries may raise a ``RuntimeError``
+        or fail to iterate over all entries. See ``items()`` for ordering notes.
 
-        :rtype: Iterator
-        :raises: RuntimeError
+        Yields:
+            tuple: The next ``(key, value)`` pair.
 
+        Raises:
+            RuntimeError: If the dictionary is modified during iteration.
         """
         for item in self.items():
             yield item
 
     def iterkeys(self):
-        """Return an iterator over the flat dictionary's keys. See the note for
-        :py:class:`FlatDict.items() <flatdict.FlatDict.items>`.
+        """Return an iterator over the flat dictionary's keys.
 
-        Using ``iterkeys()`` while adding or deleting entries in the flat
-        dictionary may raise a ``RuntimeError`` or fail to iterate over all
-        entries.
+        Using ``iterkeys()`` while adding or deleting entries may raise a ``RuntimeError``
+        or fail to iterate over all entries. See ``items()`` for ordering notes.
 
-        :rtype: Iterator
-        :raises: RuntimeError
+        Yields:
+            The next key in the flat dictionary.
 
+        Raises:
+            RuntimeError: If the dictionary is modified during iteration.
         """
 
         for key in self.keys():
             yield key
 
     def itervalues(self):
-        """Return an iterator over the flat dictionary's values. See the note
-        for :py:class:`FlatDict.items() <flatdict.FlatDict.items>`.
+        """Return an iterator over the flat dictionary's values.
 
-        Using ``itervalues()`` while adding or deleting entries in the flat
-        dictionary may raise a ``RuntimeError`` or fail to iterate over all
-        entries.
+        Using ``itervalues()`` while adding or deleting entries may raise a ``RuntimeError``
+        or fail to iterate over all entries. See ``items()`` for ordering notes.
 
-        :rtype: Iterator
-        :raises: RuntimeError
+        Yields:
+            The next value in the flat dictionary.
 
+        Raises:
+            RuntimeError: If the dictionary is modified during iteration.
         """
         for key in self.keys():
             yield self.__getitem__(key)
 
     def keys(self):
-        """Return a copy of the flat dictionary's list of keys. See the note for
-        :py:class:`FlatDict.items() <flatdict.FlatDict.items>`.
+        """Return a copy of the flat dictionary's list of keys.
 
-        :rtype: list
+        Nested keys are returned in their flattened, delimiter-joined form. See ``items()``
+        for ordering notes.
 
+        Returns:
+            list: A list of all keys in the flat dictionary.
         """
         keys = list()
         for key in self._values.keys():
@@ -742,14 +749,14 @@ class FlatDict(dict):
         return keys
 
     def pop(self, key, default=None):
-        """If key is in the flat dictionary, remove it and return its value,
-        else return default. If default is not given and key is not in the
-        dictionary, a ``KeyError`` is raised.
+        """Remove and return the value for key, or return default if key is absent.
 
-        :param mixed key: The key name
-        :param mixed default: The default value
-        :rtype: mixed
+        Args:
+            key: The key to remove.
+            default: The value to return if the key is not found. Defaults to None.
 
+        Returns:
+            The value that was associated with key, or default if the key was not found.
         """
         if key not in self.keys() and key not in self._values:
             return default
@@ -763,24 +770,24 @@ class FlatDict(dict):
     # PyCharm syntax checking; "Signature of method 'FlatDict.setdefault()' does
     # not match signature of base method in class 'dict'"
     def setdefault(self, key, default=None):
-        """ If key is in the flat dictionary, return its value. If not,
-        insert key with a value of default and return default.
-        default defaults to ``None``.
+        """Return the value for key if present; otherwise insert key with default and return it.
 
-        :param mixed key: The key name
-        :param mixed default: The default value
-        :rtype: mixed
+        Args:
+            key: The key name.
+            default: The default value to insert if the key is absent. Defaults to None.
 
+        Returns:
+            The value associated with key, or default if the key was newly inserted.
         """
         if key not in self:
             self.__setitem__(key, default)
         return self.__getitem__(key)
 
     def set_delimiter(self, delimiter):
-        """Override the default or passed in delimiter with a new value.
+        """Override the current delimiter with a new value.
 
-        :param str delimiter: The delimiter to use
-
+        Args:
+            delimiter (str): The new delimiter to use for key separation.
         """
         self._delimiter = delimiter
         for key in self._values.keys():
@@ -788,16 +795,15 @@ class FlatDict(dict):
                 self._values[key].set_delimiter(delimiter)
 
     def update(self, other=None, **kwargs):
-        """Update the flat dictionary with the key/value pairs from other,
-        overwriting existing keys.
+        """Update the flat dictionary with key/value pairs from other, overwriting existing keys.
 
-        ``update()`` accepts either another flat dictionary object or an
-        iterable of key/value pairs (as tuples or other iterables of length
-        two). If keyword arguments are specified, the flat dictionary is then
-        updated with those key/value pairs: ``d.update(red=1, blue=2)``.
+        Accepts either another flat dictionary object or an iterable of key/value pairs (as
+        tuples or other iterables of length two). Keyword arguments are also accepted:
+        ``d.update(red=1, blue=2)``.
 
-        :rtype: None
-
+        Args:
+            other: A dictionary or iterable of key/value pairs to merge in.
+            **kwargs: Additional key/value pairs to merge in.
         """
         values = other or kwargs
         if values:
@@ -805,11 +811,12 @@ class FlatDict(dict):
                 self.__setitem__(key, values[key])
 
     def values(self):
-        """Return a copy of the flat dictionary's list of values. See the note
-        for :py:class:`FlatDict.items() <flatdict.FlatDict.items>`.
+        """Return a copy of the flat dictionary's list of values.
 
-        :rtype: list
+        See ``items()`` for ordering notes.
 
+        Returns:
+            list: A list of all values in the flat dictionary.
         """
         values = list()
         for key in self.keys():

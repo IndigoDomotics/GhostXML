@@ -41,25 +41,25 @@ __build__     = ""
 __copyright__ = "There is no copyright for the GhostXML code base."
 __license__   = "MIT"
 __title__     = "GhostXML Plugin for Indigo Home Control"
-__version__   = "2025.2.0"
+__version__   = "2025.2.1"
 
 
 # =============================================================================
 class Plugin(indigo.PluginBase):
-    """
-    Standard Indigo Plugin Class
+    """Standard Indigo Plugin Class for the GhostXML plugin.
 
-    :param indigo.PluginBase:
+    Manages plugin lifecycle, device communication, data retrieval, and state updates for all
+    GhostXML devices. Inherits from indigo.PluginBase.
     """
     def __init__(self, plugin_id: str = "", plugin_display_name: str = "", plugin_version: str = "",
                  plugin_prefs: indigo.Dict = None):
-        """
-        Plugin initialization
+        """Initialize the plugin, set up instance attributes, and configure logging.
 
-        :param str plugin_id:
-        :param str plugin_display_name:
-        :param str plugin_version:
-        :param indigo.Dict plugin_prefs:
+        Args:
+            plugin_id (str): The unique plugin identifier.
+            plugin_display_name (str): The display name of the plugin.
+            plugin_version (str): The current version string of the plugin.
+            plugin_prefs (indigo.Dict): The plugin's stored preferences dictionary.
         """
         super().__init__(plugin_id, plugin_display_name, plugin_version, plugin_prefs)
 
@@ -85,12 +85,11 @@ class Plugin(indigo.PluginBase):
         self.plugin_is_initializing = False
 
     # =============================================================================
-    def log_plugin_environment(self):
-        """
-        Log pluginEnvironment information when plugin is first started
+    def log_plugin_environment(self) -> None:
+        """Log plugin environment information when the plugin is first started.
 
-        This information will be printed to the Event Log regardless of the current logging level set in config
-        preferences.
+        Output is sent to the Indigo Event Log via ``indigo.server.log`` regardless of the
+        current logging level configured in plugin preferences.
         """
         # Send to `indigo.server.log` to ensure it gets logged regardless of the current logging
         # level.
@@ -106,23 +105,25 @@ class Plugin(indigo.PluginBase):
         indigo.server.log("=" * 135)
 
     # =============================================================================
-    def __del__(self):
-        """
-        Called when a device is deleted
+    def __del__(self) -> None:
+        """Destructor called when the plugin object is garbage collected.
         """
         indigo.PluginBase.__del__(self)
 
     # =============================================================================
     # =============================== Indigo Methods ==============================
     # =============================================================================
-    def closed_device_config_ui(self, values_dict: indigo.Dict = None, user_cancelled: bool = False, type_id: str = "", dev_id: int = 0):  # noqa
-        """
-        Standard Indigo method called when the device configuration dialog is closed
+    def closed_device_config_ui(self, values_dict: indigo.Dict = None, user_cancelled: bool = False, type_id: str = "", dev_id: int = 0) -> None:  # noqa
+        """Standard Indigo method called when the device configuration dialog is closed.
 
-        :param indigo.Dict values_dict:
-        :param bool user_cancelled:
-        :param str type_id:
-        :param int dev_id:
+        Replaces the device in the managed devices list to ensure any configuration changes
+        take effect immediately.
+
+        Args:
+            values_dict (indigo.Dict): The dialog field values at the time of closure.
+            user_cancelled (bool): True if the user cancelled the dialog.
+            type_id (str): The device type identifier.
+            dev_id (int): The Indigo device ID.
         """
         dev = indigo.devices[dev_id]
 
@@ -131,12 +132,17 @@ class Plugin(indigo.PluginBase):
 
     # =============================================================================
     def closed_prefs_config_ui(self, values_dict: indigo.Dict = None, user_cancelled: bool = False) -> indigo.Dict:  # noqa
-        """
-        Standard Indigo method called when plugin preferences dialog is closed.
+        """Standard Indigo method called when the plugin preferences dialog is closed.
 
-        :param indigo.Dict values_dict:
-        :param bool user_cancelled:
-        :return:
+        If the dialog was not cancelled, updates ``self.pluginPrefs`` with the new values and
+        applies the updated logging level.
+
+        Args:
+            values_dict (indigo.Dict): The dialog field values at the time of closure.
+            user_cancelled (bool): True if the user cancelled the dialog.
+
+        Returns:
+            indigo.Dict: The (possibly updated) values dictionary.
         """
         if not user_cancelled:
             # Ensure that self.pluginPrefs includes any recent changes.
@@ -155,12 +161,13 @@ class Plugin(indigo.PluginBase):
         return values_dict
 
     # =============================================================================
-    def device_deleted(self, dev: indigo.Device = None):
-        """
-        Remove deleted device from managed list of devices
+    def device_deleted(self, dev: indigo.Device = None) -> None:
+        """Standard Indigo method called when a device is deleted.
 
-        =====
-        :param indigo.Device dev:
+        Removes the device from the managed devices dictionary.
+
+        Args:
+            dev (indigo.Device): The Indigo device that was deleted.
         """
         self.logger.debug("%s %s deleted." % (dev.name, dev.id))
         self.managed_devices.pop(dev.id, None)
@@ -168,11 +175,14 @@ class Plugin(indigo.PluginBase):
             del self.managed_devices[dev.id]
 
     # =============================================================================
-    def device_start_comm(self, dev: indigo.Device=None):  # noqa
-        """
-        Standard Indigo method called when the device is enabled
+    def device_start_comm(self, dev: indigo.Device = None) -> None:  # noqa
+        """Standard Indigo method called when a device is enabled.
 
-        :param indigo.Device dev:
+        Adds the device to the managed devices list, migrates any legacy authentication
+        settings, validates device configuration, and forces an initial state refresh.
+
+        Args:
+            dev (indigo.Device): The Indigo device starting communication.
         """
         self.logger.debug("%s communication starting." % dev.name)
         self.managed_devices[dev.id] = PluginDevice(self, dev)
@@ -234,11 +244,14 @@ class Plugin(indigo.PluginBase):
         self.logger.debug("[%s] communication started." % dev.name)
 
     # =============================================================================
-    def device_stop_comm(self, dev: indigo.Device=None):  # noqa
-        """
-        Standard Indigo method called when the device is disabled
+    def device_stop_comm(self, dev: indigo.Device = None) -> None:  # noqa
+        """Standard Indigo method called when a device is disabled.
 
-        :param indigo.Device dev:
+        Joins the device's update thread, removes it from the managed devices list, and
+        updates the device's state icon to reflect the disabled condition.
+
+        Args:
+            dev (indigo.Device): The Indigo device stopping communication.
         """
         # =============================================================================
         try:
@@ -264,57 +277,25 @@ class Plugin(indigo.PluginBase):
             )
 
     # =============================================================================
-    def get_device_config_ui_xml(self, type_id: str = "", dev_id: int = 0) -> Etree:  # noqa
+    def get_device_state_list(self, dev: indigo.Device = None) -> list:  # noqa
+        """Standard Indigo method that returns the list of states for a device.
+
+        Pulls keys from ``self.final_dict`` and maps them to Indigo device state definitions.
+        For ``GhostXMLdevice`` types all states are stored as strings. For ``GhostXMLdeviceTrue``
+        types each value is inspected and mapped to the most appropriate Indigo state type
+        (int, float, bool, or string). Called automatically by ``stateListOrDisplayStateIdChanged()``
+        and by Indigo when building Triggers and Control Pages.
+
+        Note:
+            Indigo sorts device states as A, B, a, b and this ordering cannot be overridden.
+
+        Args:
+            dev (indigo.Device): The Indigo device whose state list is being built.
+
+        Returns:
+            list: The updated list of Indigo device state dictionaries.
         """
-        Standard Indigo method called when device config dialog is opened
-
-        :param str type_id:
-        :param int dev_id:
-        """
-        current_freq = indigo.devices[dev_id].pluginProps.get('refreshFreq', '15')
-        freqs        = []
-        xml          = self.devicesTypeDict[type_id]["ConfigUIRawXml"]
-        root         = Etree.fromstring(xml)
-
-        # 2022-02-11 converted elem.getchildren() to list(elem) for Python 3.
-        if type_id in ('GhostXMLdevice', 'GhostXMLdeviceTrue'):
-
-            # Get current list of refresh frequencies from the XML file.
-            for item in root.findall('Field'):
-                if item.attrib['id'] == 'refreshFreq':
-                    for child in list(item):
-                        freqs = [int(grandchild.attrib['value']) for grandchild in list(child) if child.tag == 'List']
-
-            # If the current refresh frequency is different from the default, it has been set through a custom refresh
-            # frequency action. So we add a "Custom" option that will display when the dialog opens.
-            if current_freq not in freqs:
-                for item in root.findall('Field'):
-                    if item.attrib['id'] == 'refreshFreq':
-                        for child in list(item):
-                            if child.tag == 'List':
-                                option = Etree.fromstring(
-                                    f"<Option value='{current_freq}'>Custom ({current_freq} seconds)</Option>"
-                                )
-                                child.append(option)
-
-            return Etree.tostring(root)
-        return None
-
-    # =============================================================================
-    def get_device_state_list(self, dev: indigo.Device=None) -> list:  # noqa
-        """
-        Assign data keys to device state names (Indigo)
-
-        The get_device_state_list() method pulls out all the keys in self.finalDict and assigns them to device states.
-        It returns the modified stateList which is then written back to the device in the main thread. This method is
-        automatically called by stateListOrDisplayStateIdChanged() and by Indigo when Triggers and Control Pages are
-        built. Note that it's not possible to override Indigo's sorting of devices states which will present them as A,
-        B, a, b.
-
-        :param indigo.Device dev:
-        :return state_list:
-        """
-        def parse_the_states(k, v):
+        def parse_the_states(k: str, v) -> list:
             b_key = f"{k}_bool"  # boolean key
             u_key = f"{k}"
 
@@ -390,14 +371,64 @@ class Plugin(indigo.PluginBase):
         except Exception:
             self.logger.exception("General exception.")
 
+    def get_device_config_ui_xml(self, type_id: str = "", dev_id: int = 0) -> bytes | None:  # noqa
+        """Standard Indigo method called when the device configuration dialog is opened.
+
+        Dynamically adds a "Custom" refresh frequency option to the dialog's frequency list
+        when the device's current refresh frequency does not match any of the predefined values.
+
+        Args:
+            type_id (str): The device type identifier.
+            dev_id (int): The Indigo device ID.
+
+        Returns:
+            bytes | None: The (possibly modified) XML configuration UI as a UTF-8 encoded byte
+            string, or None if the device type is not handled.
+        """
+        current_freq = indigo.devices[dev_id].pluginProps.get('refreshFreq', '15')
+        freqs        = []
+        xml          = self.devicesTypeDict[type_id]["ConfigUIRawXml"]
+        root         = Etree.fromstring(xml)
+
+        # 2022-02-11 converted elem.getchildren() to list(elem) for Python 3.
+        if type_id in ('GhostXMLdevice', 'GhostXMLdeviceTrue'):
+
+            # Get current list of refresh frequencies from the XML file.
+            for item in root.findall('Field'):
+                if item.attrib['id'] == 'refreshFreq':
+                    for child in list(item):
+                        freqs = [int(grandchild.attrib['value']) for grandchild in list(child) if child.tag == 'List']
+
+            # If the current refresh frequency is different from the default, it has been set through a custom refresh
+            # frequency action. So we add a "Custom" option that will display when the dialog opens.
+            if current_freq not in freqs:
+                for item in root.findall('Field'):
+                    if item.attrib['id'] == 'refreshFreq':
+                        for child in list(item):
+                            if child.tag == 'List':
+                                option = Etree.fromstring(
+                                    f"<Option value='{current_freq}'>Custom ({current_freq} seconds)</Option>"
+                                )
+                                child.append(option)
+
+            return Etree.tostring(root)
+        return None
+    # =============================================================================
+
     # =============================================================================
     @staticmethod
     def manage_plugin_devices(values_dict: indigo.Dict = None, menu_id: str = "") -> tuple:  # noqa
-        """
-        User executes the "Manage Plugin Devices" menu item
+        """Callback for the "Manage Plugin Devices" menu item.
 
-        This menu item is used to enable/disable plugin devices per user's request. If the user selects "Cancel", no
-        action is taken.
+        Enables or disables each plugin device based on the checkbox values submitted by
+        the user. If the user selects Cancel, no action is taken.
+
+        Args:
+            values_dict (indigo.Dict): Dialog field values keyed by ``d_<dev_id>`` for each device.
+            menu_id (str): The menu item identifier.
+
+        Returns:
+            tuple: A ``(True, values_dict)`` tuple confirming success.
         """
         # Iterate values_dict
         for dev in values_dict:
@@ -416,8 +447,19 @@ class Plugin(indigo.PluginBase):
 
     # =============================================================================
     @staticmethod
-    def get_menu_action_config_ui_xml(menu_id):
-        """PLACEHOLDER"""
+    def get_menu_action_config_ui_xml(menu_id: str) -> str | None:
+        """Standard Indigo method that returns dynamic XML for a menu action's configuration dialog.
+
+        Builds and returns an XML configuration UI for the given menu action. Currently handles
+        the ``manage_plugin_devices`` menu item, generating a checkbox list of all plugin devices.
+
+        Args:
+            menu_id (str): The identifier of the menu action whose UI XML is being requested.
+
+        Returns:
+            str: A UTF-8 XML declaration string defining the ConfigUI, or None if the menu_id
+            is not handled.
+        """
         if menu_id == "manage_plugin_devices":
             my_devs = [dev for dev in indigo.devices.iter("self")]
 
@@ -446,27 +488,28 @@ class Plugin(indigo.PluginBase):
         return None
 
     # =============================================================================
-    def wake_up(self):  # noqa
-        """
-        Standard Indigo method called when Indigo receives a system wakeup call
+    def wake_up(self) -> None:  # noqa
+        """Standard Indigo method called when Indigo receives a system wake-up call.
         """
         self.logger.debug("wake_up method called")
         indigo.PluginBase.wake_up(self)
         self.prepare_to_sleep = False
 
     # =============================================================================
-    def prepareToSleep(self):  # noqa
-        """
-        Standard Indigo method called when Indigo receives a system sleep call
+    def prepareToSleep(self) -> None:  # noqa
+        """Standard Indigo method called when Indigo receives a system sleep call.
         """
         self.logger.debug("prepareToSleep method called")
         indigo.PluginBase.prepareToSleep(self)
         self.prepare_to_sleep = True
 
     # =============================================================================
-    def run_concurrent_thread(self):  # noqa
-        """
-        Standard Indigo method that runs continuously when plugin is enabled
+    def run_concurrent_thread(self) -> None:  # noqa
+        """Standard Indigo method that runs continuously while the plugin is enabled.
+
+        Iterates managed devices every two seconds to check whether each device is due for a
+        data refresh, dispatches updates to device queues, processes triggers, and handles
+        excessive bad calls by disabling the offending device.
         """
         self.sleep(1)
 
@@ -512,28 +555,34 @@ class Plugin(indigo.PluginBase):
     # =============================================================================
     @staticmethod
     def sendDevicePing(dev_id: int = 0, suppress_logging: bool = False) -> dict:  # noqa
-        """
-        Standard Indigo method called when a plugin device receives a ping request
+        """Standard Indigo method called when a plugin device receives a ping request.
 
-        :param int dev_id:
-        :param bool suppress_logging:
+        GhostXML devices do not support the ping function.
+
+        Args:
+            dev_id (int): The Indigo device ID receiving the ping.
+            suppress_logging (bool): Whether to suppress the log message.
+
+        Returns:
+            dict: A result dictionary with ``{'result': 'Failure'}``.
         """
         indigo.server.log("GhostXML Plugin devices do not support the ping function.")
         return {'result': 'Failure'}
 
     # =============================================================================
-    def shutdown(self):
-        """
-        Standard Indigo method called when the plugin is disabled
+    def shutdown(self) -> None:
+        """Standard Indigo method called when the plugin is disabled.
         """
         self.plugin_is_shutting_down = True
         self.indigo_log_handler.setLevel(20)
         self.logger.info('Shutdown complete.')
 
     # =============================================================================
-    def startup(self):
-        """
-        Standard Indigo method called when the plugin is first started
+    def startup(self) -> None:
+        """Standard Indigo method called when the plugin is first started.
+
+        Validates the minimum required Indigo version and initializes the display state of all
+        plugin devices.
         """
         # =========================== Audit Indigo Version ============================
         min_ver = 2022
@@ -552,34 +601,41 @@ class Plugin(indigo.PluginBase):
             dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 
     # =============================================================================
-    def trigger_start_processing(self, trigger: indigo.Trigger):  # noqa
-        """
-        Standard Indigo method called when a plugin trigger is enabled
+    def trigger_start_processing(self, trigger: indigo.Trigger) -> None:  # noqa
+        """Standard Indigo method called when a plugin trigger is enabled.
 
-        :param indigo.Trigger trigger:
+        Args:
+            trigger (indigo.Trigger): The Indigo trigger that is starting.
         """
         self.logger.info("Trigger [%s] started." % trigger.name)
         self.master_trigger_dict[trigger.pluginProps['disabledDevice']] = trigger.id
 
     # =============================================================================
-    def trigger_stop_processing(self, trigger: indigo.Trigger):  # noqa
-        """
-        Standard Indigo method called when a plugin trigger is disabled
+    def trigger_stop_processing(self, trigger: indigo.Trigger) -> None:  # noqa
+        """Standard Indigo method called when a plugin trigger is disabled.
 
-        :param indigo.Trigger trigger:
+        Args:
+            trigger (indigo.Trigger): The Indigo trigger that is stopping.
         """
         self.logger.info("Trigger [%s] stopped." % trigger.name)
 
     # =============================================================================
     @staticmethod
-    def validate_device_config_ui(values_dict: indigo.Dict = None, type_id: str = "", dev_id: int = 0):  # noqa
-        """
-        Standard Indigo method called when device config dialog is closed
+    def validate_device_config_ui(values_dict: indigo.Dict = None, type_id: str = "", dev_id: int = 0) -> tuple:  # noqa
+        """Standard Indigo method called to validate the device configuration dialog on close.
 
-        :param indigo.Dict values_dict:
-        :param str type_id:
-        :param int dev_id:
-        :return:
+        Validates timeout, refresh frequency, max retries, source URL, token settings, and
+        variable substitution IDs. Also applies SQL logging preferences to the device's shared
+        props.
+
+        Args:
+            values_dict (indigo.Dict): The dialog field values to validate.
+            type_id (str): The device type identifier.
+            dev_id (int): The Indigo device ID.
+
+        Returns:
+            tuple: ``(True, values_dict, error_msg_dict)`` if valid, or
+            ``(False, values_dict, error_msg_dict)`` with populated errors if validation fails.
         """
         error_msg_dict = indigo.Dict()
         sub_list = (('subA', '[A]'), ('subB', '[B]'), ('subC', '[C]'), ('subD', '[D]'), ('subE', '[E]'))
@@ -594,11 +650,15 @@ class Plugin(indigo.PluginBase):
         use_digest = values_dict['useDigest']
         var_list   = indigo.variables
 
-        def are_subs_valid(subs: tuple, e_dict: indigo.Dict):
-            """ Test if various indigo substitutions are valid
+        def are_subs_valid(subs: tuple, e_dict: indigo.Dict) -> indigo.Dict:
+            """Test whether an Indigo variable substitution field contains a valid variable ID.
 
-            :param tuple subs:
-            :param indigo.Dict e_dict:
+            Args:
+                subs (tuple): A ``(field_key, label)`` pair where field_key names the dialog field.
+                e_dict (indigo.Dict): The error message dictionary to populate on failure.
+
+            Returns:
+                indigo.Dict: The error dictionary, updated with any new validation errors.
             """
             try:
                 # Ensure that values entered into the substitution fields are valid Indigo variable IDs.
@@ -685,16 +745,15 @@ class Plugin(indigo.PluginBase):
     # =============================== Plugin Methods ==============================
     # =============================================================================
     def adjust_refresh_time(self, values_dict: indigo.Dict = None) -> None:
-        """
-        Programmatically Adjust the refresh time for an individual device
+        """Programmatically adjust the refresh frequency for an individual device.
 
-        The adjust_refresh_time method is used to adjust the refresh frequency of an individual GhostXML device by
-        calling an Indigo Action. For example, user creates an Indigo Trigger that fires--based on some criteria like
-        the value of a GhostXML state, which in turn calls an Indigo Action Item to adjust the refresh frequency. In
-        other words, the user can increase/decrease the frequency based on some condition.
+        Called via an Indigo Action. Allows the refresh rate to be changed dynamically—for
+        example, a Trigger can fire based on a GhostXML state value and call this action to
+        increase or decrease the polling frequency in response.
 
-        :param indigo.Dict values_dict:
-        :return:
+        Args:
+            values_dict (indigo.Dict): The action values dict. Must include ``deviceId`` and
+                ``props['new_refresh_freq']``.
         """
         dev       = self.managed_devices[values_dict.deviceId].device
         new_props = dev.pluginProps
@@ -704,10 +763,12 @@ class Plugin(indigo.PluginBase):
     # =============================================================================
     @staticmethod
     def comms_kill_all() -> bool:
-        """
-        Disable communication of all plugin devices
+        """Disable communication for all plugin devices.
 
-        comms_kill_all() sets the enabled status of all plugin devices to False.
+        Sets the enabled status of every GhostXML device to False.
+
+        Returns:
+            bool: Always returns True.
         """
         for dev in indigo.devices.iter("self"):
             if dev.enabled:
@@ -717,10 +778,12 @@ class Plugin(indigo.PluginBase):
     # =============================================================================
     @staticmethod
     def comms_unkill_all() -> bool:
-        """
-        Enable communication of all plugin devices
+        """Enable communication for all plugin devices.
 
-        comms_unkill_all() sets the enabled status of all plugin devices to True.
+        Sets the enabled status of every GhostXML device to True.
+
+        Returns:
+            bool: Always returns True.
         """
         for dev in indigo.devices.iter("self"):
             if not dev.enabled:
@@ -730,24 +793,22 @@ class Plugin(indigo.PluginBase):
     # =============================================================================
     @staticmethod
     def get_device_list(filter: str = "", type_id: int = 0, values_dict: indigo.Dict = None, target_id: int = 0) -> list:  # noqa
-        """
-        Return a list of plugin devices for use in dropdown menus
+        """Return a list of plugin devices for use in dropdown menus.
 
-        Returns a list of plugin devices for use in dropdown menus in the form of
-        [(dev.id, dev.name), (dev.id, dev.name)]
+        Args:
+            filter (str): An Indigo device filter string (unused; all plugin devices returned).
+            type_id (int): The device type ID (unused).
+            values_dict (indigo.Dict): The current dialog values (unused).
+            target_id (int): The target device ID (unused).
 
-        :param str filter:
-        :param int type_id:
-        :param indigo.Dict values_dict:
-        :param int target_id:
-        :return list:
+        Returns:
+            list: A list of ``(dev.id, dev.name)`` tuples for all plugin devices.
         """
         return [(dev.id, dev.name) for dev in indigo.devices.iter(filter="self")]
 
     # =============================================================================
     def _log_environment_info(self) -> None:
-        """
-        Write interesting information to the log on startup.
+        """Write plugin and system environment details to the log on startup.
         """
         self.indigo_log_handler.setLevel(20)
         self.logger.info("")
@@ -765,12 +826,17 @@ class Plugin(indigo.PluginBase):
 
     # =============================================================================
     def _process_bad_calls(self, dev: indigo.Device = None, retries: int = 0) -> bool | None:
-        """
-        If a device has made too many unsuccessful attempts
+        """Disable a device that has exceeded its maximum number of consecutive failed calls.
 
-        :param indigo.Device dev:
-        :param int retries:
-        :return:
+        Adds the device to the disabled trigger queue, logs a critical message, disables the
+        device in Indigo, and updates its state icon to the tripped state.
+
+        Args:
+            dev (indigo.Device): The device that has exceeded its retry limit.
+            retries (int): The configured maximum number of retries.
+
+        Returns:
+            bool | None: True if the device was disabled, None if it was already disabled.
         """
         if dev.enabled:
             # Add the device to the trigger queue and disable it.
@@ -786,10 +852,13 @@ class Plugin(indigo.PluginBase):
 
     # =============================================================================
     def _process_triggers(self) -> bool:
-        """
-        Process plugin triggers
+        """Process any pending plugin triggers.
 
-        :return:
+        Drains the disabled-devices queue and fires the corresponding Indigo trigger for each
+        device ID found in the queue, provided the trigger is enabled.
+
+        Returns:
+            bool: Always returns True.
         """
         try:
             disabled_devices_queue = self.master_trigger_dict['disabled']
@@ -809,47 +878,48 @@ class Plugin(indigo.PluginBase):
 
     # =============================================================================
     def refreshDataAction(self, values_dict: indigo.Dict = None) -> None:  # noqa
-        """
-        Legacy callback to Refresh Data for All Devices
+        """Legacy callback to refresh data for all devices.
 
-        This method supports the old callback name.
+        Retained for backwards compatibility with old Action Item configurations. Delegates to
+        ``refresh_data_action()``. Users should update their Action Items to use the new name.
 
-        :param indigo.Dict values_dict:
-        :return:
+        Args:
+            values_dict (indigo.Dict): The action values dictionary.
         """
         self.logger.warning("You are using an outdated plugin Action Item. Please update it.")
         self.refresh_data_action(values_dict)
 
     # =============================================================================
     def refreshDataForDevAction(self, values_dict: indigo.Dict = None) -> None:  # noqa
-        """
-        Legacy callback to Refresh Data for a Specified Device
+        """Legacy callback to refresh data for a specified device.
 
-        This method supports the old callback name.
+        Retained for backwards compatibility with old Action Item configurations. Delegates to
+        ``refresh_data_for_dev_action()``. Users should update their Action Items to use the new name.
 
-        :param indigo.Dict values_dict:
-        :return:
+        Args:
+            values_dict (indigo.Dict): The action values dictionary.
         """
         self.logger.warning("You are using an outdated plugin Action Item. Please update it.")
         self.refresh_data_for_dev_action(values_dict)
 
     # =============================================================================
     def refresh_data_action(self, values_dict: indigo.Dict = None) -> None:  # noqa
-        """
-        Initiate data refresh based on menu call
+        """Initiate a data refresh for all devices via a plugin menu or action call.
 
-        The refresh_data_action() method refreshes data for all devices based on a plugin menu call.
-
-        :param indigo.Dict values_dict:
+        Args:
+            values_dict (indigo.Dict): The action values dictionary (unused).
         """
         self.refresh_data()
 
     # =============================================================================
     def refresh_data(self) -> bool:
-        """
-        The refresh_data() method controls the updating of all plugin devices
+        """Initiate a data refresh for all managed plugin devices.
 
-        Initiate a data refresh based on a normal plugin cycle.
+        Adds each managed device to its own update queue. If no devices are active, logs a
+        warning and returns early.
+
+        Returns:
+            bool: True on success, False if a KeyError occurs during iteration.
         """
         # If there are no devices created or all devices are disabled.
         if len(self.managed_devices) == 0:
@@ -870,26 +940,27 @@ class Plugin(indigo.PluginBase):
 
     # =============================================================================
     def refresh_data_for_dev_action(self, values_dict: indigo.Dict = None) -> None:
-        """
-        Initiate a device refresh based on an Indigo Action call
+        """Initiate a data refresh for a single device via an Indigo Action call.
 
-        The refresh_data_for_dev_action() method refreshes data for a selected device based on a plugin action call.
-
-        :param indigo.Dict values_dict:
+        Args:
+            values_dict (indigo.Dict): The action values dictionary. Must include ``deviceId``.
         """
         dev = self.managed_devices[values_dict.deviceId].device
         self.managed_devices[dev.id].queue.put(dev)
 
     # =============================================================================
     @staticmethod
-    def _time_to_update(dev: indigo.Device=None) -> bool:  # noqa
-        """
-        Determine if a device is ready for a refresh
+    def _time_to_update(dev: indigo.Device = None) -> bool:  # noqa
+        """Determine whether a device is due for a data refresh.
 
-        Returns True if the device is ready to be updated, else returns False.
+        Compares the time elapsed since the device's last update against its configured refresh
+        frequency. Returns False if the device has no timestamp, is disabled, or is not yet due.
 
-        :param indigo.Device dev:
-        :returns bool:
+        Args:
+            dev (indigo.Device): The device to evaluate.
+
+        Returns:
+            bool: True if the device should be refreshed now, False otherwise.
         """
         # 2022-02-15 DaveL17 - Refactored for simplicity. See GitHub for prior code.
         # If device has a deviceTimestamp key and is enabled, test to see if the device is ready for a refresh.
@@ -903,11 +974,14 @@ class Plugin(indigo.PluginBase):
         return False
 
     def my_tests(self, action: indigo.PluginAction = None) -> None:  # noqa
-        """
-        The main unit test method
+        """Run the plugin's unit test suite via a plugin action item.
 
-        The my_tests method is called from a plugin action item and, when called, imports all unit tests and runs them.
-        If the unit test module returns True, then all tests have passed.
+        Imports the ``iom_tests`` module, instantiates the test class, and runs all test
+        groups (actions, triggers, Indigo methods, plugin methods). Results are logged as
+        warnings.
+
+        Args:
+            action (indigo.PluginAction): The Indigo action that triggered the test run.
         """
         from Tests import iom_tests  # test_devices
         tests = iom_tests.TestPlugin()
@@ -937,20 +1011,19 @@ class Plugin(indigo.PluginBase):
 
 # =============================================================================
 class PluginDevice:
-    """
-    Create device object and corresponding queue
+    """Represents a single managed GhostXML device and its associated update thread and queue.
 
-    The PluginDevice class is used to create an object to store data related to each enabled plugin device. The object
-    contains an instance of the Indigo device and a command queue.
+    Stores the Indigo device instance, raw and parsed data, bad-call counter, and the
+    per-device Queue/Thread pair used to dispatch asynchronous data refresh tasks.
     """
 
     # =============================================================================
     def __init__(self, plugin: Plugin, device: indigo.Device) -> None:
-        """
-        Title Placeholder
+        """Initialize the PluginDevice, set up instance attributes, and start the update thread.
 
-        :param Plugin plugin:
-        :param indigo.Device device:
+        Args:
+            plugin (Plugin): The parent Plugin instance.
+            device (indigo.Device): The Indigo device this object manages.
         """
         self.plugin_device_is_initializing = True
 
@@ -971,23 +1044,23 @@ class PluginDevice:
 
     # =============================================================================
     def __str__(self) -> str:
-        """
-        Title Placeholder
+        """Return a formatted string representation of the PluginDevice.
 
-        Body placeholder
+        Returns:
+            str: A string showing the device ID, thread, and queue information.
         """
         return f"[{self.device.id:>11}] {self.dev_thread:<46} {self.queue:<40}"
 
     # =============================================================================
     def _initiate_device_update(self, update_queue: Queue = None) -> None:
-        """
-        Initiate an update of the device
+        """Keep the device thread alive and dispatch updates from the queue.
 
-        The _initiate_device_update method keeps the device thread alive and is used as a bridge between the Plugin
-        class and the device class.
+        Runs as the device's background thread target. Polls the queue every 250ms and calls
+        ``refresh_data_for_dev()`` for each task retrieved. Acts as a bridge between the Plugin
+        class's main loop and the per-device refresh logic.
 
-        :param Queue update_queue:
-        :return:
+        Args:
+            update_queue (Queue): The queue from which device refresh tasks are consumed.
         """
         try:
             while True:
@@ -1004,17 +1077,20 @@ class PluginDevice:
             self.logger.exception("General exception:")
 
     # =============================================================================
-    def get_the_data(self, dev: indigo.Device = None):
-        """
-        The get_the_data() method is used to retrieve target data files.
+    def get_the_data(self, dev: indigo.Device = None) -> str | bytes:
+        """Retrieve raw data from the device's configured URL or file path.
 
-        The get_the_data() method is used to construct the relevant API URL, sends the call to the data source via
-        curl, and returns the result. The URL can be sent using auth as required (basic, digest) or without auth. In
-        addition, Indigo substitutions are processed as required such that the user can modify the URL based on
-        variable values.
+        Constructs the API URL (applying any configured Indigo variable substitutions), selects
+        the appropriate authentication method (Raw curl, Digest, Basic, Bearer, Token, or none),
+        issues the request, and returns the raw response. A timer-based kill mechanism handles
+        curl subprocess timeouts.
 
-        :param indigo.Device dev:
-        :return XML' or class 'JSON result:
+        Args:
+            dev (indigo.Device): The Indigo device whose data source is being polled.
+
+        Returns:
+            str | bytes: The raw XML or JSON response body, or a JSON error sentinel string on
+            failure.
         """
         return_code = 0
         result      = ""
@@ -1166,13 +1242,17 @@ class PluginDevice:
 
     # =============================================================================
     def _clean_the_keys(self, input_data: dict = None) -> dict | None:
-        """
-        Ensure that state names are valid for Indigo
+        """Sanitize dictionary keys so they are valid Indigo device state names.
 
-        Some dictionaries may have keys that contain problematic characters which Indigo doesn't like as state names.
-        Let's get those characters out of there.
+        Replaces problematic characters using the ``CHARS_TO_REPLACE`` mapping, removes
+        characters in ``CHARS_TO_REMOVE``, and prepends ``No_`` to any key that begins with a
+        digit (Indigo does not accept state names starting with a number).
 
-        :param dict input_data:
+        Args:
+            input_data (dict): The dictionary whose keys need to be sanitized.
+
+        Returns:
+            dict | None: A new dictionary with sanitized keys, or None if an exception occurs.
         """
         try:
             chars_to_replace = dict((re.escape(k), v) for k, v in CHARS_TO_REPLACE.items())
@@ -1209,12 +1289,13 @@ class PluginDevice:
 
     # =============================================================================
     def kill_curl(self, proc: subprocess.Popen = None) -> None:
-        """
-        Kill curl calls that have timed out
+        """Kill a curl subprocess that has exceeded its timeout.
 
-        The kill_curl method will kill the passed curl call if it has timed out. Added by GlennNZ and DaveL17 2018-07-19
+        Called by a threading.Timer when the configured timeout elapses. Silently ignores
+        POSIX errno 3 ("No such process"), which occurs when the process has already exited.
 
-        :param subprocess.Popen proc:
+        Args:
+            proc (subprocess.Popen): The curl subprocess to terminate.
         """
         try:
             self.logger.debug('Timeout for Curl Subprocess. Killed by timer.')
@@ -1234,18 +1315,22 @@ class PluginDevice:
             self.logger.exception('General exception:')
 
     # =============================================================================
-    def parse_the_json(self, dev: indigo.Device = None, root: str = "") -> flatdict:
-        """
-        Parse JSON data
+    def parse_the_json(self, dev: indigo.Device = None, root: str = "") -> flatdict.FlatDict | dict:
+        """Parse a raw JSON string into a flat dictionary.
 
-        The parse_the_json() method contains the steps to convert the JSON file into a flat dict.
+        Deserializes the JSON payload and passes it through ``flatdict.FlatDict`` (using
+        ``'_ghostxml_'`` as the delimiter) to produce a single-level key/value mapping. If the
+        top-level JSON value is a list, it is first converted to a dict with ``No_<index>``
+        keys. On parse failure the existing device states are returned so the device thread
+        remains alive.
 
-        https://github.com/gmr/flatdict
-        class flatdict.FlatDict(value=None, delimiter=None, former_type=<type 'dict'>)
+        Args:
+            dev (indigo.Device): The Indigo device whose JSON data is being parsed.
+            root (str): The raw JSON string to parse.
 
-        :param indigo.Device dev:
-        :param str root:
-        :return self.jsonRawData:
+        Returns:
+            flatdict.FlatDict | dict: The flattened data, or the previous device states dict
+            if a parse error occurs.
         """
         self.old_device_states = dict(dev.states)
 
@@ -1292,12 +1377,14 @@ class PluginDevice:
 
     # =============================================================================
     def parse_state_values(self, dev: indigo.Device = None) -> None:
-        """
-        Parse data values to device states
+        """Write values from ``self.final_dict`` to the corresponding Indigo device states.
 
-        The parse_state_values() method walks through the dict and assigns the corresponding value to each device state.
+        For ``GhostXMLdeviceTrue`` devices, string values that represent boolean concepts
+        (e.g. "on", "true", "yes") also generate a companion ``<key>_bool`` state. For
+        standard ``GhostXMLdevice`` devices all values are coerced to strings.
 
-        :param indigo.Device dev:
+        Args:
+            dev (indigo.Device): The Indigo device whose states are being updated.
         """
         state_list  = []
         sorted_list = [_ for _ in sorted(self.final_dict.keys()) if _ not in ('deviceIsOnline', 'parse_error')]
@@ -1338,12 +1425,13 @@ class PluginDevice:
 
     # =============================================================================
     def refresh_data_for_dev(self, dev: indigo.Device = None) -> None:
-        """
-        Initiate refresh of device as required
+        """Refresh data for a single device if it is configured and enabled.
 
-        If a device is both configured and enabled, initiate a refresh.
+        Retrieves raw data via ``get_the_data()``, routes it to the appropriate parser (XML or
+        JSON), updates device states, and manages the bad-call counter and device status icon.
 
-        :param indigo.Device dev:
+        Args:
+            dev (indigo.Device): The Indigo device to refresh.
         """
         try:
             if dev.configured and dev.enabled:
@@ -1421,15 +1509,22 @@ class PluginDevice:
             self.logger.exception("General exception: %s" % dev.name)
 
     # =============================================================================
-    def strip_namespace(self, dev: indigo.Device = None, root: (bytes, str) = "") -> re.sub:
-        """
-        Strip XML namespace from payload
+    def strip_namespace(self, dev: indigo.Device = None, root: bytes | str = "") -> str:
+        """Strip XML namespace declarations from a raw XML payload.
 
-        The strip_namespace() method strips any XML namespace values, and loads into self.rawData.
+        Removes ``xmlns``, ``xmlns:xsi``, ``xmlns:xsd``, and ``xsi:noNamespaceSchemaLocation``
+        attributes from the XML string so that the parser can handle the document without
+        namespace-aware lookups. If ``root`` is empty, substitutes a default empty-document
+        placeholder.
 
-        :param indigo.Device dev:
-        :param bytes, str root:
-        :return self.rawData:
+        Args:
+            dev (indigo.Device): The Indigo device associated with this payload (used for
+                logging).
+            root (bytes | str): The raw XML payload as a string or bytes object.
+
+        Returns:
+            str: The namespace-stripped XML string, or the default empty-document placeholder
+            on error.
         """
         d_root = (
             "<?xml version='1.0' encoding='UTF-8'?>"
