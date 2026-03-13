@@ -31,9 +31,12 @@ except ImportError:
     pass
 
 # ===============================Custom Imports================================
+# the following lines make it possible to import from the /tests/ folder
 from constants import *  # noqa
-from curlcodes import codes as curl_code  # noqa
-from httpcodes import codes as http_code  # noqa
+_plugin_path = os.path.abspath(sys._getframe().f_code.co_filename)
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(_plugin_path)))))
+from tests import curlcodes as curl_code  # noqa
+from tests import httpcodes as http_code  # noqa
 from plugin_defaults import kDefaultPluginPrefs  # noqa
 
 __author__    = "berkinet, DaveL17, GlennNZ, howartp"
@@ -983,7 +986,7 @@ class Plugin(indigo.PluginBase):
         Args:
             action (indigo.PluginAction): The Indigo action that triggered the test run.
         """
-        from Tests import iom_tests  # test_devices
+        from tests import iom_tests
         tests = iom_tests.TestPlugin()
 
         def process_test_result(result: list, name: str) -> None:
