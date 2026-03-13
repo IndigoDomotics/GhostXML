@@ -1,5 +1,7 @@
 ### v2025.2.1
-- 
+- Repairs debug logging statements.
+- Converts docstrings to Google style.
+- Code cleanup.
 
 ### v2025.1.0
 - Stability and performance enhancements.

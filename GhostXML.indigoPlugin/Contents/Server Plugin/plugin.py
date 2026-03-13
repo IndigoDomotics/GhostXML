@@ -976,41 +976,6 @@ class Plugin(indigo.PluginBase):
         # If the device does not have a timestamp key, is not ready for a refresh, or is disabled.
         return False
 
-    def my_tests(self, action: indigo.PluginAction = None) -> None:  # noqa
-        """Run the plugin's unit test suite via a plugin action item.
-
-        Imports the ``iom_tests`` module, instantiates the test class, and runs all test
-        groups (actions, triggers, Indigo methods, plugin methods). Results are logged as
-        warnings.
-
-        Args:
-            action (indigo.PluginAction): The Indigo action that triggered the test run.
-        """
-        from tests import iom_tests
-        tests = iom_tests.TestPlugin()
-
-        def process_test_result(result: list, name: str) -> None:
-            if result[0] is True:
-                self.logger.warning("%s tests passed." % name)
-            else:
-                self.logger.warning("%s tests failed." % result[1])
-
-        # ===================================== Plugin Action =====================================
-        test = tests.test_plugin_actions(self)
-        process_test_result(test, "Plugin Actions")
-
-        # ===================================== Plugin Action =====================================
-        test = tests.test_plugin_triggers(self)
-        process_test_result(test, "Plugin Triggers")
-
-        # ===================================== Indigo Methods =====================================
-        test = tests.test_indigo_methods(self)
-        process_test_result(test, "Indigo Methods")
-
-        # ===================================== Plugin Methods =====================================
-        test = tests.test_plugin_methods(self)
-        process_test_result(test, "Plugin Methods")
-
 
 # =============================================================================
 class PluginDevice:
