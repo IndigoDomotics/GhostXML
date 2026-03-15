@@ -19,26 +19,26 @@
 - Fixes bug in device config substitutions example.
 - Introduces new plugin unit tests.
 - Code refinements.
- 
+
 ### v2023.0.2
 - Minor code refinements.
- 
+
 ### v2023.0.1
 - Code enhancements.
 
 ### v2022.3.3
 - Fixes a bug where devices displaying an `IOError` state incorrectly report as being online.
- 
+
 ### v2022.3.2
 - Bumps version number.
- 
+
 ### v2022.3.1
 - Takes v2022.3.0 out of beta.
 
 ### v2022.3.0
 - Updates most communication to use the `requests` library instead of `curl`.
 - Fixes bug where debug level might not be honored on startup.
-- Wiki updates. 
+- Wiki updates.
 
 ### v2022.2.1
 - Adds foundation for API `3.2`.
@@ -48,11 +48,10 @@
 
 ### v2022.1.2
 - Adds foundation for API `3.1`.
-
-### v2022.1.2
 - Adds `_to_do_list.md` and changes changelog to markdown.
 - Moves plugin environment logging to plugin menu item (log only on request).
 - Fixes bug where plugin device object wouldn't honor current debug logging level.
+
 
 ### v2022.1.1
 - Ensure that a device's ID is removed from managed devices when the device is deleted (even if the device has not been
@@ -189,8 +188,6 @@
 
 ### v0.4.34
 - Bug fixes.
-
-### v0.4.34
 - Improves setting of device online status in Indigo UI.
 - Bug fix (syntax error)
 
@@ -245,8 +242,6 @@
 
 ### v0.4.16
 - Consolidates pulls and other changes.
-
-### v0.4.16
 - Adds raw curl support.
 
 ### v0.4.14
@@ -296,7 +291,7 @@
 - Fixes bug where curl reported error when completed successfully.
 
 flatdict.py
-- Adds trap for dict values that are empty lists or empty dicts. The trap  replaces the list or dict with 'None'. This
+- **flatdict.py:** Adds trap for dict values that are empty lists or empty dicts. The trap replaces the list or dict with 'None'. This
   allows the plugin to retain and show the key as a device state.
 
 ### v0.4.02
@@ -352,9 +347,9 @@ flatdict.py
 
 ### v0.3.08
 - Moved GhostXML Action Refresh Data For Device to the Device Actions Group.
-- Moved GhostXML Action Refresh Data For All Devices to the Device Actions Group. (Select New Action Group --> Device 
+- Moved GhostXML Action Refresh Data For All Devices to the Device Actions Group. (Select New Action Group --> Device
   Actions --> GhostXML Controls)
-- Migrated processing of device updates to multiprocessing pool. This change lays the groundwork for devices to update 
+- Migrated processing of device updates to multiprocessing pool. This change lays the groundwork for devices to update
   individually and without having to wait for other devices to finish updating.
 - Added dict.get() to certain dev.pluginProps for robustness.
 - Fixes bug in establishment of logFile write under certain exceptions.
