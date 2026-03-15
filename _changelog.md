@@ -2,6 +2,9 @@
 - Repairs debug logging statements.
 - Converts docstrings to Google style.
 - Code cleanup.
+- Standardized project `.gitignore` file.
+- Removes unused variables from `tests/.env` file.
+- Removes empty plugin directories.
 
 ### v2025.1.0
 - Stability and performance enhancements.
