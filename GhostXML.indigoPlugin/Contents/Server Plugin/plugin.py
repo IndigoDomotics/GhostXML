@@ -35,8 +35,8 @@ except ImportError:
 from constants import *  # noqa
 _plugin_path = os.path.abspath(sys._getframe().f_code.co_filename)
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(_plugin_path)))))
-from tests import curlcodes as curl_code  # noqa
-from tests import httpcodes as http_code  # noqa
+from tests.curlcodes import CODES as CURLCODES  # noqa
+from tests.httpcodes import CODES as HTTPCODES  # noqa
 from plugin_defaults import kDefaultPluginPrefs  # noqa
 
 __author__    = "berkinet, DaveL17, GlennNZ, howartp"
@@ -188,7 +188,7 @@ class Plugin(indigo.PluginBase):
             dev (indigo.Device): The Indigo device starting communication.
         """
         self.logger.debug("%s communication starting." % dev.name)
-        self.managed_devices[dev.id] = PluginDevice(self, dev)
+        # self.managed_devices[dev.id] = PluginDevice(self, dev)  TODO: delete this line as established on line 238 below.
 
         dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Starting")
 
@@ -1190,11 +1190,11 @@ class PluginDevice:
                         self.host_plugin.logger.debug("[%s] curl error %s." % (dev.name, curl_err))
 
                         # for Indigo event log
-                        err_msg = curl_code.get(f"{return_code}", "Unknown code message.")
+                        err_msg = CURLCODES.get(f"{return_code}", "Unknown code message.")
                         self.host_plugin.logger.debug("[%s] - Return code: %s - %s]" % (dev.name, return_code, err_msg))
                 case "request":
                     if return_code != 200:
-                        self.logger.warning("%s - [%s] %s", dev.name, return_code, http_code[return_code])
+                        self.logger.warning("%s - [%s] %s", dev.name, return_code, HTTPCODES[return_code])
             return result
 
         except IOError:
@@ -1325,16 +1325,10 @@ class PluginDevice:
 
             return self.json_raw_data
 
-        except (ValueError, json.decoder.JSONDecodeError):
-            self.logger.debug("[%s] Parse Error:" % dev.name)
-            self.logger.debug("[%s] jsonRawData %s" % (dev.name, self.json_raw_data))
-
+        except (ValueError, json.decoder.JSONDecodeError) as err:
             # If we let it, an exception here will kill the device's thread. Therefore, we have to return something
             # that the device can use in order to keep the thread alive.
-            self.logger.warning(
-                "%s - There was a parse error. Will continue to poll. "
-                "Check the plugin log for more information." % dev.name
-            )
+            self.logger.warning("%s - Parse error: %s. Will continue to poll." % (dev.name, err))
             self.old_device_states['parse_error'] = True
             return self.old_device_states
 

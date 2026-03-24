@@ -173,8 +173,7 @@ def iterate_main(root):  # noqa
             final_dict[key] = value
 
     except Exception as err:  # noqa
-        indigo.server.log(f"{err}", isError=True)
-        indigo.server.log('There was a parse error. Check XML source.')
+        indigo.server.log(f"Parse error: {err}. Check XML source.", isError=True)
         final_dict = {'Response': 'Parse error. Check XML source.'}
 
     return final_dict
