@@ -35,10 +35,9 @@ except ImportError:
 from constants import *  # noqa
 _plugin_path = os.path.abspath(sys._getframe().f_code.co_filename)
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(_plugin_path)))))
-from tests.curlcodes import CODES as CURLCODES  # noqa
-from tests.httpcodes import CODES as HTTPCODES  # noqa
+from tests.curlcodes import CODES as CURLCODES
+from tests.httpcodes import CODES as HTTPCODES
 from plugin_defaults import kDefaultPluginPrefs  # noqa
-
 __author__    = "berkinet, DaveL17, GlennNZ, howartp"
 __build__     = ""
 __copyright__ = "There is no copyright for the GhostXML code base."
