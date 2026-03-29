@@ -59,18 +59,22 @@ class TestGhostXMLCreateId(APIBase):
         result = self._execute_action("adjust_refresh_time_for_dev",
                                       deviceId=int(os.getenv("ADJUST_DEVICE_REFRESH_DEV")),
                                       props=config,
-                                      wait=True
+                                      wait=True,
+                                      msg_id="test-plugin-adjust-refresh-time-for-dev"
                                       )
         self.assertEqual(result.status_code, 200, "The adjust_refresh_time_for_dev call was not successful.")
 
     def test_log_plugin_information(self):
         """Verify that the 'refresh_data' action item runs successfully."""
-        result = self._execute_action("refresh_data")
+        result = self._execute_action("refresh_data", msg_id="test_log_plugin_information")
         self.assertEqual(result.status_code, 200, "The log_plugin_information call was not successful.")
 
     def test_refresh_data_for_dev(self):
         """Verify that the 'refresh_data_for_dev' action item runs successfully."""
-        result = self._execute_action("refresh_data_for_dev", deviceId=int(os.getenv("REFRESH_DATA_FOR_DEV")))
+        result = self._execute_action("refresh_data_for_dev",
+                                      deviceId=int(os.getenv("REFRESH_DATA_FOR_DEV")),
+                                      msg_id="test-plugin-refresh-data-for-dev"
+                                      )
         self.assertEqual(result.status_code, 200, "The refresh_data_for_dev call was not successful.")
 
     def test_adjust_refresh_time_invalid_value(self):
@@ -79,13 +83,18 @@ class TestGhostXMLCreateId(APIBase):
         result = self._execute_action("adjust_refresh_time_for_dev",
                                       deviceId=int(os.getenv("ADJUST_DEVICE_REFRESH_DEV")),
                                       props=config,
-                                      wait=True
+                                      wait=True,
+                                      msg_id="test-plugin-adjust-refresh-time-invalid-value"
                                       )
         self.assertEqual(result.status_code, 500, "The adjust_refresh_time_for_dev call should have failed.")
+        print(result.json())
 
     def test_refresh_data_for_dev_invalid_device(self):
         """Verify that 'refresh_data_for_dev' returns 500 when passed an invalid device ID."""
-        result = self._execute_action("refresh_data_for_dev", deviceId=0)
+        result = self._execute_action("refresh_data_for_dev",
+                                      deviceId=0,
+                                      msg_id="test_refresh_data_for_dev_invalid_device"
+                                      )
         self.assertEqual(result.status_code, 500, "The refresh_data_for_dev call should have failed.")
 
     # ===================================== Plugin Events =====================================

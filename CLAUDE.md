@@ -19,3 +19,13 @@ processing both XML and JSON payloads and making payload data available in Indig
   - GhostXML.wiki: the plugin wiki repository.
   - Changes to the plugin files should not be pushed to the wiki repo, and changes to the wiki should not be pushed to 
     the plugin repository.
+
+## Testing
+
+Tests live in `tests/`. The `tests/shared/` directory is a **read-only git submodule**
+pointing to `https://github.com/IndigoDomotics/TestingBase.git` (branch: `main`).
+
+- **Never edit files inside `tests/shared/` locally.** Changes must be made upstream
+  in the TestingBase repository.
+- Update the submodule: `git submodule update --recursive --remote tests/shared`
+- The `tests/.env` file holds local environment variables and is gitignored.
