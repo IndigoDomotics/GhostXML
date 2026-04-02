@@ -673,29 +673,36 @@ class Plugin(indigo.PluginBase):
 
             return e_dict
 
-        # The timeout value must be a real number.
+        # The timeout value must be a positive real number.
         try:
-            _ = float(values_dict['timeout'])
+            if float(values_dict['timeout']) <= 0:
+                error_msg_dict['timeout'] = "The timeout value must be greater than zero."
         except ValueError:
             error_msg_dict['timeout'] = "The timeout value must be a real number."
 
         # The timeout value must be less than the refresh frequency.
         try:
             refresh_freq = int(values_dict['refreshFreq'])
-            if int(values_dict['timeout']) >= refresh_freq != 0:
+            if float(values_dict['timeout']) >= refresh_freq != 0:
                 error_msg_dict['timeout'] = "The timeout value cannot be greater than the refresh frequency."
                 error_msg_dict['refreshFreq'] = "The refresh frequency must be less than or equal to the timeout value."
         except ValueError:
             error_msg_dict['timeout'] = "The timeout value must be a real number."
 
-        # Max retries must be an integer.
+        # Max retries must be a non-negative integer no greater than 100.
         try:
-            _ = int(values_dict['maxRetries'])
+            max_retries = int(values_dict['maxRetries'])
+            if max_retries < 0:
+                error_msg_dict['maxRetries'] = "The max retries value must be greater than or equal to zero."
+            elif max_retries > 100:
+                error_msg_dict['maxRetries'] = "The max retries value must be no greater than 100."
         except ValueError:
             error_msg_dict['maxRetries'] = "The max retries value must be an integer."
 
         # Test the source URL/Path for proper prefix.
-        if not url.startswith(url_list):
+        if not url:
+            error_msg_dict['sourceXML'] = "A URL/Path is required."
+        elif not url.startswith(url_list):
             error_msg_dict['sourceXML'] = "Please enter a valid URL/Path."
 
         # Test the token URL/Path for proper prefix.
@@ -707,6 +714,13 @@ class Plugin(indigo.PluginBase):
             error_msg_dict['token'] = (
                 "You must supply a Token value. The plugin does not attempt to ensure that the token is valid."
             )
+
+        # Test that username and password are not empty for Basic and Digest auth.
+        if use_digest in ('Basic', 'Digest'):
+            if values_dict['digestUser'].replace(" ", "") == "":
+                error_msg_dict['digestUser'] = "You must supply a username."
+            if values_dict['digestPass'].replace(" ", "") == "":
+                error_msg_dict['digestPass'] = "You must supply a password."
 
         # Test the variable substitution IDs and indexes for URL subs. If substitutions aren't enabled, we can skip
         # this bit.
