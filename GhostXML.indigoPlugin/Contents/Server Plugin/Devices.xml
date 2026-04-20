@@ -47,7 +47,7 @@
                 <Label>Timeout:</Label>
             </Field>
 
-            <Field id="maxRetries" type="textfield" defaultValue="10" tooltip="Enter the maximum number of retries before the plugin automatically disables the device (integer).">
+            <Field id="maxRetries" type="textfield" defaultValue="10" tooltip="Enter the maximum number of retries before the plugin automatically disables the device (integer). Enter -1 to keep the device enabled regardless of the number of failures.">
                 <Label>Max Retries:</Label>
             </Field>
 
@@ -273,7 +273,7 @@
                 <Label>Timeout:</Label>
             </Field>
 
-            <Field id="maxRetries" type="textfield" defaultValue="10" tooltip="Enter the maximum number of retries before the plugin automatically disables the device (integer).">
+            <Field id="maxRetries" type="textfield" defaultValue="10" tooltip="Enter the maximum number of retries before the plugin automatically disables the device (integer). Enter -1 to keep the device enabled regardless of the number of failures.">
                 <Label>Max Retries:</Label>
             </Field>
 

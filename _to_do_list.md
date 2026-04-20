@@ -1,3 +1,4 @@
+- write a unit test to confirm that max retries of -1 is valid.
 - When there's a parse error (like from a curl timeout), three messages are written to the event log. How to reduce
   to one?
 - Additional auth types: Oauth2, WSSE

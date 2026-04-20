@@ -531,7 +531,7 @@ class Plugin(indigo.PluginBase):
 
                         # If a device has failed too many times, disable it and notify the user.
                         retries = int(dev.pluginProps.get('maxRetries', 10))
-                        if self.managed_devices[dev_id].bad_calls >= retries:
+                        if retries != -1 and self.managed_devices[dev_id].bad_calls >= retries:
                             self._process_bad_calls(dev, retries)
 
                         # If _time_to_update returns True, add device to its queue.
@@ -689,11 +689,11 @@ class Plugin(indigo.PluginBase):
         except ValueError:
             error_msg_dict['timeout'] = "The timeout value must be a real number."
 
-        # Max retries must be a non-negative integer no greater than 100.
+        # Max retries must be -1 (keep alive) or a positive integer no greater than 100.
         try:
             max_retries = int(values_dict['maxRetries'])
-            if max_retries < 0:
-                error_msg_dict['maxRetries'] = "The max retries value must be greater than or equal to zero."
+            if max_retries < -1:
+                error_msg_dict['maxRetries'] = "The max retries value must be -1 (keep alive) or >= 0."
             elif max_retries > 100:
                 error_msg_dict['maxRetries'] = "The max retries value must be no greater than 100."
         except ValueError:
@@ -1208,11 +1208,15 @@ class PluginDevice:
                 case "request":
                     if return_code != 200:
                         self.logger.warning("%s - [%s] %s", dev.name, return_code, HTTPCODES[return_code])
+                        if int(dev.pluginProps.get('maxRetries', 10)) == -1 and self.bad_calls == 0:
+                            indigo.server.log("[%s] Device is set to keep alive and will not be disabled." % dev.name, isError=True)
             return result
 
         except IOError:
             self.logger.warning("[%s] IOError:  Skipping until next scheduled poll." % dev.name)
             self.logger.debug("[%s] Device is offline. No data to return. Returning dummy dict." % dev.name)
+            if int(dev.pluginProps.get('maxRetries', 10)) == -1 and self.bad_calls == 0:
+                indigo.server.log("[%s] Device is set to keep alive and will not be disabled." % dev.name, isError=True)
             dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No comm")
             return '{"GhostXML": "IOError"}'
 
@@ -1421,7 +1425,12 @@ class PluginDevice:
                 dev.updateStateOnServer('deviceTimestamp', value=t.time())
 
                 # Throw the data to the appropriate module to flatten it.
-                if dev.pluginProps['feedType'] == "XML":
+                # Error sentinels from get_the_data are JSON regardless of feedType.
+                if isinstance(self.raw_data, str) and self.raw_data.startswith('{"GhostXML":'):
+                    self.final_dict = self.parse_the_json(dev, self.raw_data)
+                    self.final_dict = self._clean_the_keys(self.final_dict)
+
+                elif dev.pluginProps['feedType'] == "XML":
                     self.raw_data = self.strip_namespace(dev, self.raw_data)
                     self.final_dict = iterateXML.iterate_main(self.raw_data)
 
