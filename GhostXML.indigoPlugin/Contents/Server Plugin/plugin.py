@@ -14,6 +14,7 @@ import os
 import platform
 from queue import Queue  # import queue
 import re
+import shlex
 import subprocess
 import sys
 import threading
@@ -127,10 +128,11 @@ class Plugin(indigo.PluginBase):
             type_id (str): The device type identifier.
             dev_id (int): The Indigo device ID.
         """
-        dev = indigo.devices[dev_id]
+        if not user_cancelled:
+            dev = indigo.devices[dev_id]
 
-        # Replace device to list of managed devices to ensure any configuration changes are used.
-        self.managed_devices[dev.id] = PluginDevice(self, dev)
+            # Replace device to list of managed devices to ensure any configuration changes are used.
+            self.managed_devices[dev.id] = PluginDevice(self, dev)
 
     # =============================================================================
     def closed_prefs_config_ui(self, values_dict: indigo.Dict = None, user_cancelled: bool = False) -> indigo.Dict:  # noqa
@@ -173,8 +175,6 @@ class Plugin(indigo.PluginBase):
         """
         self.logger.debug("%s %s deleted." % (dev.name, dev.id))
         self.managed_devices.pop(dev.id, None)
-        if dev.id in self.managed_devices:
-            del self.managed_devices[dev.id]
 
     # =============================================================================
     def device_start_comm(self, dev: indigo.Device = None) -> None:  # noqa
@@ -387,7 +387,8 @@ class Plugin(indigo.PluginBase):
             bytes | None: The (possibly modified) XML configuration UI as a UTF-8 encoded byte
             string, or None if the device type is not handled.
         """
-        current_freq = indigo.devices[dev_id].pluginProps.get('refreshFreq', '15')
+        # Cast to int: pluginProps returns a str, but freqs is built as a list of ints, so "15" != 15.
+        current_freq = int(indigo.devices[dev_id].pluginProps.get('refreshFreq', '15'))
         freqs        = []
         xml          = self.devicesTypeDict[type_id]["ConfigUIRawXml"]
         root         = Etree.fromstring(xml)
@@ -737,7 +738,7 @@ class Plugin(indigo.PluginBase):
         if len(error_msg_dict) > 0:
             error_msg_dict['showAlertText'] = (
                 """
-                Configuration Errors\n\nThere are one or more settings that need to be" "corrected. Fields requiring
+                Configuration Errors\n\nThere are one or more settings that need to be corrected. Fields requiring
                 attention will be highlighted.
                 """
             )
@@ -1043,19 +1044,17 @@ class PluginDevice:
         Args:
             update_queue (Queue): The queue from which device refresh tasks are consumed.
         """
-        try:
-            while True:
-                t.sleep(0.25)
-                while not update_queue.empty():
+        while True:
+            t.sleep(0.25)
+            while not update_queue.empty():
+                try:
                     # Set the class' debug level to the level set for the main plugin thread--otherwise, it will stay
                     # initiated at 5. We do this here in case the main plugin logger level has changed.
                     self.logger.setLevel(self.host_plugin.debug_level)
                     task = update_queue.get()
                     self.refresh_data_for_dev(task)
-
-        except ValueError:  # noqa
-            # Add wider exception testing to test errors
-            self.logger.exception("General exception:")
+                except Exception:  # noqa - handler is inside the loop so one failure doesn't kill the thread.
+                    self.logger.exception("General exception:")
 
     # =============================================================================
     def get_the_data(self, dev: indigo.Device = None) -> str | bytes:
@@ -1121,11 +1120,11 @@ class PluginDevice:
                     # subprocess().
                     # v = [verbose] s = [silent] k = [insecure]
                     call_type = "curl"
+                    # List form + no shell=True prevents shell injection via curl_array/url variable substitutions.
                     proc = subprocess.Popen(
-                        f'/usr/bin/curl -vsk{glob_off} {curl_array} {url}',
+                        ['/usr/bin/curl', f'-vsk{glob_off}'] + shlex.split(curl_array) + [url],
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
-                        shell=True
                     )
                 # ===============================  Digest Auth  ===============================
                 case 'Digest':
@@ -1136,7 +1135,7 @@ class PluginDevice:
                     call_type = 'request'
                     basic = HTTPBasicAuth(username, password)
                     proc = requests.get(url, auth=basic, timeout=timeout)
-            # ===============================  Bearer Auth  ===============================
+                # ===============================  Bearer Auth  ===============================
                 case 'Bearer':
                     call_type = 'request'
                     token = dev.pluginProps['token']
@@ -1287,7 +1286,7 @@ class PluginDevice:
             proc.kill()
 
         except OSError as sub_error:
-            if "OSError: [Errno 3]" in str(sub_error):
+            if sub_error.errno == 3:
                 self.logger.debug(
                     "OSError No. 3: No such process. This is a result of the plugin trying to kill a process that is "
                     "no longer running."

@@ -139,67 +139,61 @@ class TestGhostXMLCreateId(APIBase):
             """)
             run_host_script(script)
 
+    # ----- _max_retries_validation_script -----
+    @staticmethod
+    def _max_retries_validation_script(max_retries_value: str, dev_id: int) -> str:
+        """Build a host script that calls Plugin.validate_device_config_ui directly.
+
+        Args:
+            max_retries_value (str): The maxRetries value to test.
+            dev_id (int): A valid Indigo device ID required by the method.
+
+        Returns:
+            str: The host script payload.
+        """
+        server_plugin_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', BASE_PATH)
+        )
+        return textwrap.dedent(f"""\
+            import sys, json
+            sys.path.insert(0, '{server_plugin_path}')
+            from plugin import Plugin
+            values           = indigo.Dict()
+            values["timeout"]        = "5"
+            values["refreshFreq"]    = "300"
+            values["maxRetries"]     = "{max_retries_value}"
+            values["sourceXML"]      = "https://httpbin.org/json"
+            values["useDigest"]      = "None"
+            values["token"]          = ""
+            values["tokenUrl"]       = ""
+            values["doSubs"]         = False
+            values["curlSubs"]       = False
+            values["disableLogging"] = False
+            values["digestUser"]     = ""
+            values["digestPass"]     = ""
+            result = Plugin.validate_device_config_ui(values, "GhostXMLdevice", {dev_id})
+            return json.dumps(dict(result[2]))
+        """)
+
     # ----- test_max_retries_keep_alive_value_is_valid -----
     def test_max_retries_keep_alive_value_is_valid(self):
         """Verify that maxRetries=-1 passes validate_device_config_ui without an error."""
         dev_id = int(os.getenv("DEVICE_MAX_RETRIES_KEEP_ALIVE"))
-        script = textwrap.dedent(f"""\
-            import json
-            plugin = indigo.server.getPlugin("{PLUGIN_ID}")
-            values = indigo.Dict({{
-                "timeout": "5", "refreshFreq": "300", "maxRetries": "-1",
-                "sourceXML": "https://httpbin.org/json", "useDigest": "None",
-                "token": "", "tokenUrl": "", "doSubs": False, "curlSubs": False,
-                "disableLogging": False,
-                "subA": "", "subB": "", "subC": "", "subD": "", "subE": "",
-                "curlSubA": "", "curlSubB": "", "curlSubC": "", "curlSubD": "", "curlSubE": ""
-            }})
-            result = plugin.validateDeviceConfigUi(values, "GhostXMLdevice", {dev_id})
-            return json.dumps(dict(result[2]))
-        """)
-        errors = json.loads(run_host_script(script))
+        errors = json.loads(run_host_script(self._max_retries_validation_script("-1", dev_id)))
         self.assertNotIn("maxRetries", errors, "maxRetries=-1 should be valid (keep alive).")
 
     # ----- test_max_retries_below_keep_alive_is_invalid -----
     def test_max_retries_below_keep_alive_is_invalid(self):
         """Verify that maxRetries=-2 fails validate_device_config_ui."""
         dev_id = int(os.getenv("DEVICE_MAX_RETRIES_KEEP_ALIVE"))
-        script = textwrap.dedent(f"""\
-            import json
-            plugin = indigo.server.getPlugin("{PLUGIN_ID}")
-            values = indigo.Dict({{
-                "timeout": "5", "refreshFreq": "300", "maxRetries": "-2",
-                "sourceXML": "https://httpbin.org/json", "useDigest": "None",
-                "token": "", "tokenUrl": "", "doSubs": False, "curlSubs": False,
-                "disableLogging": False,
-                "subA": "", "subB": "", "subC": "", "subD": "", "subE": "",
-                "curlSubA": "", "curlSubB": "", "curlSubC": "", "curlSubD": "", "curlSubE": ""
-            }})
-            result = plugin.validateDeviceConfigUi(values, "GhostXMLdevice", {dev_id})
-            return json.dumps(dict(result[2]))
-        """)
-        errors = json.loads(run_host_script(script))
+        errors = json.loads(run_host_script(self._max_retries_validation_script("-2", dev_id)))
         self.assertIn("maxRetries", errors, "maxRetries=-2 should be invalid.")
 
     # ----- test_max_retries_above_max_is_invalid -----
     def test_max_retries_above_max_is_invalid(self):
         """Verify that maxRetries=101 fails validate_device_config_ui."""
         dev_id = int(os.getenv("DEVICE_MAX_RETRIES_KEEP_ALIVE"))
-        script = textwrap.dedent(f"""\
-            import json
-            plugin = indigo.server.getPlugin("{PLUGIN_ID}")
-            values = indigo.Dict({{
-                "timeout": "5", "refreshFreq": "300", "maxRetries": "101",
-                "sourceXML": "https://httpbin.org/json", "useDigest": "None",
-                "token": "", "tokenUrl": "", "doSubs": False, "curlSubs": False,
-                "disableLogging": False,
-                "subA": "", "subB": "", "subC": "", "subD": "", "subE": "",
-                "curlSubA": "", "curlSubB": "", "curlSubC": "", "curlSubD": "", "curlSubE": ""
-            }})
-            result = plugin.validateDeviceConfigUi(values, "GhostXMLdevice", {dev_id})
-            return json.dumps(dict(result[2]))
-        """)
-        errors = json.loads(run_host_script(script))
+        errors = json.loads(run_host_script(self._max_retries_validation_script("101", dev_id)))
         self.assertIn("maxRetries", errors, "maxRetries=101 should be invalid.")
 
     # ----- test_adjust_refresh_time_invalid_value -----
