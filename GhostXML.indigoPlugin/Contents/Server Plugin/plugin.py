@@ -32,12 +32,9 @@ except ImportError:
     pass
 
 # ===============================Custom Imports================================
-# the following lines make it possible to import from the /tests/ folder
 from constants import *  # noqa
-_plugin_path = os.path.abspath(sys._getframe().f_code.co_filename)
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(_plugin_path)))))
-from tests.curlcodes import CODES as CURLCODES
-from tests.httpcodes import CODES as HTTPCODES
+from curlcodes import CODES as CURLCODES
+from httpcodes import CODES as HTTPCODES
 from plugin_defaults import kDefaultPluginPrefs  # noqa
 __author__    = "berkinet, DaveL17, GlennNZ, howartp"
 __build__     = ""
