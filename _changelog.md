@@ -1,5 +1,6 @@
 ### v2025.2.2
 - Reduces redundant event log messages on XML parse error from multiple to one.
+- Confirms unit tests for maxRetries=-1 (keep alive) validation already exist; no new tests needed.
 
 ### v2025.2.1 [released]
 - Adds a new feature to the Max Retries device configuration parameter where a value of -1 means that the device will

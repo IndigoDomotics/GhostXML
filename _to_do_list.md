@@ -1,4 +1,3 @@
-- write a unit test to confirm that max retries of -1 is valid.
 - Additional auth types: Oauth2, WSSE
 - Germ of an idea: a GhostXML plugin api where users can send a url and get back a flatdict.
   - would need to handle auth
