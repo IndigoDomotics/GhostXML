@@ -8,11 +8,6 @@ Credit for flatten_dict(): https://codereview.stackexchange.com/users/1659/winst
 """
 from xml.etree import ElementTree
 
-try:
-    import indigo  # noqa
-except ImportError:
-    pass
-
 
 class XmlDictConfig(dict):
     """Converts an XML ElementTree element into a nested dictionary.
@@ -172,8 +167,7 @@ def iterate_main(root):  # noqa
             key = key.replace('_A_t_t_r_i_b_s', "")
             final_dict[key] = value
 
-    except Exception as err:  # noqa
-        indigo.server.log(f"Parse error: {err}. Check XML source.", isError=True)
+    except Exception:  # noqa
         final_dict = {'Response': 'Parse error. Check XML source.'}
 
     return final_dict

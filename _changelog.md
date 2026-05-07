@@ -1,3 +1,6 @@
+### v2025.2.2
+- Reduces redundant event log messages on XML parse error from multiple to one.
+
 ### v2025.2.1 [released]
 - Adds a new feature to the Max Retries device configuration parameter where a value of -1 means that the device will
   not be disabled regardless of the number of communication failures -- e.g., "keep alive."

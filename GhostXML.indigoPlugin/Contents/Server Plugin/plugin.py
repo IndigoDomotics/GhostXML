@@ -1459,6 +1459,7 @@ class PluginDevice:
                         self.bad_calls += 1
                     # 2023-10-04 DaveL17 - update to include XML parse error.
                     elif dev.states.get("Response", "") in ["No data to return.", "Parse error. Check XML source."]:
+                        self.logger.warning("%s - Parse error. Check XML source. Will continue to poll.", dev.name)
                         dev.updateStateOnServer('deviceIsOnline', value=False, uiValue='Error')
                         dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
                         self.bad_calls += 1
