@@ -15,6 +15,7 @@ import platform
 from queue import Queue  # import queue
 import re
 import shlex
+import socket
 import subprocess
 import sys
 import threading
@@ -1208,18 +1209,92 @@ class PluginDevice:
                             indigo.server.log("[%s] Device is set to keep alive and will not be disabled." % dev.name, isError=True)
             return result
 
-        except IOError:
-            self.logger.warning("[%s] IOError:  Skipping until next scheduled poll." % dev.name)
-            self.logger.debug("[%s] Device is offline. No data to return. Returning dummy dict." % dev.name)
-            if int(dev.pluginProps.get('maxRetries', 10)) == -1 and self.bad_calls == 0:
-                indigo.server.log("[%s] Device is set to keep alive and will not be disabled." % dev.name, isError=True)
-            dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No comm")
-            return '{"GhostXML": "IOError"}'
+        except requests.exceptions.SSLError as e:
+            return self._log_comm_failure(dev, "SSL Error", "TLS/certificate error: %s" % e)
+
+        except requests.exceptions.ConnectTimeout as e:
+            return self._log_comm_failure(dev, "Timeout", "Timed out connecting to host: %s" % e)
+
+        except requests.exceptions.ReadTimeout as e:
+            return self._log_comm_failure(
+                dev, "Timeout", "Connected, but timed out waiting for a response: %s" % e
+            )
+
+        except requests.exceptions.ConnectionError as e:
+            reason     = getattr(e, "args", [None])[0]
+            underlying = getattr(reason, "reason", reason)
+            if self._is_dns_failure(underlying):
+                # DNS resolution failed - most likely no internet/DNS server down, which is the
+                # scenario that most directly correlates with a local ISP outage.
+                return self._log_comm_failure(
+                    dev, "DNS Error", "Could not resolve hostname - no DNS/internet? %s" % underlying
+                )
+            return self._log_comm_failure(dev, "Connection Error", "Connection failed: %s" % (underlying or e))
+
+        except (FileNotFoundError, PermissionError) as e:
+            return self._log_comm_failure(dev, "File Error", "Local file source error: %s" % e)
+
+        except IOError as e:
+            # Fallback for anything else that is OSError-derived and wasn't more specifically handled above.
+            return self._log_comm_failure(dev, "IOError", "IOError: %s. Skipping until next scheduled poll." % e)
 
         except Exception:  # noqa
             # Add wider exception testing to test errors
             self.logger.exception("General exception: %s" % return_code)
             return '{"GhostXML": "General Exception"}'
+
+    # =============================================================================
+    @staticmethod
+    def _is_dns_failure(underlying: BaseException | None) -> bool:
+        """Determine whether a ConnectionError's underlying cause was a DNS resolution failure.
+
+        Different requests/urllib3 versions surface this differently: older stacks raise
+        ``socket.gaierror`` directly as (or within) the ConnectionError's reason, while newer
+        urllib3 (2.x) wraps it in ``urllib3.exceptions.NameResolutionError`` with the
+        ``gaierror`` chained as ``__cause__``. Walk the cause chain to catch either shape without
+        importing urllib3 directly.
+
+        Args:
+            underlying (BaseException | None): The innermost reason extracted from a
+                ``requests.exceptions.ConnectionError``.
+
+        Returns:
+            bool: True if a ``socket.gaierror`` (DNS failure) is found anywhere in the chain.
+        """
+        node = underlying
+        seen = set()
+        while node is not None and id(node) not in seen:
+            seen.add(id(node))
+            if isinstance(node, socket.gaierror) or type(node).__name__ == "NameResolutionError":
+                return True
+            node = getattr(node, "__cause__", None)
+        return False
+
+    # =============================================================================
+    def _log_comm_failure(self, dev: indigo.Device, label: str, detail: str) -> str:
+        """Log a comm failure and apply the shared bookkeeping for a failed poll.
+
+        Called from each of the specific exception handlers in ``get_the_data()`` so that the
+        keep-alive log, device state update, and error sentinel return value stay consistent
+        across failure types.
+
+        Args:
+            dev (indigo.Device): The device whose poll failed.
+            label (str): Short failure category. Becomes the device's uiValue for the
+                ``GhostXML`` error state once ``refresh_data_for_dev()`` parses the sentinel.
+            detail (str): Human-readable detail describing the specific failure, written to the
+                Indigo Event Log.
+
+        Returns:
+            str: The ``'{"GhostXML": ...}'`` sentinel that ``refresh_data_for_dev()`` uses to
+            detect a failed call and increment ``bad_calls``.
+        """
+        self.logger.warning("[%s] %s" % (dev.name, detail))
+        self.logger.debug("[%s] Device is offline. No data to return. Returning dummy dict." % dev.name)
+        if int(dev.pluginProps.get('maxRetries', 10)) == -1 and self.bad_calls == 0:
+            indigo.server.log("[%s] Device is set to keep alive and will not be disabled." % dev.name, isError=True)
+        dev.updateStateOnServer('deviceIsOnline', value=False, uiValue="No comm")
+        return json.dumps({"GhostXML": label})
 
     # =============================================================================
     def _clean_the_keys(self, input_data: dict = None) -> dict | None:

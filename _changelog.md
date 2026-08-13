@@ -1,4 +1,9 @@
-### v2025.2.2
+### v2025.2.3
+- Replaces the generic `IOError` comm-failure message with specific handlers for SSL/certificate errors, connection
+  timeouts, read timeouts, DNS resolution failures, other connection errors, and missing/unreadable local file
+  sources, so the Indigo Event Log and device state report what actually happened instead of one generic message.
+
+### v2025.2.2 [released]
 - Reduces redundant event log messages on XML parse error from multiple to one.
 - Confirms unit tests for maxRetries=-1 (keep alive) validation already exist; no new tests needed.
 
