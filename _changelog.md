@@ -10,6 +10,7 @@
 - Redacts auth headers from the Raw Curl `-v` transcript before logging it at Debug level.
 - Gives `PluginDevice`'s update thread a real stop mechanism so it terminates instead of leaking.
 - Updates two unit tests to expect HTTP 200 instead of 500, matching the new guard behavior.
+- Reordered plugin menu items.
 
 ### v2025.2.2
 - Reduces redundant event log messages on XML parse error from multiple to one.
