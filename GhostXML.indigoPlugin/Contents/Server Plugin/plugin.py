@@ -129,6 +129,10 @@ class Plugin(indigo.PluginBase):
         if not user_cancelled:
             dev = indigo.devices[dev_id]
 
+            # Stop the previous device's update thread before replacing it, if one exists.
+            if dev.id in self.managed_devices:
+                self.managed_devices[dev.id].stop()
+
             # Replace device to list of managed devices to ensure any configuration changes are used.
             self.managed_devices[dev.id] = PluginDevice(self, dev)
 
@@ -172,7 +176,9 @@ class Plugin(indigo.PluginBase):
             dev (indigo.Device): The Indigo device that was deleted.
         """
         self.logger.debug("%s %s deleted." % (dev.name, dev.id))
+        self.changing_managed_devices = True
         self.managed_devices.pop(dev.id, None)
+        self.changing_managed_devices = False
 
     # =============================================================================
     def device_start_comm(self, dev: indigo.Device = None) -> None:  # noqa
@@ -185,7 +191,6 @@ class Plugin(indigo.PluginBase):
             dev (indigo.Device): The Indigo device starting communication.
         """
         self.logger.debug("%s communication starting." % dev.name)
-        # self.managed_devices[dev.id] = PluginDevice(self, dev)  TODO: delete this line as established on line 238 below.
 
         dev.updateStateOnServer('deviceIsOnline', value=dev.states['deviceIsOnline'], uiValue="Starting")
 
@@ -232,6 +237,9 @@ class Plugin(indigo.PluginBase):
 
         # Add device to list of managed devices
         self.changing_managed_devices = True
+        # Stop the previous device's update thread before replacing it, if one exists.
+        if dev.id in self.managed_devices:
+            self.managed_devices[dev.id].stop()
         self.managed_devices[dev.id] = PluginDevice(self, dev)
         self.changing_managed_devices = False
 
@@ -255,8 +263,8 @@ class Plugin(indigo.PluginBase):
         """
         # =============================================================================
         try:
-            # Join the related thread. There must be a timeout set because the threads may never terminate on their own.
-            self.managed_devices[dev.id].dev_thread.join(0.25)
+            # Signal the device's update thread to stop and wait for it to exit.
+            self.managed_devices[dev.id].stop()
 
             # Delete the device from the list of managed devices.
             self.changing_managed_devices = True
@@ -337,22 +345,22 @@ class Plugin(indigo.PluginBase):
         # self.logger.debug("self.managedDevices: %s" % self.managedDevices)
         state_list = indigo.PluginBase.get_device_state_list(self, dev)
 
-        # ========================= Custom States as Strings ==========================
-        if dev.deviceTypeId == 'GhostXMLdevice':
-            # If dev is not listed in managed devices, return the existing states.
-            if dev.id not in self.managed_devices:
-                for key in dev.states:
-                    dynamic_state = self.getDeviceStateDictForStringType(f"{key}", f"{key}", f"{key}")
-                    state_list.append(dynamic_state)
-
-            # If there are managed devices, return the keys that are in finalDict.
-            else:
-                for key in sorted(self.managed_devices[dev.id].final_dict):
-                    dynamic_state = self.getDeviceStateDictForStringType(f"{key}", f"{key}", f"{key}")
-                    state_list.append(dynamic_state)
-
-        # ======================== Custom States as True Type =========================
         try:
+            # ========================= Custom States as Strings ==========================
+            if dev.deviceTypeId == 'GhostXMLdevice':
+                # If dev is not listed in managed devices, return the existing states.
+                if dev.id not in self.managed_devices:
+                    for key in dev.states:
+                        dynamic_state = self.getDeviceStateDictForStringType(f"{key}", f"{key}", f"{key}")
+                        state_list.append(dynamic_state)
+
+                # If there are managed devices, return the keys that are in finalDict.
+                else:
+                    for key in sorted(self.managed_devices[dev.id].final_dict):
+                        dynamic_state = self.getDeviceStateDictForStringType(f"{key}", f"{key}", f"{key}")
+                        state_list.append(dynamic_state)
+
+            # ======================== Custom States as True Type =========================
             self.logger.debug("[get_device_state_list / self.managed_devices] = %s" % self.managed_devices)
             if dev.deviceTypeId == 'GhostXMLdeviceTrue':
                 # If there are no managed devices, return the existing states.
@@ -770,7 +778,11 @@ class Plugin(indigo.PluginBase):
             values_dict (indigo.Dict): The action values dict. Must include ``deviceId`` and
                 ``props['new_refresh_freq']``.
         """
-        dev       = self.managed_devices[values_dict.deviceId].device
+        try:
+            dev = self.managed_devices[values_dict.deviceId].device
+        except KeyError:
+            self.logger.warning("Device not found. Please check settings.")
+            return
         new_props = dev.pluginProps
         new_props['refreshFreq'] = int(values_dict.props['new_refresh_freq'])
         dev.replacePluginPropsOnServer(new_props)
@@ -960,7 +972,11 @@ class Plugin(indigo.PluginBase):
         Args:
             values_dict (indigo.Dict): The action values dictionary. Must include ``deviceId``.
         """
-        dev = self.managed_devices[values_dict.deviceId].device
+        try:
+            dev = self.managed_devices[values_dict.deviceId].device
+        except KeyError:
+            self.logger.warning("Device not found. Please check settings.")
+            return
         self.managed_devices[dev.id].queue.put(dev)
 
     # =============================================================================
@@ -1015,8 +1031,9 @@ class PluginDevice:
         self.raw_data          = ''
         self.old_device_states = {}
 
-        self.queue      = Queue(maxsize=0)
-        self.dev_thread = threading.Thread(name=self.device.id, target=self._initiate_device_update, args=(self.queue,))
+        self.queue       = Queue(maxsize=0)
+        self._stop_event = threading.Event()
+        self.dev_thread  = threading.Thread(name=str(self.device.id), target=self._initiate_device_update, args=(self.queue,))
         self.dev_thread.start()
 
         self.plugin_device_is_initializing = False
@@ -1042,7 +1059,7 @@ class PluginDevice:
         Args:
             update_queue (Queue): The queue from which device refresh tasks are consumed.
         """
-        while True:
+        while not self._stop_event.is_set():
             t.sleep(0.25)
             while not update_queue.empty():
                 try:
@@ -1053,6 +1070,20 @@ class PluginDevice:
                     self.refresh_data_for_dev(task)
                 except Exception:  # noqa - handler is inside the loop so one failure doesn't kill the thread.
                     self.logger.exception("General exception:")
+
+    # =============================================================================
+    def stop(self, timeout: float = 1.0) -> None:
+        """Signal the device's update thread to stop and wait for it to exit.
+
+        Args:
+            timeout (float): Seconds to wait for the thread to exit before giving up.
+        """
+        self._stop_event.set()
+        self.dev_thread.join(timeout)
+        if self.dev_thread.is_alive():
+            self.logger.warning(
+                "[%s] Device update thread did not stop within %.2fs." % (self.device.name, timeout)
+            )
 
     # =============================================================================
     def get_the_data(self, dev: indigo.Device = None) -> str | bytes:
@@ -1148,8 +1179,21 @@ class PluginDevice:
 
                     # Get the token
                     response = requests.post(a_url, json=data, headers=headers, timeout=timeout)
-                    reply = response.json()
-                    token = reply["access_token"]
+                    if response.status_code != 200:
+                        return self._log_comm_failure(
+                            dev,
+                            "Token Error",
+                            "Token request failed: [%s] %s" % (response.status_code, response.text)
+                        )
+                    try:
+                        reply = response.json()
+                    except json.decoder.JSONDecodeError as e:
+                        return self._log_comm_failure(dev, "Token Error", "Token response was not valid JSON: %s" % e)
+                    token = reply.get("access_token")
+                    if not token:
+                        return self._log_comm_failure(
+                            dev, "Token Error", "Token response did not include an 'access_token' key."
+                        )
 
                     url = f"{a_url}?access_token={token}"
                     proc = requests.get(url, timeout=timeout)
@@ -1195,8 +1239,8 @@ class PluginDevice:
             match call_type:
                 case "curl":
                     if return_code != 0:
-                        # for plugin log (verbose error)
-                        curl_err = err.replace(b'\n', b' ')
+                        # for plugin log (verbose error) - redact auth headers before logging.
+                        curl_err = self._redact_curl_headers(err).replace(b'\n', b' ')
                         self.host_plugin.logger.debug("[%s] curl error %s." % (dev.name, curl_err))
 
                         # for Indigo event log
@@ -1204,7 +1248,12 @@ class PluginDevice:
                         self.host_plugin.logger.debug("[%s] - Return code: %s - %s]" % (dev.name, return_code, err_msg))
                 case "request":
                     if return_code != 200:
-                        self.logger.warning("%s - [%s] %s", dev.name, return_code, HTTPCODES[return_code])
+                        self.logger.warning(
+                            "%s - [%s] %s",
+                            dev.name,
+                            return_code,
+                            HTTPCODES.get(return_code, f"Unknown status code {return_code}")
+                        )
                         if int(dev.pluginProps.get('maxRetries', 10)) == -1 and self.bad_calls == 0:
                             indigo.server.log("[%s] Device is set to keep alive and will not be disabled." % dev.name, isError=True)
             return result
@@ -1269,6 +1318,30 @@ class PluginDevice:
                 return True
             node = getattr(node, "__cause__", None)
         return False
+
+    # =============================================================================
+    _AUTH_HEADER_RE = re.compile(
+        rb'(?im)^([<>]\s*(?:authorization|proxy-authorization|cookie|set-cookie|x-api-key|'
+        rb'x-auth-token)\s*:)\s*.*$'
+    )
+
+    @staticmethod
+    def _redact_curl_headers(transcript: bytes) -> bytes:
+        """Redact auth-bearing header lines from a Raw Curl `-v` transcript before logging.
+
+        Raw Curl commands frequently carry auth headers/cookies/tokens directly in
+        `curlArray`, and `-v` echoes those headers verbatim in both the request and response
+        sections of its stderr transcript. This strips the value of any common auth-related
+        header so the transcript stays useful for troubleshooting without writing secrets to
+        the Indigo Event Log / plugin log file at Debug level.
+
+        Args:
+            transcript (bytes): The raw stderr transcript from a curl `-v` call.
+
+        Returns:
+            bytes: The same transcript with auth header values replaced by `[REDACTED]`.
+        """
+        return PluginDevice._AUTH_HEADER_RE.sub(rb'\1 [REDACTED]', transcript)
 
     # =============================================================================
     def _log_comm_failure(self, dev: indigo.Device, label: str, detail: str) -> str:

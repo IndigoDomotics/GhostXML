@@ -1,9 +1,17 @@
 ### v2025.2.3
-- Replaces the generic `IOError` comm-failure message with specific handlers for SSL/certificate errors, connection
-  timeouts, read timeouts, DNS resolution failures, other connection errors, and missing/unreadable local file
-  sources, so the Indigo Event Log and device state report what actually happened instead of one generic message.
+- Replaces the generic `IOError` comm-failure message with specific handlers for SSL, timeout, DNS, and file errors.
+- Fixes `Thread(name=...)` being passed an `int` instead of a `str`.
+- Guards `get_device_state_list`'s string-type branch with the same exception handling as the true-type branch.
+- Reconciles `plugin_defaults.py`'s default debug level with the fallback used elsewhere.
+- Guards `adjust_refresh_time` and `refresh_data_for_dev_action` against a `KeyError` on an inactive device.
+- Replaces `HTTPCODES[return_code]` indexing with `.get()` to avoid an unhandled `KeyError`.
+- Validates the Token-auth request's status and JSON shape before reading `access_token`.
+- Guards `device_deleted`'s `managed_devices` mutation with the existing concurrency flag.
+- Redacts auth headers from the Raw Curl `-v` transcript before logging it at Debug level.
+- Gives `PluginDevice`'s update thread a real stop mechanism so it terminates instead of leaking.
+- Updates two unit tests to expect HTTP 200 instead of 500, matching the new guard behavior.
 
-### v2025.2.2 [released]
+### v2025.2.2
 - Reduces redundant event log messages on XML parse error from multiple to one.
 - Confirms unit tests for maxRetries=-1 (keep alive) validation already exist; no new tests needed.
 
@@ -59,7 +67,7 @@
 
 ### v2022.1.2
 - Adds foundation for API `3.1`.
-- Adds `_to_do_list.md` and changes changelog to markdown.
+- Adds `_to_do_list.md` and changes changelog to Markdown.
 - Moves plugin environment logging to plugin menu item (log only on request).
 - Fixes bug where plugin device object wouldn't honor current debug logging level.
 

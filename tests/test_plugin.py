@@ -198,7 +198,8 @@ class TestGhostXMLCreateId(APIBase):
 
     # ----- test_adjust_refresh_time_invalid_value -----
     def test_adjust_refresh_time_invalid_value(self):
-        """Verify that 'adjust_refresh_time_for_dev' returns 500 when passed a non-numeric refresh frequency."""
+        """Verify that 'adjust_refresh_time_for_dev' returns 200 (logs a warning, does not crash) when the
+        target device isn't in managed_devices, even with a non-numeric refresh frequency."""
         config = {"new_refresh_freq": "not_a_number"}
         result = self._execute_action("adjust_refresh_time_for_dev",
                                       deviceId=int(os.getenv("ADJUST_DEVICE_REFRESH_DEV")),
@@ -206,17 +207,18 @@ class TestGhostXMLCreateId(APIBase):
                                       wait=True,
                                       msg_id="test-plugin-adjust-refresh-time-invalid-value"
                                       )
-        self.assertEqual(result.status_code, 500, "The adjust_refresh_time_for_dev call should have failed.")
+        self.assertEqual(result.status_code, 200, "The adjust_refresh_time_for_dev call should not have crashed.")
         print(result.json())
 
     # ----- test_refresh_data_for_dev_invalid_device -----
     def test_refresh_data_for_dev_invalid_device(self):
-        """Verify that 'refresh_data_for_dev' returns 500 when passed an invalid device ID."""
+        """Verify that 'refresh_data_for_dev' returns 200 (logs a warning, does not crash) when passed an invalid
+        device ID."""
         result = self._execute_action("refresh_data_for_dev",
                                       deviceId=0,
                                       msg_id="test_refresh_data_for_dev_invalid_device"
                                       )
-        self.assertEqual(result.status_code, 500, "The refresh_data_for_dev call should have failed.")
+        self.assertEqual(result.status_code, 200, "The refresh_data_for_dev call should not have crashed.")
 
     # ===================================== Plugin Events =====================================
     # ----- test_ghost_xml_device_disabled_trigger -----
