@@ -1,4 +1,4 @@
-### v2025.2.3
+### v2025.2.3 [released]
 - Replaces the generic `IOError` comm-failure message with specific handlers for SSL, timeout, DNS, and file errors.
 - Fixes `Thread(name=...)` being passed an `int` instead of a `str`.
 - Guards `get_device_state_list`'s string-type branch with the same exception handling as the true-type branch.
