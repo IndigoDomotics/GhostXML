@@ -42,7 +42,7 @@ __build__     = ""
 __copyright__ = "There is no copyright for the GhostXML code base."
 __license__   = "MIT"
 __title__     = "GhostXML Plugin for Indigo Home Control"
-__version__   = "2025.2.3"
+__version__   = "2025.2.4"
 
 
 # =============================================================================

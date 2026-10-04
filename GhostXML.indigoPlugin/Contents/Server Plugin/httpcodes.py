@@ -1,11 +1,11 @@
 """
 httpcodes.py
 
-Usage: from httpcodes import codes as http_code
+Usage: from httpcodes import CODES as http_codes
 
-Import into plugin.py and reference curl code message as a standard dict.  I.e.,
+Import into plugin.py and reference HTTP status code message as a standard dict.  I.e.,
 
-    code = curl_code.get('-99', "Unknown code.")
+    code = http_codes.get(response.status_code, "Unknown code.")
     self.logger.warning(code)
 
 These codes should allow for more human-friendly logging for users. Unless otherwise stated, the status code is part of
@@ -38,7 +38,7 @@ CODES = {
     303: "See Other (since HTTP/1.1)",
     304: "Not Modified",
     305: "Use Proxy (since HTTP/1.1)",
-    306: "Switch Proxy",
+    306: "Switch Proxy (unused)",
     307: "Temporary Redirect (since HTTP/1.1)",
     308: "Permanent Redirect",
     400: "Bad Request",
@@ -54,14 +54,14 @@ CODES = {
     410: "Gone",
     411: "Length Required",
     412: "Precondition Failed",
-    413: "Payload Too Large",
+    413: "Content Too Large",
     414: "URI Too Long",
     415: "Unsupported Media Type",
     416: "Range Not Satisfiable",
     417: "Expectation Failed",
     418: "I'm a teapot (RFC 2324, RFC 7168)",
     421: "Misdirected Request",
-    422: "Unprocessable Entity",
+    422: "Unprocessable Content",
     423: "Locked (WebDAV; RFC 4918)",
     424: "Failed Dependency (WebDAV; RFC 4918)",
     425: "Too Early (RFC 8470)",

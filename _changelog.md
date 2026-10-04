@@ -1,3 +1,6 @@
+### v2025.2.4
+- Corrects the `httpcodes.py` docstring's usage example and updates the 306, 413 and 422 status names to match RFC 9110 ("Switch Proxy (unused)", "Content Too Large", "Unprocessable Content").
+
 ### v2025.2.3 [released]
 - Replaces the generic `IOError` comm-failure message with specific handlers for SSL, timeout, DNS, and file errors.
 - Fixes `Thread(name=...)` being passed an `int` instead of a `str`.
